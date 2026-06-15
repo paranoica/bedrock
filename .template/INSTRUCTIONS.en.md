@@ -162,7 +162,7 @@ no glue. For the rest, genesis emits a thin wrapper for the agents you selected 
 | Cursor / Roo / Windsurf / Codex | nothing — they read `AGENTS.md` natively |
 | Aider | one line in `.aider.conf.yml`: `read: [AGENTS.md]` |
 | Continue | a generated `.continue/rules/00-bedrock.md` (from `AGENTS.md`) |
-| **Antigravity** | **experimental** — `AGENTS.md` only; **no `GEMINI.md`** (precedence unverified — validate before relying) |
+| **Antigravity** | a `.agents/rules/bedrock.md` rule = `@/AGENTS.md` (Always On) — its workspace-rules path; global `~/.gemini/GEMINI.md` is the user's, untouched |
 
 Single source: every wrapper points at / mirrors `AGENTS.md`; rules are never restated in a wrapper.
 (Note: Codex's `SKILL.md` format is *nominally* the same as Claude Code's, so these skills *might* port
@@ -240,8 +240,9 @@ bash tools/run-evals.sh
   a wrapper, or your work — it reads-and-extends and surfaces conflicts.
 
 **Multi-agent**
-- *Antigravity* → **experimental**: `AGENTS.md` only, no `GEMINI.md`; the precedence (`GEMINI.md` vs
-  `AGENTS.md`) is from secondary sources — verify against primary docs before relying.
+- *Antigravity* → **supported via `.agents/rules/`**: genesis emits `.agents/rules/bedrock.md` =
+  `@/AGENTS.md` (Always On). It does NOT read a root `AGENTS.md` as rules (a corrected earlier claim);
+  `~/.gemini/GEMINI.md` is the user's global rules file — genesis doesn't touch it.
 - *Codex skills* → the `SKILL.md` format is *nominally* shared, but actual portability is **unverified**.
 
 **Gate failures (spec-analyze)**

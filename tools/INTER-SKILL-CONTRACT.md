@@ -18,8 +18,8 @@ drift-check exists to catch). When you need a path or command, read `contract.js
   before analyzing structure.
 - **Agent-agnostic canon:** `AGENTS.md` is the canonical rules doc — the cross-agent standard read
   natively by Cursor, Roo, Windsurf, and Codex. Other agents get thin wrappers (`CLAUDE.md` =
-  `@AGENTS.md`; Aider one config line; Continue a generated rules file). **Antigravity is experimental**
-  (`AGENTS.md` only; `GEMINI.md` precedence unverified — secondary sources). Catalog: genesis
+  `@AGENTS.md`; Aider one config line; Continue a generated rules file; **Antigravity** a
+  `.agents/rules/bedrock.md` workspace rule that `@`-imports `AGENTS.md`). Catalog: genesis
   `references/agent-wrappers.md`.
 - **The project map** is the shared structural index, built by `tools/project-map/build.py`. Freshness
   is stamped; consumers run `build.py --check` first and never serve a stale map as fact. Edges and

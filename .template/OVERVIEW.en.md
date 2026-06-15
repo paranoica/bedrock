@@ -30,7 +30,7 @@ Cursor, Codex, Windsurf, and more work under the same canon afterwards.
   everything else → a simple loop over your plan. You talk; the files stay in sync.
 - **Agent-agnostic by construction.** The rules live in `AGENTS.md` — the cross-agent standard read
   natively by Cursor, Codex, Roo, and Windsurf; Claude Code reads it via a thin wrapper. One canon,
-  every agent (Antigravity is experimental).
+  every agent (Antigravity via a `.agents/rules` import).
 - **Honest, agent-friendly, and inspectable.** Everything is plain files at documented paths, and the
   quality gates have teeth — they *fail* (non-zero), they don't merely warn.
 

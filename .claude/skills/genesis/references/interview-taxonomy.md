@@ -31,7 +31,7 @@ activated branches**. Each gate is a cheap yes/no read of the brief; a "no" skip
   `worker` → **no design-brief** (design-creator is web-visual-only). project-type also selects the CI
   prototype (`references/ci-emit.md`).
 - **The agents gate is ONE grouped multiselect** (Claude / Cursor / Codex / Aider / Continue /
-  Antigravity[experimental]) in the tooling branch — never mixed with product branches. **Golden-default
+  Antigravity) in the tooling branch — never mixed with product branches. **Golden-default
   = Claude + the shared `AGENTS.md`** (covers most agents natively). If the user doesn't answer, don't
   interrogate about six tools — ship the two base wrappers and move on. Drives Phase 4 wrapper emission.
 

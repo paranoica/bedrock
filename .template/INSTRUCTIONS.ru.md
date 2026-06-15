@@ -159,7 +159,7 @@
 | Cursor / Roo / Windsurf / Codex | ничего — читают `AGENTS.md` нативно |
 | Aider | одна строка в `.aider.conf.yml`: `read: [AGENTS.md]` |
 | Continue | генерируемый `.continue/rules/00-bedrock.md` (из `AGENTS.md`) |
-| **Antigravity** | **experimental** — только `AGENTS.md`; **без `GEMINI.md`** (precedence не верифицирован — проверить перед использованием) |
+| **Antigravity** | `.agents/rules/bedrock.md` = `@/AGENTS.md` (Always On) — путь workspace-правил; глобальный `~/.gemini/GEMINI.md` — юзерский, не трогаем |
 
 Single source: каждая обёртка указывает на / зеркалит `AGENTS.md`; правила в обёртке не повторяются.
 (Заметка: формат `SKILL.md` у Codex *номинально* совпадает с Claude Code, так что эти скиллы *возможно*
@@ -238,8 +238,9 @@ bash tools/run-evals.sh
   `AGENTS.md`, обёртку или твою работу — читает-и-расширяет и выносит конфликты.
 
 **Мультиагентность**
-- *Antigravity* → **experimental**: только `AGENTS.md`, без `GEMINI.md`; precedence (`GEMINI.md` vs
-  `AGENTS.md`) — из вторичных источников — проверь по первоисточнику перед использованием.
+- *Antigravity* → **supported через `.agents/rules/`**: genesis эмитит `.agents/rules/bedrock.md` =
+  `@/AGENTS.md` (Always On). Корневой `AGENTS.md` он как rules НЕ читает (исправленный ранний claim);
+  `~/.gemini/GEMINI.md` — глобальный юзерский файл правил, genesis его не трогает.
 - *Скиллы Codex* → формат `SKILL.md` *номинально* общий, но фактическая портируемость **не проверена**.
 
 **Провалы гейта (spec-analyze)**

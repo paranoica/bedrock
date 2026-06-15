@@ -35,6 +35,7 @@ do not replace. Never touch the universal rules above the placeholder.
 
 genesis emits wrappers only for the agents selected in the interview (the agents gate). `AGENTS.md`
 itself covers every agent that reads the standard natively (Cursor, Roo, Windsurf, Codex). `CLAUDE.md`
-(`@AGENTS.md`) ships already. The rest (Aider, Continue, Cursor `.mdc`, …) are emitted on demand, and
-**Antigravity is experimental** (AGENTS.md only — no `GEMINI.md`; precedence unverified). Catalog +
+(`@AGENTS.md`) ships already. The rest (Aider, Continue, Cursor `.mdc`, …) are emitted on demand;
+**Antigravity** gets a `.agents/rules/bedrock.md` workspace rule that `@`-imports `AGENTS.md` (its
+global `~/.gemini/GEMINI.md` is the user's, untouched). Catalog +
 exact per-agent format: **`references/agent-wrappers.md`**.

@@ -13,7 +13,7 @@ agents gate). Never overwrite a real wrapper — read-and-extend.
 | **Windsurf** | Yes (root, always-on) | none needed; `.windsurf/rules/*.md` only if `trigger`/`glob` activation is wanted | MD + frontmatter |
 | **Aider** | Manual | one line in `.aider.conf.yml`: `read: [AGENTS.md]` | YAML |
 | **Continue** | Unverified | generate `.continue/rules/00-bedrock.md` **from** `AGENTS.md` | MD |
-| **Antigravity** | **Experimental** (secondary sources only) | `AGENTS.md` only — **NO `GEMINI.md`** | — |
+| **Antigravity** | No (workspace rules live in `.agents/rules/`) | `.agents/rules/bedrock.md` → `@/AGENTS.md` (Always On) | Markdown + `@`-import |
 
 ## Rules
 
@@ -22,16 +22,14 @@ agents gate). Never overwrite a real wrapper — read-and-extend.
   `AGENTS.md` and mark it generated — don't hand-maintain a second copy.
 - **Emit only selected agents.** Golden-default (no answer) = Claude (`CLAUDE.md`) + the shared
   `AGENTS.md`. Don't interrogate the user about six tools.
-- **Antigravity is experimental — re-checked, still NOT primary-verified.** Confirmed from a primary
-  source (Google Codelab): Antigravity uses `.agents/` (`.agents/agents.md` for team **personas**, plus
-  `skills/`, `workflows/`). The claims that Antigravity reads a **root `AGENTS.md` as a rules file**
-  (since v1.20.3) and that **`GEMINI.md` overrides `AGENTS.md`** are consistent across secondary sources
-  (agentpedia et al.) **but cite no official docs**; the official rules page
-  (`antigravity.google/docs/rules-workflows`) is JS-rendered and could not be fetch-verified, and the
-  only readable primary source shows the persona file `.agents/agents.md` — **not** root
-  `AGENTS.md`-as-rules — so the two may be conflated. genesis emits `AGENTS.md` only and **never** emits
-  or relies on `GEMINI.md` (so nothing of ours overrides anything). **To graduate to supported:** confirm
-  the root-`AGENTS.md`-as-rules behaviour in the official docs (open the JS-rendered page in a browser).
+- **Antigravity — supported via a workspace rule** (verified against the official Antigravity *Rules*
+  docs). Antigravity's **workspace rules** live in **`.agents/rules/*.md`** (current default;
+  backward-compatible with `.agent/rules/`), are Markdown (≤12k chars), support activation levels
+  (Manual / Always On / Model Decision / Glob), and support **`@`-imports**. So genesis emits a thin
+  **`.agents/rules/bedrock.md`** containing just `@/AGENTS.md` (which resolves to `workspace/AGENTS.md`),
+  set **Always On** — Antigravity then follows the same canonical `AGENTS.md` as every other agent.
+  Antigravity does **not** read a root `AGENTS.md` as rules (the earlier secondary-source claim was
+  wrong); its **global** rules file is the user-level `~/.gemini/GEMINI.md`, which genesis never touches.
 - **Codex skills (not verified).** Codex's `SKILL.md` format is *nominally* the same as Claude Code's,
   so the skills here **might** port to Codex — **this is unverified**. Treat it as a near-term
   candidate that requires validation, not a fact. Subagent definitions differ per agent and are out of
