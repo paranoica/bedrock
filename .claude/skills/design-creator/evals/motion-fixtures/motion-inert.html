@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>inert landing fixture</title>
+  <style>
+    :root { color-scheme: light dark; }
+    * { margin: 0; box-sizing: border-box; }
+    body { font-family: Georgia, "Times New Roman", serif; }
+    section { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 4rem; }
+    h2 { font-size: clamp(2rem, 6vw, 4rem); letter-spacing: -0.02em; }
+    .a { background: #f4f1ea; color: #1a1a1a; }
+    .b { background: #1a1a1a; color: #fff; }
+    .c { background: #e8eef0; color: #1a1a1a; }
+    .d { background: #222; color: #fff; }
+  </style>
+</head>
+<body>
+  <!-- No scroll-driven motion at all: every section is static. Must FAIL motion_non_inert (landing). -->
+  <section class="a"><h2>Inert hero</h2></section>
+  <section class="b"><h2>Static proof</h2></section>
+  <section class="c"><h2>Flat features</h2></section>
+  <section class="d"><h2>Motionless CTA</h2></section>
+</body>
+</html>

@@ -29,6 +29,13 @@ fi
 step "codex skill-mirror drift (.agents/skills vs .claude/skills)"
 python3 "$ROOT/tools/port-skills.py" --check --root "$ROOT" || fail=1
 
+step "design-creator motion gate (render-backed; self-skips without a browser)"
+if command -v node >/dev/null 2>&1; then
+  node "$ROOT/.claude/skills/design-creator/evals/motion.mjs" || fail=1
+else
+  echo "  skip: node not available"
+fi
+
 if [ "$fail" -ne 0 ]; then
   printf '\nEVALS: FAIL\n'; exit 1
 fi

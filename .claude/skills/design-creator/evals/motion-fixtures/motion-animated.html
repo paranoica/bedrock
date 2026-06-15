@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>animated landing fixture (respects reduced-motion)</title>
+  <style>
+    :root { color-scheme: light dark; }
+    * { margin: 0; box-sizing: border-box; }
+    body { font-family: Georgia, "Times New Roman", serif; }
+    section { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 4rem; }
+    h2 { font-size: clamp(2rem, 6vw, 4rem); letter-spacing: -0.02em; }
+    .a { background: #f4f1ea; color: #1a1a1a; }
+    .b { background: #1a1a1a; color: #fff; }
+    .c { background: #e8eef0; color: #1a1a1a; }
+    .d { background: #222; color: #fff; }
+    /* scroll-driven reveal: transform + opacity, the 60fps-safe pair */
+    .reveal { opacity: 0; transform: translateY(48px); transition: opacity .6s ease, transform .6s ease; }
+    .reveal.in { opacity: 1; transform: none; }
+    /* respects the user preference: the motion collapses entirely */
+    @media (prefers-reduced-motion: reduce) {
+      .reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Scroll-driven reveals that honour prefers-reduced-motion. -->
+  <section class="a"><h2 class="reveal">Animated hero</h2></section>
+  <section class="b"><h2 class="reveal">Reveal proof</h2></section>
+  <section class="c"><h2 class="reveal">Sliding features</h2></section>
+  <section class="d"><h2 class="reveal">Enacted CTA</h2></section>
+  <script>
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) if (e.isIntersecting) e.target.classList.add("in");
+    }, { threshold: 0.2 });
+    document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
+  </script>
+</body>
+</html>
