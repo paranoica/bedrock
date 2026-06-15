@@ -12,9 +12,15 @@ drift-check exists to catch). When you need a path or command, read `contract.js
 ## Who writes / reads what
 
 - **genesis** writes the project's source of truth — the spec (`docs/`), the backlog (`PLAN.md` +
-  `genesis.tasks.json`), the canon (`RULES.md`) and its wrapper (`CLAUDE.md`), and the first project
-  map. It mutates task state only through `backlog.py` (never by hand), and reads the map before
-  analyzing structure.
+  `genesis.tasks.json`), the canon (`AGENTS.md` — universal rules shipped, project rules filled
+  **inline**) plus per-agent wrappers (`CLAUDE.md` = `@AGENTS.md`; others on demand), and the first
+  project map. It mutates task state only through `backlog.py` (never by hand), and reads the map
+  before analyzing structure.
+- **Agent-agnostic canon:** `AGENTS.md` is the canonical rules doc — the cross-agent standard read
+  natively by Cursor, Roo, Windsurf, and Codex. Other agents get thin wrappers (`CLAUDE.md` =
+  `@AGENTS.md`; Aider one config line; Continue a generated rules file). **Antigravity is experimental**
+  (`AGENTS.md` only; `GEMINI.md` precedence unverified — secondary sources). Catalog: genesis
+  `references/agent-wrappers.md`.
 - **The project map** is the shared structural index, built by `tools/project-map/build.py`. Freshness
   is stamped; consumers run `build.py --check` first and never serve a stale map as fact. Edges and
   domain slices are *leads to read, not facts*. Schema + protocol: `tools/project-map/CONTRACT.md`.
@@ -30,14 +36,15 @@ drift-check exists to catch). When you need a path or command, read `contract.js
 
 ## State: committed vs rebuildable
 
-Committed (source of truth + history): `docs/`, `PLAN.md`, `genesis.tasks.json`, `RULES.md`,
-`CLAUDE.md`, `project-context/`. Rebuildable / local (git-ignored): `.map/`, `.genesis/`, `.refiner/`.
+Committed (source of truth + history): `docs/`, `PLAN.md`, `genesis.tasks.json`, `AGENTS.md`,
+`CLAUDE.md` (+ any per-agent wrappers), `project-context/`. Rebuildable / local (git-ignored):
+`.map/`, `.genesis/`, `.refiner/`.
 See `.gitignore` — the split is load-bearing (a committed stale map, or a lost backlog, both break the
 "spec is the source of truth" invariant at the repo level).
 
 ## Keeping it honest
 
-`tools/drift-check.py` fails (non-zero) when the canon's mandates, the map contract, and genesis's
-scripts disagree on paths / commands / anchor facts — so the contract cannot rot silently across the
+`tools/drift-check.py` fails (non-zero) when `AGENTS.md`'s machine-contract region, the map contract,
+and genesis's scripts disagree on paths / commands / anchor facts — so the contract cannot rot across the
 projects this template seeds. It reads its values from `contract.json` and from the real code
 (`backlog.COMMANDS`, `anchors.CROSS_CUTTING`), so the checker itself can't drift from what it checks.
