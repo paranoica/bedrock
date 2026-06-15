@@ -1,0 +1,9 @@
+on: pull_request                  # untrusted PR runs with NO secrets and a read-only token
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4         # default ref = the PR merge commit, unprivileged
+      - run: npm ci && npm run build

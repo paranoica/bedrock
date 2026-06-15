@@ -1,0 +1,109 @@
+{
+  "_comment": "Router + state map for code-review (v2.1.1). Read FIRST, every review. Exists to fight context rot and token bloat: load only the files a task needs, keep the invariants near the work, keep durable state in files. The heavy review logic lives in checklists/taint-spine.md (language-agnostic) + thin per-language modules. See references/invariants.md.",
+  "invariants_file": "references/invariants.md",
+  "reinjection_rule": "Re-read references/invariants.md (a) at the start of a review, (b) immediately before writing findings to findings.json, and (c) at the top of the Step 5c grounding gate. The invariants are short by design so this is cheap. Never rely on having 'already read them' earlier in a long session.",
+  "always_first": [
+    "references/invariants.md"
+  ],
+  "discipline_file": {
+    "_comment": "Full anti-hallucination + anti-laziness + fix-safety prose. The 6-line summary lives in invariants.md; pull this only at the steps that need it (verification, applying a fix).",
+    "path": "references/review-discipline.md",
+    "load_when": "before the Step 5c grounding gate, and before applying any fix"
+  },
+  "mode_routes": {
+    "_comment": "Pick ONE mode from the user's request, then read its file.",
+    "full-project": "modes/full-project.md",
+    "uncommitted": "modes/uncommitted.md",
+    "pr-review": "modes/pr-review.md"
+  },
+  "taint_spine": {
+    "_comment": "The language-agnostic flow model. ALWAYS read before the LLM review sweep. Thin language modules below plug their concrete sinks into this spine.",
+    "path": "checklists/taint-spine.md"
+  },
+  "always_checklists": {
+    "_comment": "The four non-negotiable sweeps, read on every review regardless of stack.",
+    "files": [
+      "checklists/injection-deep.md",
+      "checklists/security-general.md",
+      "checklists/performance.md",
+      "checklists/resilience.md"
+    ]
+  },
+  "stack_routes": {
+    "_comment": "Detected stack (Step 1) -> the matching BUILT language module. Load ONLY the ones whose stack is actually present. checklists/python.md and checklists/javascript-typescript.md are the pre-existing DEEP exemplars; checklists/lang/*.md are spine-based modules built to the same bar (see checklists/lang/CONTRACT.md). Any language NOT listed here is still reviewed via checklists/taint-spine.md (spine-only) — say 'spine-only coverage, no language-specific module' in the report header.",
+    "python": "checklists/python.md",
+    "javascript": "checklists/javascript-typescript.md",
+    "typescript": "checklists/javascript-typescript.md",
+    "sql": "checklists/sql-and-data.md",
+    "go": "checklists/lang/go.md",
+    "c": "checklists/lang/c.md",
+    "cpp": "checklists/lang/cpp.md",
+    "shell": "checklists/lang/shell.md",
+    "java": "checklists/lang/java.md",
+    "kotlin": "checklists/lang/kotlin.md",
+    "csharp": "checklists/lang/csharp.md",
+    "php": "checklists/lang/php.md",
+    "rust": "checklists/lang/rust.md",
+    "dart": "checklists/lang/dart.md",
+    "swift": "checklists/lang/swift.md"
+  },
+  "planned_lang_modules": {
+    "_comment": "Remaining coverage. ruby is intentionally spine-only (owner scoped it out). lua folds into infra/redis (loadstring/sandbox-escape). Listed as prose (no path) so the structural eval doesn't treat them as required files.",
+    "ruby": "SPINE-ONLY by owner decision — Ruby/Rails reviewed via taint-spine, no dedicated module.",
+    "lua": "FOLDS INTO infra/redis — loadstring, sandbox escape, os.execute, EVAL. covered there once redis is built."
+  },
+  "infra_routes": {
+    "_comment": "Detected infra/tooling (Step 1) -> the matching BUILT misconfig checklist. Misconfig causes more incidents than exotic injections, so these are high-ROI. Load only what's present. Lua folds into redis.",
+    "ci_cd": "checklists/infra/ci-cd.md",
+    "docker": "checklists/infra/docker.md",
+    "kubernetes": "checklists/infra/kubernetes.md",
+    "terraform": "checklists/infra/terraform.md",
+    "redis": "checklists/infra/redis.md",
+    "lua": "checklists/infra/redis.md",
+    "postgres_mysql": "checklists/infra/postgres-mysql.md",
+    "graphql": "checklists/infra/graphql.md",
+    "web_servers": "checklists/infra/web-servers.md",
+    "cloud_aws": "checklists/infra/cloud-aws.md"
+  },
+  "conditional_checklists": {
+    "_comment": "Load by relevance to the diff/project, not all every time.",
+    "shared_state_async_tx": "checklists/concurrency-and-data-integrity.md",
+    "db_migration_or_api_shape": "checklists/migrations-and-compat.md",
+    "diff_deletions": "checklists/removed-defenses.md",
+    "handles_pii": "checklists/privacy-and-data-flow.md",
+    "infra_cost_surface": "checklists/finops.md",
+    "full_project_or_cross_module": "checklists/architecture.md",
+    "adds_logic_or_claims_tests": "checklists/test-quality.md",
+    "adds_or_bumps_deps": "checklists/supply-chain.md",
+    "ai_generated_code": "checklists/llm-slop.md",
+    "improvements_pass": "checklists/improvements.md"
+  },
+  "references": {
+    "severity_rubric": "references/severity-rubric.md",
+    "report_template": "references/report-template.md",
+    "invariants": "references/invariants.md",
+    "review_discipline": "references/review-discipline.md"
+  },
+  "subagents": {
+    "finding_verifier": "subagents/finding-verifier.md"
+  },
+  "scripts": {
+    "preflight": "scripts/preflight.sh",
+    "static_analysis": "scripts/run_static_analysis.sh",
+    "cve_scan": "scripts/check_cves.sh",
+    "change_risk": "scripts/change_risk.py",
+    "repo_map": "scripts/build_index.py",
+    "verify_findings": "scripts/verify_findings.py",
+    "poc_runner": "scripts/poc_runner.sh",
+    "calibration": "scripts/calibration.py",
+    "record_outcome": "scripts/record_outcome.py"
+  },
+  "state_files": {
+    "_comment": "Durable learned state lives in files under .review/, not in the conversation. Re-read on demand.",
+    "suppressions": ".review/suppressions.json (resolved false-positive signatures; COMMITTED)",
+    "standards": ".review/standards.md (accepted repo conventions; COMMITTED)",
+    "repo_map": ".review/index.json (defs/calls map from build_index.py; gitignorable, rebuildable)",
+    "outcomes": ".review/outcomes.jsonl (tp/fp log for calibration; gitignorable, local)"
+  },
+  "gitignore_policy": "Commit .review/suppressions.json and .review/standards.md (the learned source of truth). .review/index.json and .review/outcomes.jsonl can be gitignored as rebuildable/local."
+}

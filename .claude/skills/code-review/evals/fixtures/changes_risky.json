@@ -1,0 +1,7 @@
+{"files":[
+  {"path":"app/auth.py","added":120,"removed":40},
+  {"path":"migrations/0007.sql","added":30,"removed":0},
+  {"path":"config/settings.yaml","added":10,"removed":2},
+  {"path":"src/ui/button.tsx","added":60,"removed":10},
+  {"path":"package.json","added":3,"removed":1}
+]}

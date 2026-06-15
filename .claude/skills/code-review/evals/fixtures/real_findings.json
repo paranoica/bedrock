@@ -1,0 +1,4 @@
+{"findings":[
+  {"id":"R1","severity":"CRITICAL","file":"fixtures/vuln_sqli.py","lines":[5,5],
+   "quote":"cur.execute(f\"SELECT * FROM users WHERE id = {uid}\")","cve":null}
+]}

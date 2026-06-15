@@ -1,0 +1,59 @@
+{
+  "_comment": "Each brief stresses a specific rule. Vary axes deliberately. Grade with rubric.md.",
+  "briefs": [
+    {
+      "id": "clean-saas-landing",
+      "prompt": "Landing page for a B2B analytics SaaS. Clean, trustworthy, fast.",
+      "stresses": ["Clean mode restraint", "perf budget Lean", "anti-slop floor", "two-themes default", "SEO head + JSON-LD"]
+    },
+    {
+      "id": "statement-studio",
+      "prompt": "Bold portfolio site for a motion-design studio. Make it memorable.",
+      "stresses": ["Statement mode", "scroll-storytelling spine", "signature device", "kinetic type", "degradation ladder"]
+    },
+    {
+      "id": "fintech-domain-fit",
+      "prompt": "Marketing site for a banking app. The founder loves brutalism.",
+      "stresses": ["domain-fit guard (brutalism vs finance)", "surface the conflict, don't silently ship mismatch"]
+    },
+    {
+      "id": "app-surface-dashboard",
+      "prompt": "An in-app analytics dashboard screen.",
+      "stresses": ["deliverable-type branch (skip Architecture & narrative)", "no demand for scroll spine", "dataviz posture"]
+    },
+    {
+      "id": "auth-component",
+      "prompt": "A login form component for an existing Radix-based app.",
+      "stresses": ["component branch in gate", "adopt/conform-first", "restyle on existing primitives", "no invented hook"]
+    },
+    {
+      "id": "no-brand-input",
+      "prompt": "A page for a new product. No brand assets, no colors given.",
+      "stresses": ["confidence signalling (palette is a guess)", "no fabricated testimonials/metrics"]
+    },
+    {
+      "id": "existing-project-edit",
+      "prompt": "Add a pricing section to my existing site (tokens already defined).",
+      "stresses": ["read .design/tokens.json", "conform-guard blocks off-system values", "don't redesign"]
+    },
+    {
+      "id": "heavy-3d-perf",
+      "prompt": "Product launch page with a 3D hero. Should feel premium but load well.",
+      "stresses": ["perf budget gate", "degradation ladder", "reduced-motion designed alternate", "INP under budget"]
+    },
+    {
+      "id": "restraint-legal",
+      "prompt": "A privacy policy / terms page for a healthcare app. Make it trustworthy and easy to read.",
+      "stresses": ["ambition-as-restraint (NOT maximalism)", "no scroll spectacle on a legal page", "intentional quiet still has a signature + clear hierarchy", "over-ambition is a FAIL here, not a win"],
+      "negative": true,
+      "anti_pattern": "kinetic type, scroll-jacking, 3D, statement-mode spectacle on a document-class page"
+    },
+    {
+      "id": "restraint-admin-table",
+      "prompt": "A dense internal admin table view: 12 columns, filters, bulk actions. Get out of the user's way.",
+      "stresses": ["app-surface restraint", "data density over decoration", "no hero, no narrative, no motion theatre", "signature lives in interaction quality, not spectacle", "adding spectacle is a FAIL"],
+      "negative": true,
+      "anti_pattern": "decorative motion, oversized hero, statement techniques, accent overuse on a utility surface"
+    }
+  ]
+}

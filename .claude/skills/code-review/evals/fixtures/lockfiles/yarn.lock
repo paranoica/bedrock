@@ -1,0 +1,6 @@
+# yarn berry
+__metadata:
+  version: 8
+"axios@npm:^1.6.0":
+  version: 1.6.0
+  resolution: "axios@npm:1.6.0"

@@ -1,0 +1,93 @@
+{
+  "_comment": "Router + state map for design-creator (v2.1.1). The engine reads this FIRST. It exists to fight context rot: load only the files a task needs, keep the invariants near the work, and keep durable state out of the chat. See principles/invariants.md.",
+  "invariants_file": "principles/invariants.md",
+  "reinjection_rule": "Re-read principles/invariants.md (a) at the start of each generation stage, (b) immediately before writing code for any section, and (c) at the top of every design-QA gate run. The invariants are short by design so this is cheap. Never rely on having 'already read them earlier' in a long session.",
+  "always_first": [
+    "principles/invariants.md",
+    "principles/anti-slop.md",
+    "principles/tells-current.md",
+    "principles/ambition.md",
+    "principles/concept.md"
+  ],
+  "axis_setup": [
+    "principles/modes.md",
+    "principles/aesthetic-families.md",
+    "principles/page-architecture.md",
+    "principles/diversity.md"
+  ],
+  "task_routes": {
+    "_comment": "Lazy loading. Load ONLY the bucket for the current task plus always_first + axis_setup. Do not pull every principle into context.",
+    "mockup_or_concept": [
+      "principles/ambition.md",
+      "principles/diversity.md",
+      "tools/spread.mjs",
+      "principles/layout.md",
+      "principles/composition.md",
+      "principles/color.md",
+      "principles/typography.md",
+      "principles/optical.md",
+      "principles/depth.md",
+      "principles/signature.md",
+      "principles/storytelling.md",
+      "principles/motion.md",
+      "principles/perf-budget.md",
+      "principles/reference-scout.md"
+    ],
+    "new_project": [
+      "bootstrap/scaffold.md",
+      "bootstrap/adopt.md",
+      "principles/seo.md",
+      "principles/governance.md",
+      "principles/memory.md",
+      "principles/reference-scout.md",
+      "tools/handoff.md",
+      "principles/frontend-gotchas.md"
+    ],
+    "edit_existing": [
+      "bootstrap/adopt.md",
+      "principles/governance.md"
+    ],
+    "generation_any_section": [
+      "principles/interaction-detail.md",
+      "principles/optical.md",
+      "principles/depth.md",
+      "principles/design-qa.md",
+      "tools/verify.md",
+      "tools/verify.mjs",
+      "tools/ambition-check.md",
+      "tools/critic.md",
+      "principles/frontend-gotchas.md"
+    ],
+    "3d": [
+      "principles/3d.md"
+    ],
+    "forms_or_auth": [
+      "principles/forms.md",
+      "patterns/auth.md"
+    ],
+    "dashboard_or_data": [
+      "principles/data-viz.md",
+      "patterns/dashboard.md"
+    ],
+    "seo_pass": [
+      "principles/seo.md"
+    ],
+    "deliverable_type_check": [
+      "principles/design-qa.md"
+    ]
+  },
+  "section_recipe_dir": "patterns/",
+  "state_files": {
+    "_comment": "Durable state lives in files, not in the conversation. Re-read on demand; do not try to remember these across a long session. See principles/invariants.md (#externalize).",
+    "token_contract": ".design/tokens.json (the bridge spec; this one is COMMITTED, not gitignored)",
+    "decisions_journal": ".design/journal.md (what was decided and WHY)",
+    "sameness_ledger": ".design/ledger.json (used hooks/archetypes/palettes; soft inertia-repeat flag + favorites pin; spread.mjs reads/writes spread[] + pins[])",
+    "spread_log": ".design/spread-log.jsonl (append-only log of chosen archetype\u00d7mechanism cell + novelty percentile per build; read by evals/diversity.mjs to measure real output spread)",
+    "project_rules": "CLAUDE.md (stack, file-length limit, folder layout) and .design/rules/",
+    "taste_profile_owner": "~/.claude/design-taste.json (owner-global preferences; advisory, never overrides the floor)",
+    "taste_profile_project": ".design/taste.json (project taste; wins over owner-global)",
+    "aesthetic_calibration": ".design/calibration.jsonl (engine in-tier prediction vs owner reaction; read via tools/calibration.mjs)",
+    "user_refs": ".design/refs/ (user-dropped reference URLs/screenshots; read first by reference-scout)"
+  },
+  "gitignore_policy": "Gitignore only bulky mockup iterations under .design/mockups/. The token contract (.design/tokens.json), the journal, and any committed design rules are NOT gitignored \u2014 they are the source of truth for Stage 3, design-QA, CI, and teammates."
+}

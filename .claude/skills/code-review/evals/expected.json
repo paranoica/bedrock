@@ -1,0 +1,271 @@
+{
+  "_comment": "Labeled corpus. must_catch = real vulns a competent review MUST surface; must_not_flag = safe twins it must NOT flag. Extend by adding a fixture pair + an entry here + a matching finding in golden_candidate.json.",
+  "must_catch": [
+    {
+      "file": "fixtures/vuln_sqli.py",
+      "category": "sqli",
+      "min_severity": "HIGH",
+      "near_line": 5,
+      "tag": "sqli-fstring"
+    },
+    {
+      "file": "fixtures/vuln_cmdi.py",
+      "category": "cmdi",
+      "min_severity": "HIGH",
+      "near_line": 4,
+      "tag": "cmdi-shell"
+    },
+    {
+      "file": "fixtures/vuln_path.py",
+      "category": "path",
+      "min_severity": "HIGH",
+      "near_line": 5,
+      "tag": "path-traversal"
+    },
+    {
+      "file": "fixtures/vuln_overflow.c",
+      "category": "overflow",
+      "min_severity": "HIGH",
+      "near_line": 4,
+      "tag": "c-strcpy-overflow"
+    },
+    {
+      "file": "fixtures/vuln_protopollution.js",
+      "category": "prototype",
+      "min_severity": "HIGH",
+      "near_line": 8,
+      "tag": "js-proto-pollution"
+    },
+    {
+      "file": "fixtures/vuln_cmdi.go",
+      "category": "cmdi",
+      "min_severity": "CRITICAL",
+      "near_line": 10,
+      "tag": "go-sh-c"
+    },
+    {
+      "file": "fixtures/vuln_deser.java",
+      "category": "deserial",
+      "min_severity": "CRITICAL",
+      "near_line": 7,
+      "tag": "java-readobject"
+    },
+    {
+      "file": "fixtures/vuln_uaf.cpp",
+      "category": "lifetime",
+      "min_severity": "HIGH",
+      "near_line": 4,
+      "tag": "cpp-iterator-invalidation"
+    },
+    {
+      "file": "fixtures/vuln_deser.cs",
+      "category": "deserial",
+      "min_severity": "CRITICAL",
+      "near_line": 6,
+      "tag": "csharp-binaryformatter"
+    },
+    {
+      "file": "fixtures/vuln_unserialize.php",
+      "category": "object-injection",
+      "min_severity": "CRITICAL",
+      "near_line": 4,
+      "tag": "php-unserialize"
+    },
+    {
+      "file": "fixtures/vuln_unsafe.rs",
+      "category": "unsafe",
+      "min_severity": "HIGH",
+      "near_line": 4,
+      "tag": "rust-from-raw-parts"
+    },
+    {
+      "file": "fixtures/vuln_cmdi.sh",
+      "category": "cmdi",
+      "min_severity": "CRITICAL",
+      "near_line": 5,
+      "tag": "shell-eval"
+    },
+    {
+      "file": "fixtures/vuln_sqli.kt",
+      "category": "sqli",
+      "min_severity": "CRITICAL",
+      "near_line": 6,
+      "tag": "kotlin-template-sql"
+    },
+    {
+      "file": "fixtures/vuln_tls.dart",
+      "category": "tls",
+      "min_severity": "HIGH",
+      "near_line": 6,
+      "tag": "dart-badcert"
+    },
+    {
+      "file": "fixtures/vuln_tls.swift",
+      "category": "tls",
+      "min_severity": "HIGH",
+      "near_line": 7,
+      "tag": "swift-trust-all"
+    },
+    {
+      "file": "fixtures/vuln.Dockerfile",
+      "category": "docker",
+      "min_severity": "HIGH",
+      "near_line": 5,
+      "tag": "docker-root-secret"
+    },
+    {
+      "file": "fixtures/vuln-pod.yaml",
+      "category": "k8s",
+      "min_severity": "CRITICAL",
+      "near_line": 10,
+      "tag": "k8s-privileged"
+    },
+    {
+      "file": "fixtures/vuln-sg.tf",
+      "category": "terraform",
+      "min_severity": "HIGH",
+      "near_line": 7,
+      "tag": "tf-open-sg"
+    },
+    {
+      "file": "fixtures/vuln-workflow.yml",
+      "category": "ci",
+      "min_severity": "CRITICAL",
+      "near_line": 8,
+      "tag": "ci-pull-request-target"
+    },
+    {
+      "file": "fixtures/vuln-nginx.conf",
+      "category": "nginx",
+      "min_severity": "HIGH",
+      "near_line": 3,
+      "tag": "nginx-alias-traversal"
+    },
+    {
+      "file": "fixtures/vuln-iam.json",
+      "category": "iam",
+      "min_severity": "HIGH",
+      "near_line": 6,
+      "tag": "iam-admin-wildcard"
+    },
+    {
+      "file": "fixtures/vuln-redis.conf",
+      "category": "redis",
+      "min_severity": "CRITICAL",
+      "near_line": 1,
+      "tag": "redis-public-noauth"
+    },
+    {
+      "file": "fixtures/vuln-pg_hba.conf",
+      "category": "postgres",
+      "min_severity": "CRITICAL",
+      "near_line": 2,
+      "tag": "pg-trust-auth"
+    },
+    {
+      "file": "fixtures/vuln-graphql.js",
+      "category": "graphql",
+      "min_severity": "MEDIUM",
+      "near_line": 6,
+      "tag": "graphql-introspection-nodepth"
+    }
+  ],
+  "must_not_flag": [
+    {
+      "file": "fixtures/safe_param.py",
+      "reason": "parameterized query is safe"
+    },
+    {
+      "file": "fixtures/safe_cmdi.py",
+      "reason": "arg vector, no shell"
+    },
+    {
+      "file": "fixtures/safe_path.py",
+      "reason": "realpath + prefix confinement"
+    },
+    {
+      "file": "fixtures/safe_overflow.c",
+      "reason": "snprintf bounded + NUL-terminated"
+    },
+    {
+      "file": "fixtures/safe_protopollution.js",
+      "reason": "safe twin of js-proto-pollution"
+    },
+    {
+      "file": "fixtures/safe_cmdi.go",
+      "reason": "safe twin of go-sh-c"
+    },
+    {
+      "file": "fixtures/safe_deser.java",
+      "reason": "safe twin of java-readobject"
+    },
+    {
+      "file": "fixtures/safe_uaf.cpp",
+      "reason": "safe twin of cpp-iterator-invalidation"
+    },
+    {
+      "file": "fixtures/safe_deser.cs",
+      "reason": "safe twin of csharp-binaryformatter"
+    },
+    {
+      "file": "fixtures/safe_unserialize.php",
+      "reason": "safe twin of php-unserialize"
+    },
+    {
+      "file": "fixtures/safe_unsafe.rs",
+      "reason": "safe twin of rust-from-raw-parts"
+    },
+    {
+      "file": "fixtures/safe_cmdi.sh",
+      "reason": "safe twin of shell-eval"
+    },
+    {
+      "file": "fixtures/safe_sqli.kt",
+      "reason": "safe twin of kotlin-template-sql"
+    },
+    {
+      "file": "fixtures/safe_tls.dart",
+      "reason": "safe twin of dart-badcert"
+    },
+    {
+      "file": "fixtures/safe_tls.swift",
+      "reason": "safe twin of swift-trust-all"
+    },
+    {
+      "file": "fixtures/safe.Dockerfile",
+      "reason": "safe twin of docker-root-secret"
+    },
+    {
+      "file": "fixtures/safe-pod.yaml",
+      "reason": "safe twin of k8s-privileged"
+    },
+    {
+      "file": "fixtures/safe-sg.tf",
+      "reason": "safe twin of tf-open-sg"
+    },
+    {
+      "file": "fixtures/safe-workflow.yml",
+      "reason": "safe twin of ci-pull-request-target"
+    },
+    {
+      "file": "fixtures/safe-nginx.conf",
+      "reason": "safe twin of nginx-alias-traversal"
+    },
+    {
+      "file": "fixtures/safe-iam.json",
+      "reason": "safe twin of iam-admin-wildcard"
+    },
+    {
+      "file": "fixtures/safe-redis.conf",
+      "reason": "safe twin of redis-public-noauth"
+    },
+    {
+      "file": "fixtures/safe-pg_hba.conf",
+      "reason": "safe twin of pg-trust-auth"
+    },
+    {
+      "file": "fixtures/safe-graphql.js",
+      "reason": "safe twin of graphql-introspection-nodepth"
+    }
+  ]
+}

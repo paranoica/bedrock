@@ -1,0 +1,9 @@
+on: pull_request_target          # runs with base-repo secrets + write token
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}  # checks out attacker PR code (pwn request)
+      - run: npm ci && npm run build      # attacker-controlled scripts run with secrets
