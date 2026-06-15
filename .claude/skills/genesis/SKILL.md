@@ -56,8 +56,9 @@ The residue between all skills belongs to **prompt-refiner**.
                              canon: stack/scope/style; never rewrite the universal rules) + emit
                              per-agent wrappers for the agents selected in the interview
                              (references/agent-wrappers.md; CLAUDE.md=@AGENTS.md ships already) + the
-                             project README.md (replace the Bedrock stub). See
-                             references/canon-template.md + references/readme-template.md
+                             project README.md (replace the Bedrock stub) + .github/workflows/ci.yml
+                             for the stack × project-type and a "Wire up CI" backlog task. See
+                             references/canon-template.md + readme-template.md + ci-emit.md
 5  First project-map       → tools/project-map/build.py → .map/project.json
 6  spec-analyze gate       → deterministic checks + fresh-context spec-verifier + hash receipt (BLOCKING)
 7  Archive + handoff       → project-context/ (raw + summary; NOT source of truth); design-brief if visual work follows

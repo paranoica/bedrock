@@ -1,0 +1,20 @@
+# ci.yml prototype — Python. Emitted by genesis into .github/workflows/ci.yml.
+# Pure GitHub Actions — NO AI runs here. genesis parametrizes <PY> and the toolchain
+# (uv shown; swap to actions/setup-python + pip/poetry if that's the project's choice).
+name: ci
+on:
+  push:
+  pull_request:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5             # or actions/setup-python@v5 + pip
+        with:
+          python-version: "<PY>"                # refreshed at generation if online
+      - run: uv sync --dev
+      - run: uv run ruff check .                # lint
+      - run: uv run mypy .                      # typecheck — drop if not configured
+      - run: uv run pytest -q                   # test
+      - run: uv build                           # CLI/library: build wheel+sdist. App → drop.

@@ -1,0 +1,14 @@
+# ci.yml SKELETON — genesis could not match a known stack. Fill the steps for your toolchain.
+# Pure GitHub Actions — NO AI runs here. Replace the TODO with real install/lint/test/build steps,
+# then resolve the "Wire up CI" backlog task once it goes green.
+name: ci
+on:
+  push:
+  pull_request:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # TODO(genesis): for <STACK> — set up the runtime, install deps, then lint · typecheck · test · build.
+      - run: echo "Replace this with real lint/test/build steps for the project's stack."

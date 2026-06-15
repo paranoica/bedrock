@@ -1,0 +1,22 @@
+# ci.yml prototype — Node / TypeScript. Emitted by genesis into .github/workflows/ci.yml.
+# Pure GitHub Actions — NO AI runs here; GitHub executes this on its own runners.
+# genesis parametrizes <PM> (pnpm|npm|yarn), <NODE>, and drops steps the project lacks.
+name: ci
+on:
+  push:
+  pull_request:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4              # match <PM>; remove for npm/yarn
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "<NODE>"                # refreshed at generation if online
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck                      # drop if not TypeScript
+      - run: pnpm test
+      - run: pnpm build                          # library → also `pnpm pack` to verify the package

@@ -13,18 +13,23 @@ activated branches**. Each gate is a cheap yes/no read of the brief; a "no" skip
 |------|--------------------------|--------------------------|
 | *(always)* | exists | **purpose** → `decisions`, `glossary` |
 | scope | — (always asked once) | **scope** (in-MVP / explicitly-out) → `decisions` |
+| project-type | always, early | **project-type** (web-app / service-API / CLI / library / worker / …) → drives the design handoff AND the CI prototype (`ci-emit.md`) |
 | data-model? | persists domain entities | **entities** (entities, relations, status enums) → `architecture` data-model + `term:*` |
 | auth? | has accounts/identity | **auth** (identity model, roles, permissions) → `decision:auth-*` |
 | money? | moves money | **money** (who pays whom, when; refunds/payouts) → `decision:money-*` |
 | integrations? | calls external services | **integrations** (which, contract) → `decision` + `open-questions` |
 | non-functional? | has scale/SLA/compliance needs | **nfr** (perf, SLA, regulatory) → `architecture` |
-| surfaces? | has ≥1 client UI | **surfaces** (web/dashboard/admin/bot/CLI/API) → **design-brief** (scope inventory for design-creator) |
+| surfaces? | has client surfaces | **surfaces** — list them. **Visual web surfaces** (pages/screens) → **design-brief** for design-creator. **Non-visual** (CLI commands, API endpoints, worker jobs) → recorded as scope only, **NO design handoff** (design-creator is web-visual-only). |
 | agents (1 grouped Q) | always, late | **agents** — which coding agents the team uses (multiselect) → per-agent **wrappers** emitted in Phase 4 |
 | *(always last)* | — | **open-decisions** sweep → `open-questions` |
 
 - **Trivial brief** (1 surface, no money, no data model) → ~2 branches fire → 2–3 questions, then
   step aside (do the thing, briefly). **Multi-surface** → most branches fire → dig to the bottom.
 - Branches that don't apply are skipped **entirely** — never asked "for completeness".
+- **project-type gates the design handoff.** Only a project with a real **visual web surface**
+  (web-app / dashboard) yields a `design-brief` → design-creator. `cli` / `library` / `service-API` /
+  `worker` → **no design-brief** (design-creator is web-visual-only). project-type also selects the CI
+  prototype (`references/ci-emit.md`).
 - **The agents gate is ONE grouped multiselect** (Claude / Cursor / Codex / Aider / Continue /
   Antigravity[experimental]) in the tooling branch — never mixed with product branches. **Golden-default
   = Claude + the shared `AGENTS.md`** (covers most agents natively). If the user doesn't answer, don't

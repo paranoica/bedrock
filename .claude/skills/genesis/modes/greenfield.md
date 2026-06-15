@@ -19,6 +19,9 @@ Sequence for the generation half (after the spec is confirmed):
    never rewrite the universal rules) per `references/canon-template.md`, and **emit per-agent
    wrappers** for the agents selected in the interview (`references/agent-wrappers.md`); emit the
    project `README.md` from `references/readme-template.md` (replace the Bedrock stub; extend a real one).
+   Then emit `.github/workflows/ci.yml` from `references/ci-emit.md` (stack × project-type; refresh
+   version pins once if online) and add the "Wire up CI" backlog task. **No `design-brief`** unless the
+   project has a real visual web surface (project-type web-app/dashboard).
 5. `tools/project-map/build.py <root>` — the first map.
 6. The gate: `analyze_spec.py <root>` (deterministic) + spawn `spec-verifier` (fresh context) +
    `backlog.py validate`. Do not declare ready on a skipped gate.

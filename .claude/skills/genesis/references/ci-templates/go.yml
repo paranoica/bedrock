@@ -1,0 +1,18 @@
+# ci.yml prototype — Go. Emitted by genesis into .github/workflows/ci.yml.
+# Pure GitHub Actions — NO AI runs here. genesis parametrizes <GO>.
+name: ci
+on:
+  push:
+  pull_request:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "<GO>"                    # refreshed at generation if online
+      - run: go vet ./...
+      - uses: golangci/golangci-lint-action@v6  # lint
+      - run: go test ./...
+      - run: go build ./...                     # CLI: also build the binary artifact

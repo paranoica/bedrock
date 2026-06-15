@@ -6,6 +6,10 @@ for a hook, concept, narrative, aesthetic, mode, or palette. There is nothing to
 design-creator forms its own hook — feeding it rich prose collapses its output diversity (its own
 docs say so: `design-creator/principles/anti-slop.md:62`, `concept.md:34-42`, `SKILL.md:91`).
 
+**A `design-brief` is emitted ONLY for a project with a real visual web surface** (project-type
+web-app / dashboard). For a CLI, library, API, or worker, genesis emits **no brief** — design-creator
+is web-visual-only, so there is nothing to hand it.
+
 ## The design-brief — the ONLY keys genesis emits
 
 Written to `.genesis/design-brief.json`. **Closed key set** — any other key is a contract violation:

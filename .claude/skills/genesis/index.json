@@ -20,6 +20,8 @@
     "canon_template": "references/canon-template.md",
     "agent_wrappers": "references/agent-wrappers.md",
     "readme_template": "references/readme-template.md",
+    "ci_emit": "references/ci-emit.md",
+    "ci_templates": "references/ci-templates/",
     "design_handoff": "references/design-handoff.md"
   },
   "subagents": {

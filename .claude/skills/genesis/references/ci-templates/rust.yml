@@ -1,0 +1,18 @@
+# ci.yml prototype — Rust. Emitted by genesis into .github/workflows/ci.yml.
+# Pure GitHub Actions — NO AI runs here.
+name: ci
+on:
+  push:
+  pull_request:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: "clippy, rustfmt"
+      - run: cargo fmt --all -- --check         # format gate
+      - run: cargo clippy --all-targets -- -D warnings   # lint
+      - run: cargo test --all                   # test
+      - run: cargo build --release              # build
