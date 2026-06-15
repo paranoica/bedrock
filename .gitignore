@@ -23,9 +23,6 @@
 # design-creator's own policy: ignore ONLY the heavy mockup iterations:
 .design/mockups/
 
-# Local design-creator output gallery (review artifacts, never committed):
-templates/
-
 # Language / tooling noise:
 __pycache__/
 *.py[cod]
