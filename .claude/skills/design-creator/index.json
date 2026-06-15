@@ -76,6 +76,22 @@
       "principles/design-qa.md"
     ]
   },
+  "contextual_load": {
+    "_comment": "Principles pulled ON DEMAND by trigger — NOT auto-loaded with the buckets above (loading them every time would defeat progressive disclosure). Listed here so the router is a COMPLETE manifest of the principles/ surface: tools/drift.mjs check fails if a principles/*.md is absent from this file. Pull each only when its trigger fires.",
+    "principles/responsive.md": "any multi-breakpoint layout work (almost always in generation)",
+    "principles/accessibility.md": "interactive UI — focus order, ARIA, contrast (pair with interaction-detail)",
+    "principles/skeletons.md": "async/loading content is present",
+    "principles/screen-states.md": "designing empty / error / loading / success states",
+    "principles/frontend-safety.md": "before shipping real code — unsafe HTML sinks, injection surfaces",
+    "principles/optimization.md": "asset / bundle weight matters (pairs with perf-budget.md)",
+    "principles/micro-mechanics.md": "finishing hover / press / focus mechanics on a section",
+    "principles/theming.md": "multi-theme or theme-token work (default two themes ⇒ usually on)",
+    "principles/icon-morphing.md": "animated icon transitions (SITUATIONAL / STATEMENT)",
+    "principles/kinetic-type.md": "expressive / animated typography (SITUATIONAL / STATEMENT)",
+    "principles/decorative-graphics.md": "background / decorative graphic layers (SITUATIONAL / STATEMENT)",
+    "principles/cursor.md": "custom cursor work (SITUATIONAL / STATEMENT)",
+    "principles/photography.md": "photographic content / art direction"
+  },
   "section_recipe_dir": "patterns/",
   "state_files": {
     "_comment": "Durable state lives in files, not in the conversation. Re-read on demand; do not try to remember these across a long session. See principles/invariants.md (#externalize).",
