@@ -63,6 +63,7 @@ matches the contract and that each command is implemented:
 gate-commands:
   backlog.py next
   backlog.py done
+  backlog.py status
   build.py --check
 -->
 
