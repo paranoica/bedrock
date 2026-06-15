@@ -18,7 +18,8 @@
     "map_check":    { "script": "tools/project-map/build.py", "flag": "--check" },
     "backlog_next": { "script": ".claude/skills/genesis/scripts/backlog.py", "cmd": "next" },
     "backlog_done": { "script": ".claude/skills/genesis/scripts/backlog.py", "cmd": "done" },
-    "backlog_status": { "script": ".claude/skills/genesis/scripts/backlog.py", "cmd": "status" }
+    "backlog_status": { "script": ".claude/skills/genesis/scripts/backlog.py", "cmd": "status" },
+    "backlog_validate": { "script": ".claude/skills/genesis/scripts/backlog.py", "cmd": "validate" }
   },
   "anchor": {
     "types": ["decision", "term", "arch", "canon"],

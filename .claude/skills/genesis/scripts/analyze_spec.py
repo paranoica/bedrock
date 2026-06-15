@@ -119,7 +119,6 @@ def analyze(root):
                         "task %s depends on OPEN decision %s — not execution-ready until resolved"
                         % (t["id"], aid), t["id"])
             # INFO — domain-noun heuristic on acceptance
-            terms_surface = {by_id[i]["body"] for i in by_id if i.startswith("term:")}
             gloss_words = set()
             for i in by_id:
                 if i.startswith("term:"):

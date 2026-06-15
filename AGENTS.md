@@ -64,6 +64,7 @@ gate-commands:
   backlog.py next
   backlog.py done
   backlog.py status
+  backlog.py validate
   build.py --check
 -->
 

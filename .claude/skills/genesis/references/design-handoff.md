@@ -51,8 +51,10 @@ in/out scope, tone), so the survey does not re-ask them. design-creator still fo
 the handoff is a structured **message passed via a file**, not an interface design-creator ingests on
 its own — don't assume it is tighter than that.
 
-## Enforcement (by construction, not by reminder)
+## Enforcement (structural guarantee + discipline — be precise about which is which)
 
-genesis emits **exactly** these keys. A brief carrying any other key — especially a prose direction —
-is a contract violation; the handoff writer **rejects unknown keys** rather than passing them through.
-Closed schema ⇒ leak-proof by construction.
+The **structural** guarantee is the schema itself: it has **no `hook`/`concept`/`narrative`/aesthetic
+field**, so there is nothing for a hook to leak *into* — that part is genuinely by-construction. The
+rest is **genesis discipline**: it emits exactly these keys and no prose direction. There is **no
+runtime validator script today** (don't claim one) — if you want hard enforcement, validate
+`.genesis/design-brief.json` against this closed key set before invoking design-creator.

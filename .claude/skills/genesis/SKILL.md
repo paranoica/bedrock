@@ -11,10 +11,11 @@ task backlog, the project's canon rules, and a first structural map — so every
 through the right gate. **Methodology, parametrized per project**: it never bakes one project's
 concrete choices (stack, file-length, naming) into itself — it asks or derives them.
 
-> **Status: complete (Claude-Code-only build).** Interview + generation core, the anchor/backlog
-> scripts, canon-template, design-handoff, modes, the spec-verifier subagent, preflight, calibration,
-> and the seam regression eval are all in place. Agent-agnostic wrappers (`AGENTS.md`, …) are
-> deferred by design. The router (`index.json`) maps every file.
+> **Status: complete.** Interview + generation core, the anchor/backlog scripts, canon-template,
+> design-handoff, modes, the spec-verifier subagent, preflight, calibration, the CI emitter, and the
+> seam + parametricity evals are all in place. `AGENTS.md` is the canonical cross-agent rules doc;
+> per-agent wrappers (`CLAUDE.md` and others) are emitted per `references/agent-wrappers.md`. The
+> router (`index.json`) maps every file.
 
 ## Read this first, every run
 1. **`index.json`** — the router + state map. Read before anything else.
