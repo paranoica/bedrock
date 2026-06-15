@@ -11,8 +11,8 @@ Cursor, Codex, Windsurf, and more work under the same canon afterwards.
 
 - **genesis** — interviews you and writes the project's *source of truth*: decisions, architecture,
   glossary, and open questions (`docs/`), a re-derivable task plan (`PLAN.md` + `genesis.tasks.json`),
-  the project rules (`AGENTS.md`, the cross-agent canon, plus a thin `CLAUDE.md` wrapper), and a first
-  structural map of the codebase.
+  the project rules (`AGENTS.md`, the cross-agent canon, plus a thin `CLAUDE.md` wrapper), a first
+  structural map of the codebase, and a real, working CI workflow (`.github/workflows/`).
 - **prompt-refiner** — quietly turns a vague request ("fix this", "make it work") into a precise,
   routed one — but only when no other skill already owns it.
 - **design-creator** — designs and builds distinctive web UI, engineered to avoid generic "AI slop".

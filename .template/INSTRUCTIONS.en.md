@@ -60,9 +60,11 @@ UI (that's design-creator).
 Depth scales to complexity (a tiny task → a couple of questions; a multi-surface product → deep). It
 asks **one open question at a time** (discrete forks may be grouped within one topic), and **never
 invents a decision you didn't make** — unknowns become `TODO(decision: …)` in `docs/open-questions.md`.
-Late in the interview it asks **one grouped question — which coding agents your team uses** (to emit
-the right wrappers; default = Claude + `AGENTS.md`). Say "just do what's best" and it proceeds on
-sensible defaults but still extracts the minimum.
+Early on it pins the **project-type** (web-app / service / CLI / library / worker) — this decides
+whether a design-brief is emitted (visual-web only) and how the CI steps are tuned. Late in the
+interview it asks **one grouped question — which coding agents your team uses** (to emit the right
+wrappers; default = Claude + `AGENTS.md`). Say "just do what's best" and it proceeds on sensible
+defaults but still extracts the minimum.
 
 ### What it produces (your source of truth)
 - `docs/decisions.md` · `architecture.md` · `glossary.md` · `open-questions.md` — the spec.
@@ -71,6 +73,7 @@ sensible defaults but still extracts the minimum.
   Plus per-agent wrappers (`CLAUDE.md` = `@AGENTS.md`; others for the agents you selected).
 - `README.md` — your project's readme (replaces the Bedrock stub).
 - `.map/project.json` — a first structural map.
+- `.github/workflows/ci.yml` + `spec-gate.yml` — a real, working CI (see **CI** below).
 - `project-context/` — the raw interview + a summary (history, **not** the source of truth).
 
 ### How re-planning stays honest (the anchor mechanism)
@@ -89,6 +92,16 @@ skipped **or stale** gate (the receipt's `--check` must be fresh). The determini
 consistency are **also enforced in the seeded project's CI** (`.github/workflows/spec-gate.yml`, pure
 Python, no model) — so "blocking" holds mechanically, not only by the model; the fresh-context
 verifier is the authoring-time half.
+
+### CI — genesis writes the project's workflow
+genesis emits a **real, working** `.github/workflows/ci.yml` (lint / test / build) chosen by **stack ×
+project-type** — Node / Python / Go / Rust, or a `generic` skeleton with a TODO for an unrecognized
+stack (**never a fake-green CI**). **No AI runs in CI** — it's plain GitHub jobs on GitHub's runners.
+It also adds a "Wire up CI" **backlog task** so making it green is a tracked unit, not an unverified
+artifact. The only network use is an optional one-time refresh of version pins at generation; **offline
+→ it keeps the prototype's pins and leaves a `# verify pins` comment**. The companion `spec-gate.yml`
+(the deterministic gate half, above) runs on every PR. This is the *project's* CI — Bedrock's own
+self-test is `tools/run-evals.sh` (§8), a different file.
 
 ### adopt-mode honesty
 In adopt mode genesis can see **what** the code is but not **why**. Observed facts go to
@@ -127,10 +140,11 @@ define/call (+ reverse edges), and best-effort **domain slices** (routes, data-m
 
 ## 5. design-creator & code-review (vendored engines)
 
-- **design-creator** designs/builds web UI. genesis hands it a **structured brief**
-  (`.genesis/design-brief.json`: domain, audience, surfaces, scope, tone, brand assets) — **no hook or
-  narrative** (that would collapse its output diversity). The brief is consumed by the agent invoking
-  design-creator (fed into its survey), not by an autonomous file reader.
+- **design-creator** designs/builds web UI. For a **visual-web project-type** genesis hands it a
+  **structured brief** (`.genesis/design-brief.json`: domain, audience, surfaces, scope, tone, brand
+  assets) — **no hook or narrative** (that would collapse its output diversity); a CLI / service /
+  library / worker project gets no brief. The brief is consumed by the agent invoking design-creator
+  (fed into its survey), not by an autonomous file reader.
 - **code-review** audits existing code. The mandate is a loop: **implement → review → apply fixes →
   re-review**, scaled to risk.
 
@@ -170,8 +184,10 @@ no glue. For the rest, genesis emits a thin wrapper for the agents you selected 
 Single source: every wrapper points at / mirrors `AGENTS.md`; rules are never restated in a wrapper.
 (Skills note: skills are an open standard — agentskills.io — that Codex also conforms to, but Codex
 loads them from `.agents/skills/`, not `.claude/skills/`. So these skills are **partly portable** to
-Codex: move the folder and strip Claude-only frontmatter (`allowed-tools`, `${CLAUDE_SKILL_DIR}`,
-`$ARGUMENTS`). Verified vs the OpenAI Codex docs.)
+Codex: run `python3 tools/port-skills.py <skill>` — it mirrors the folder into `.agents/skills/` and
+strips Claude-only frontmatter (`allowed-tools`, `${CLAUDE_SKILL_DIR}`, `$ARGUMENTS`). Port the
+consume-side skills (prompt-refiner, code-review, design-creator) — **not** genesis, which runs in
+Claude Code. Verified vs the OpenAI Codex docs.)
 
 ---
 
@@ -184,6 +200,8 @@ Codex: move the folder and strip Claude-only frontmatter (`allowed-tools`, `${CL
 - `tools/drift-check.py` — fails if `AGENTS.md`'s machine-contract region, the map contract, and
   genesis's scripts ever **disagree** (not just if a file is missing). Four linkages: map-path,
   gate-commands, anchor-facts, design-brief.
+- `tools/port-skills.py` — mirror a skill into `.agents/skills/` for Codex (`<skill>` or `--all`),
+  stripping Claude-only frontmatter. The copy is a generated mirror — re-run after editing the source.
 - `tools/run-evals.sh` — one command that runs **every** regression and fails if **any** fails. CI
   (`.github/workflows/evals.yml`) runs the same.
 
@@ -196,8 +214,9 @@ bash tools/run-evals.sh
 ## 9. What's committed vs rebuilt (don't break this)
 
 - **Committed** (source of truth + history): `docs/`, `PLAN.md`, `genesis.tasks.json`, `AGENTS.md`,
-  `CLAUDE.md` (+ any per-agent wrappers), `README.md`, `project-context/`, plus each vendored skill's
-  learned state (`.design/tokens.json`, `.review/suppressions.json`, …).
+  `CLAUDE.md` (+ any per-agent wrappers), `README.md`, `.github/workflows/` (the emitted CI),
+  `project-context/`, plus each vendored skill's learned state (`.design/tokens.json`,
+  `.review/suppressions.json`, …).
 - **Git-ignored** (rebuildable / local): `.map/`, `.genesis/`, `.refiner/`, `.design/mockups/`,
   `.review/index.json`, `.review/outcomes.jsonl`.
 
@@ -248,12 +267,23 @@ bash tools/run-evals.sh
 - *Antigravity* → **supported via `.agents/rules/`**: genesis emits `.agents/rules/bedrock.md` =
   `@/AGENTS.md` (Always On). It does NOT read a root `AGENTS.md` as rules (a corrected earlier claim);
   `~/.gemini/GEMINI.md` is the user's global rules file — genesis doesn't touch it.
-- *Codex skills* → the `SKILL.md` format is *nominally* shared, but actual portability is **unverified**.
+- *Codex skills* → **partly portable (verified)**: Codex loads skills from `.agents/skills/`, so run
+  `tools/port-skills.py <skill>` to mirror + strip Claude-only frontmatter. Port the consume-side
+  skills, not genesis.
 
 **Gate failures (spec-analyze)**
 - *Partial annotation* (some atomic units anchored, some not, in a must-anchor file) → **CRITICAL**.
 - *Dangling ref* (a `spec_refs`/`refs:` id with no anchor) → **CRITICAL**.
 - *Duplicate anchor id* → **CRITICAL**.
+
+**CI (the emitted workflow)**
+- *Offline at generation* → genesis keeps the prototype's version pins and leaves a `# verify pins`
+  comment; it never blocks on the network.
+- *Unrecognized stack* → it emits the `generic.yml` skeleton with a TODO — **never a fake-green CI**
+  that passes without running anything.
+- *A generated workflow is not a proven one* → `ci.yml`'s real steps only run once there's code, so the
+  **first seeded project must show a green Actions run** ("verify on first real seed"). `spec-gate.yml`
+  is pure Python and verified locally.
 
 ---
 
