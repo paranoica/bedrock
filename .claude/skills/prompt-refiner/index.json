@@ -1,0 +1,25 @@
+{
+  "_comment": "Router + state map for prompt-refiner (v0.1.0). Read FIRST. This skill is deliberately lean — it is a residue catcher + router, not an engine.",
+  "invariants_file": "references/invariants.md",
+  "reinjection_rule": "Re-read references/invariants.md before classifying a request (residue-gate) and before sharpening. Short by design.",
+  "always_first": [
+    "references/invariants.md",
+    "references/residue-gate.md"
+  ],
+  "references": {
+    "residue_gate": "references/residue-gate.md",
+    "refine_algorithm": "references/refine-algorithm.md"
+  },
+  "scripts": {
+    "calibration": "scripts/calibration.py"
+  },
+  "evals": {
+    "golden_pairs": "evals/golden-pairs.md"
+  },
+  "state_files": {
+    "_comment": "Durable state lives in files, not the conversation.",
+    "calibration": ".refiner/calibration.jsonl (took/yielded/asked -> landed?; GITIGNORED/local)"
+  },
+  "managed_project_signal": "A project is genesis-managed iff docs/ AND genesis.tasks.json both exist (cheap glob). Drives the feature-request branch in residue-gate.md Step 2.",
+  "gitignore_policy": "Gitignore .refiner/ (rebuildable/local)."
+}
