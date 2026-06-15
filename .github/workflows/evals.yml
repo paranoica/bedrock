@@ -1,0 +1,16 @@
+name: evals
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # The same single command a contributor runs locally. Fails the build on any contract drift
+      # or seam regression — so "blocking on our evals" means blocking, not advisory.
+      - run: bash tools/run-evals.sh

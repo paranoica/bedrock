@@ -1,0 +1,26 @@
+{
+  "_comment": "SINGLE SOURCE of the cross-skill on-disk paths, commands, and anchor facts. drift-check.py reads VALUES from here (never a second hardcoded list). The phase-5 inter-skill contract doc documents/points to THIS file — one source, two views.",
+  "paths": {
+    "map": ".map/project.json",
+    "map_tool": "tools/project-map/build.py",
+    "map_contract": "tools/project-map/CONTRACT.md",
+    "backlog": "genesis.tasks.json",
+    "plan": "PLAN.md",
+    "canon": "RULES.md",
+    "wrapper": "CLAUDE.md",
+    "readme": "README.md",
+    "docs_dir": "docs/",
+    "design_brief": ".genesis/design-brief.json",
+    "genesis_state": ".genesis/",
+    "refiner_state": ".refiner/"
+  },
+  "commands": {
+    "map_check":    { "script": "tools/project-map/build.py", "flag": "--check" },
+    "backlog_next": { "script": ".claude/skills/genesis/scripts/backlog.py", "cmd": "next" },
+    "backlog_done": { "script": ".claude/skills/genesis/scripts/backlog.py", "cmd": "done" }
+  },
+  "anchor": {
+    "types": ["decision", "term", "arch", "canon"],
+    "cross_cutting": ["term", "arch", "canon"]
+  }
+}
