@@ -6,7 +6,7 @@
     "map_contract": "tools/project-map/CONTRACT.md",
     "backlog": "genesis.tasks.json",
     "plan": "PLAN.md",
-    "canon": "RULES.md",
+    "canon": "AGENTS.md",
     "wrapper": "CLAUDE.md",
     "readme": "README.md",
     "docs_dir": "docs/",

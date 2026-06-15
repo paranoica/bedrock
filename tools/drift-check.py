@@ -20,7 +20,7 @@ Four named semantic linkages (teeth, not vibes):
 
 Blocking: exit 1 on any disagreement. Run it in the template's own evals / CI.
 """
-import os, sys, json
+import os, sys, json, re
 
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 GEN = os.path.join(ROOT, ".claude", "skills", "genesis")
@@ -56,20 +56,30 @@ def main():
     need(mp in (read(os.path.join(GEN, "index.json")) or ""),
          "L1 map path %r missing from genesis/index.json (state map drifted)" % mp)
 
-    # ---- L2 — GATE COMMANDS exist AND are referenced by the shipped root CLAUDE.md mandate ----
-    canon = read(rp(paths["wrapper"])) or ""   # the root CLAUDE.md holds the universal gate mandates
+    # ---- L2 — GATE COMMANDS: AGENTS.md's @bedrock-contract region lists EXACTLY the contract's
+    #          commands (machine-parsed region, not prose), and each command is implemented. ----
+    agents_md = read(rp(paths["canon"])) or ""   # AGENTS.md is the canonical rules file
+    m_region = re.search(r"<!--\s*@bedrock-contract\b(.*?)-->", agents_md, re.S)
+    region = m_region.group(1) if m_region else ""
+    need(bool(m_region), "L2 AGENTS.md has no @bedrock-contract region — gate mandates not machine-checkable")
     sys.path.insert(0, os.path.join(GEN, "scripts"))
-    import backlog  # noqa: E402  (for the authoritative COMMANDS tuple)
+    import backlog  # noqa: E402  (authoritative COMMANDS tuple)
+    canonical = {}   # canonical command string -> contract key
     for key, c in cmds.items():
-        script_src = read(rp(c["script"])) or ""
-        token = c.get("cmd") or c.get("flag")
-        if "cmd" in c:
-            implemented = (c["cmd"] in backlog.COMMANDS) if c["script"].endswith("backlog.py") \
-                else (c["cmd"] in script_src)
-            need(implemented, "L2 command %r (%s) not implemented in %s" % (c["cmd"], key, c["script"]))
+        cstr = os.path.basename(c["script"]) + " " + (c.get("cmd") or c.get("flag"))
+        canonical[cstr] = key
+        if "cmd" in c:   # implemented?
+            ok = (c["cmd"] in backlog.COMMANDS) if c["script"].endswith("backlog.py") \
+                else (c["cmd"] in (read(rp(c["script"])) or ""))
+            need(ok, "L2 command %r (%s) not implemented in %s" % (c["cmd"], key, c["script"]))
         else:
-            need(c["flag"] in script_src, "L2 flag %r (%s) not implemented in %s" % (c["flag"], key, c["script"]))
-        need(token in canon, "L2 CLAUDE.md does not reference %r (%s) — mandate points nowhere" % (token, key))
+            need(c["flag"] in (read(rp(c["script"])) or ""),
+                 "L2 flag %r (%s) not implemented in %s" % (c["flag"], key, c["script"]))
+        need(cstr in region, "L2 AGENTS.md @bedrock-contract region missing %r (%s) — mandate not stated" % (cstr, key))
+    # region must NOT list extras (region == contract.json, both directions)
+    for ln in (l.strip() for l in region.splitlines()):
+        if re.match(r"^\S+\.(py|sh|mjs)\s+\S", ln) and ln not in canonical:
+            need(False, "L2 AGENTS.md region lists %r — not in contract.json (region drifted)" % ln)
 
     # ---- L3 — ANCHOR FACTS agreement ----
     import anchors  # noqa: E402
