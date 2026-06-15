@@ -40,7 +40,8 @@ The compact, non-negotiable core. Short by design so reinjection is cheap. Do no
     `TODO(decision:)` is flagged by the gate as resting on an unresolved decision — not executable yet.
 
 ## Governance & interview
-11. **Never overwrite a `CLAUDE.md` or destroy user work.** Read-and-extend; surface conflicts.
+11. **Never overwrite `AGENTS.md`'s universal section, a wrapper (`CLAUDE.md`, …), or any user work.**
+    Project rules go inline in `AGENTS.md`'s Project-rules section; read-and-extend; surface conflicts.
 12. **Interview depth scales to complexity** (branch-activation gates, not a score). One open
     question at a time; group only discrete forks **within** a branch, never across branches.
 13. **Hand design-creator structured constraints only** — domain, audience, surfaces/page list,

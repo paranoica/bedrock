@@ -1,46 +1,40 @@
-# Canon template — RULES.md (+ how genesis extends CLAUDE.md)
+# Canon template — filling AGENTS.md's "Project rules" (+ per-agent wrappers)
 
-The **universal** operating rules (which skill when, gate mandates, file-driven loop, status seam,
-map-read protocol, source-of-truth hierarchy) ship in the repo-root **`CLAUDE.md`** — genesis does
-**not** restate them. genesis emits **`RULES.md`** (this project's *specific* canon) and **extends**
-`CLAUDE.md`'s "Project rules" section to import it.
+The **universal** operating rules ship in the repo-root **`AGENTS.md`** (the canonical, cross-agent
+rules doc). genesis does **not** recreate them. genesis (a) fills `AGENTS.md`'s `## Project rules`
+section **inline** with this project's specifics, and (b) emits thin **per-agent wrappers** for the
+agents the team selected in the interview (see `references/agent-wrappers.md`).
 
 Fill `<PLACEHOLDERS>` from the interview; **never** bake another project's choices. **Never overwrite**
-`CLAUDE.md`'s universal section or an existing `RULES.md` — read and extend; surface conflicts.
+`AGENTS.md`'s universal section or a real wrapper — read-and-extend; surface conflicts.
 
-(Claude-Code-only for now. `AGENTS.md` / other-agent wrappers are deferred — when added, they import
-the SAME `RULES.md`, never duplicate it. That is why the project canon is a separate file.)
-
----
-## ════ RULES.md (this project's canon — project-specific only) ════
-
-```markdown
-# <PROJECT> — canon
-
-> This project's specifics. The universal Bedrock rules live in `CLAUDE.md`; this file does not repeat
-> them. Prune ruthlessly — keep only what an agent cannot infer from the code itself.
-
-## Stack & scope   <!-- from the interview; NEVER hardcode another project's choices -->
-- Stack: <only the non-obvious; let the code show the rest>
-- In MVP: <…>   ·   Explicitly out: <…>
-- Code style: <indentation / file-length / naming — ASKED or DERIVED per project>
-
-## Project-specific gate notes   <!-- optional; only where this project DEVIATES from CLAUDE.md -->
-- <e.g. "the payments module is the high-risk surface → always full code-review there, never light">
-```
+> Project rules go **inline in AGENTS.md**, NOT behind an `@import`: only Claude follows `@imports`, so
+> inlining is what lets *every* agent see them. (`RULES.md` is retired — it was a Claude-only convenience.)
 
 ---
-## ════ Extending CLAUDE.md (genesis does this — read-and-extend, never overwrite) ════
+## ════ Fill AGENTS.md's "## Project rules" section (INLINE) ════
 
-Fill the repo-root `CLAUDE.md`'s `## Project rules` section (the `GENESIS-PROJECT-RULES` placeholder)
-with:
+Replace the `GENESIS-PROJECT-RULES` placeholder with:
 
 ```markdown
 ## Project rules
-@RULES.md
 > <PROJECT>: <one line — what it is and for whom>.
+
+- **Stack:** <only the non-obvious; let the code show the rest>
+- **In MVP:** <…>   ·   **Explicitly out:** <…>
+- **Code style:** <indentation / file-length / naming — ASKED or DERIVED per project; never hardcoded>
+- **Project-specific gate notes:** <ONLY where this project DEVIATES from the universal gate mandates
+  above — e.g. "payments is the high-risk surface → always full code-review there, never light">
 ```
 
-If `CLAUDE.md` already has real project rules (a re-run, or **adopt** on an existing repo), **extend**
-that section; if a value conflicts with the canon, surface it to the user — do not replace it. Never
-touch the universal rules above the placeholder.
+Re-run / **adopt**: extend the existing Project rules; if a value conflicts, surface it to the user —
+do not replace. Never touch the universal rules above the placeholder.
+
+---
+## ════ Per-agent wrappers ════
+
+genesis emits wrappers only for the agents selected in the interview (the agents gate). `AGENTS.md`
+itself covers every agent that reads the standard natively (Cursor, Roo, Windsurf, Codex). `CLAUDE.md`
+(`@AGENTS.md`) ships already. The rest (Aider, Continue, Cursor `.mdc`, …) are emitted on demand, and
+**Antigravity is experimental** (AGENTS.md only — no `GEMINI.md`; precedence unverified). Catalog +
+exact per-agent format: **`references/agent-wrappers.md`**.

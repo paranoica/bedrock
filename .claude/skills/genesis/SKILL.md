@@ -52,10 +52,12 @@ The residue between all skills belongs to **prompt-refiner**.
 2  Canonical spec → docs/  → decisions · architecture(+data-model) · glossary · open-questions (all ANCHORED)
                              [STOP: confirm the spec narrative]
 3  Derive backlog          → genesis.tasks.json (+ PLAN.md rendered); hashes stamped by backlog.py
-4  Canon + README        → emit RULES.md (project canon) + EXTEND the shipped root CLAUDE.md's
-                             "Project rules" section (@RULES.md; never rewrite its universal part) +
-                             the project README.md (replace the Bedrock stub; read-and-extend a real
-                             one). See references/canon-template.md + references/readme-template.md
+4  Project rules + wrappers + README → fill AGENTS.md's "Project rules" section INLINE (this project's
+                             canon: stack/scope/style; never rewrite the universal rules) + emit
+                             per-agent wrappers for the agents selected in the interview
+                             (references/agent-wrappers.md; CLAUDE.md=@AGENTS.md ships already) + the
+                             project README.md (replace the Bedrock stub). See
+                             references/canon-template.md + references/readme-template.md
 5  First project-map       → tools/project-map/build.py → .map/project.json
 6  spec-analyze gate       → deterministic checks + fresh-context spec-verifier + hash receipt (BLOCKING)
 7  Archive + handoff       → project-context/ (raw + summary; NOT source of truth); design-brief if visual work follows

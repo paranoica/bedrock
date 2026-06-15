@@ -15,10 +15,10 @@ Sequence for the generation half (after the spec is confirmed):
 2. Write the backlog roots into `genesis.tasks.json`, then `backlog.py stamp` (fills closures + hashes,
    renders `PLAN.md`).
 3. `calibration.py snapshot` (baseline for future replans).
-4. Emit `RULES.md` (project canon) and **extend** the shipped root `CLAUDE.md`'s "Project rules"
-   section (`@RULES.md`; never rewrite its universal part) per `references/canon-template.md`; emit
-   the project `README.md` from `references/readme-template.md` (replace the Bedrock stub; extend a
-   real README).
+4. Fill `AGENTS.md`'s "Project rules" section **inline** (this project's canon: stack/scope/style;
+   never rewrite the universal rules) per `references/canon-template.md`, and **emit per-agent
+   wrappers** for the agents selected in the interview (`references/agent-wrappers.md`); emit the
+   project `README.md` from `references/readme-template.md` (replace the Bedrock stub; extend a real one).
 5. `tools/project-map/build.py <root>` — the first map.
 6. The gate: `analyze_spec.py <root>` (deterministic) + spawn `spec-verifier` (fresh context) +
    `backlog.py validate`. Do not declare ready on a skipped gate.

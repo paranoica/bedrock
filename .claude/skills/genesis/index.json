@@ -18,6 +18,7 @@
     "spec_templates": "references/spec-templates/",
     "backlog_spec": "references/backlog-spec.md",
     "canon_template": "references/canon-template.md",
+    "agent_wrappers": "references/agent-wrappers.md",
     "readme_template": "references/readme-template.md",
     "design_handoff": "references/design-handoff.md"
   },
@@ -40,10 +41,10 @@
     "spec_docs": "docs/{decisions,architecture,glossary,open-questions}.md — anchored; COMMITTED; the source of truth",
     "backlog_machine": "genesis.tasks.json — machine source of task state; COMMITTED; mutated only via backlog.py",
     "backlog_render": "PLAN.md — GENERATED human render; COMMITTED; never hand-edited",
-    "canon": "RULES.md (canon) + CLAUDE.md (@import wrapper) — COMMITTED; never overwrite, read-and-extend",
+    "canon": "AGENTS.md (canonical rules; project rules filled INLINE by genesis) + CLAUDE.md (@AGENTS.md wrapper) + per-agent wrappers — COMMITTED; never overwrite the universal part, read-and-extend",
     "archive": "project-context/ — raw interview + distilled summary; COMMITTED; NOT a source of truth",
     "map": ".map/project.json — rebuildable; GITIGNORED",
     "genesis_state": ".genesis/ — receipts (spec-receipt.json), interview log, calibration; GITIGNORED/local"
   },
-  "gitignore_policy": "Commit docs/, genesis.tasks.json, PLAN.md, RULES.md, CLAUDE.md, project-context/ (source of truth + history). Gitignore .map/ and .genesis/ (rebuildable/local)."
+  "gitignore_policy": "Commit docs/, genesis.tasks.json, PLAN.md, AGENTS.md, CLAUDE.md, project-context/ (source of truth + history). Gitignore .map/ and .genesis/ (rebuildable/local)."
 }

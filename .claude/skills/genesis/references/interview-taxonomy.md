@@ -19,11 +19,16 @@ activated branches**. Each gate is a cheap yes/no read of the brief; a "no" skip
 | integrations? | calls external services | **integrations** (which, contract) → `decision` + `open-questions` |
 | non-functional? | has scale/SLA/compliance needs | **nfr** (perf, SLA, regulatory) → `architecture` |
 | surfaces? | has ≥1 client UI | **surfaces** (web/dashboard/admin/bot/CLI/API) → **design-brief** (scope inventory for design-creator) |
+| agents (1 grouped Q) | always, late | **agents** — which coding agents the team uses (multiselect) → per-agent **wrappers** emitted in Phase 4 |
 | *(always last)* | — | **open-decisions** sweep → `open-questions` |
 
 - **Trivial brief** (1 surface, no money, no data model) → ~2 branches fire → 2–3 questions, then
   step aside (do the thing, briefly). **Multi-surface** → most branches fire → dig to the bottom.
 - Branches that don't apply are skipped **entirely** — never asked "for completeness".
+- **The agents gate is ONE grouped multiselect** (Claude / Cursor / Codex / Aider / Continue /
+  Antigravity[experimental]) in the tooling branch — never mixed with product branches. **Golden-default
+  = Claude + the shared `AGENTS.md`** (covers most agents natively). If the user doesn't answer, don't
+  interrogate about six tools — ship the two base wrappers and move on. Drives Phase 4 wrapper emission.
 
 ## 2. Cadence — the one-question rule and its boundary
 
