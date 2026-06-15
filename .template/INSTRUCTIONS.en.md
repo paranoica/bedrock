@@ -168,8 +168,10 @@ no glue. For the rest, genesis emits a thin wrapper for the agents you selected 
 | **Antigravity** | a `.agents/rules/bedrock.md` rule = `@/AGENTS.md` (Always On) — its workspace-rules path; global `~/.gemini/GEMINI.md` is the user's, untouched |
 
 Single source: every wrapper points at / mirrors `AGENTS.md`; rules are never restated in a wrapper.
-(Note: Codex's `SKILL.md` format is *nominally* the same as Claude Code's, so these skills *might* port
-to Codex — **not verified**; treat as a candidate, not a fact.)
+(Skills note: skills are an open standard — agentskills.io — that Codex also conforms to, but Codex
+loads them from `.agents/skills/`, not `.claude/skills/`. So these skills are **partly portable** to
+Codex: move the folder and strip Claude-only frontmatter (`allowed-tools`, `${CLAUDE_SKILL_DIR}`,
+`$ARGUMENTS`). Verified vs the OpenAI Codex docs.)
 
 ---
 

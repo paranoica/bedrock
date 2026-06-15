@@ -30,7 +30,11 @@ agents gate). Never overwrite a real wrapper — read-and-extend.
   set **Always On** — Antigravity then follows the same canonical `AGENTS.md` as every other agent.
   Antigravity does **not** read a root `AGENTS.md` as rules (the earlier secondary-source claim was
   wrong); its **global** rules file is the user-level `~/.gemini/GEMINI.md`, which genesis never touches.
-- **Codex skills (not verified).** Codex's `SKILL.md` format is *nominally* the same as Claude Code's,
-  so the skills here **might** port to Codex — **this is unverified**. Treat it as a near-term
-  candidate that requires validation, not a fact. Subagent definitions differ per agent and are out of
-  scope for v1.
+- **Codex skills (verified — partly portable).** Skills are an **open standard** (agentskills.io): a
+  folder with `SKILL.md` (frontmatter `name` + `description`) + `scripts/` + `references/`, loaded by
+  progressive disclosure. **Codex conforms**, but discovers skills from **`.agents/skills/`** (project /
+  repo / `~/.agents/skills/`), **not** `.claude/skills/`. So these skills port **in substance**, not as
+  a zero-edit drop-in: move `.claude/skills/<s>/` → `.agents/skills/<s>/` and strip Claude-only
+  frontmatter/placeholders (`allowed-tools`, `disallowed-tools`, `arguments`, `${CLAUDE_SKILL_DIR}`,
+  `$ARGUMENTS`) — Codex doesn't document those. Subagent definitions differ per agent (out of scope for
+  v1). (Codex's exact script-execution mechanism was not primary-verified.)

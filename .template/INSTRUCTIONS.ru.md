@@ -164,8 +164,10 @@
 | **Antigravity** | `.agents/rules/bedrock.md` = `@/AGENTS.md` (Always On) — путь workspace-правил; глобальный `~/.gemini/GEMINI.md` — юзерский, не трогаем |
 
 Single source: каждая обёртка указывает на / зеркалит `AGENTS.md`; правила в обёртке не повторяются.
-(Заметка: формат `SKILL.md` у Codex *номинально* совпадает с Claude Code, так что эти скиллы *возможно*
-портируются на Codex — **не проверено**; считать кандидатом, не фактом.)
+(Про скиллы: скиллы — открытый стандарт (agentskills.io), которому Codex тоже конформен, но грузит их
+из `.agents/skills/`, а не `.claude/skills/`. Значит они **частично портируемы** на Codex: перенести
+папку и снять Claude-специфичный frontmatter (`allowed-tools`, `${CLAUDE_SKILL_DIR}`, `$ARGUMENTS`).
+Проверено по докам OpenAI Codex.)
 
 ---
 
