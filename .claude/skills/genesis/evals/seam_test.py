@@ -93,6 +93,14 @@ def main():
     check("T010 flagged HIGH rests-on-open-decision",
           any(f["code"] == "rests-on-open-decision" for f in an["findings"]))
 
+    # F-A: the gate receipt has teeth — --check detects a spec change made AFTER the gate ran
+    rc, _, _ = run("analyze_spec.py", root, "--check")
+    check("spec-receipt fresh right after the gate ran", rc == 0)
+    edit(dec, "monthly minus commission", "monthly minus a COMMISSION fee")
+    rc, _, _ = run("analyze_spec.py", root, "--check")
+    check("spec edited after the gate -> receipt stale (exit 1)", rc == 1)
+    edit(dec, "monthly minus a COMMISSION fee", "monthly minus commission")
+
     with open(dec, "a") as f:
         f.write("\n### D-9 deliberately unanchored\n- x\n")
     rc, an = jrun("analyze_spec.py", root)

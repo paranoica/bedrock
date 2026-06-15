@@ -12,9 +12,16 @@ Checks (see ../references/anchor-contract.md, invariants.md):
   LOW       orphan decision (a decision: anchor in decisions.md no task traces)
   INFO      possible domain noun missing a glossary term (heuristic assist — NOT a hard fail)
 
-Exit non-zero if any CRITICAL (the gate blocks). Writes .genesis/spec-receipt.json.
+Exit non-zero if any CRITICAL (the gate blocks). Writes a hash-bound .genesis/spec-receipt.json.
 
-Usage: analyze_spec.py <root>
+The receipt is not write-only: `--check` re-hashes docs/ + genesis.tasks.json FROM DISK and compares
+to the receipt, so "the gate passed" can't be claimed on a spec that changed afterwards. This is the
+gate-freshness stamp (the analogue of the project-map's --check).
+
+Usage:
+  analyze_spec.py <root>            run the gate; write the receipt; exit 1 on any CRITICAL
+  analyze_spec.py <root> --check    is the receipt fresh vs current docs/tasks? fresh|stale|absent,
+                                    exit 0 / 1 / 2 (so a caller/CI can gate)
 """
 import sys, os, re, json, hashlib
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -153,10 +160,45 @@ def analyze(root):
     return uniq, summary, rid
 
 
+def _present_files(root):
+    out = {}
+    for d in ["decisions.md", "architecture.md", "glossary.md", "open-questions.md"]:
+        p = os.path.join(root, "docs", d)
+        if os.path.exists(p):
+            out[os.path.relpath(p, root)] = p
+    tp = os.path.join(root, "genesis.tasks.json")
+    if os.path.exists(tp):
+        out[os.path.relpath(tp, root)] = tp
+    return out
+
+
+def check(root):
+    """Freshness of the gate receipt vs current docs/tasks — gives the receipt a consumer + teeth."""
+    rp = os.path.join(root, ".genesis", "spec-receipt.json")
+    if not os.path.exists(rp):
+        return {"state": "absent", "reason": "no .genesis/spec-receipt.json — run the gate first"}
+    try:
+        receipt = json.load(open(rp))
+    except Exception as e:
+        return {"state": "absent", "reason": "receipt unreadable (%s); re-run the gate" % e}
+    cur = {rel: _sha(open(p, "rb").read())[:16] for rel, p in _present_files(root).items()}
+    old = receipt.get("files", {})
+    changed = sorted((set(cur) | set(old)) - {k for k in cur if cur.get(k) == old.get(k)})
+    if not changed:
+        return {"state": "fresh", "receipt_id": receipt.get("receipt_id")}
+    return {"state": "stale", "reason": "spec/tasks changed since the gate ran — its result is no "
+            "longer valid", "changed": changed, "hint": "re-run: analyze_spec.py <root>"}
+
+
 def main():
-    if len(sys.argv) < 2:
-        print(json.dumps({"error": "usage: analyze_spec.py <root>"})); sys.exit(2)
-    root = sys.argv[1]
+    args = sys.argv[1:]
+    if not args:
+        print(json.dumps({"error": "usage: analyze_spec.py <root> [--check]"})); sys.exit(2)
+    root = next((a for a in args if not a.startswith("-")), ".")
+    if "--check" in args:
+        res = check(root)
+        print(json.dumps(res, indent=2))
+        sys.exit({"fresh": 0, "stale": 1, "absent": 2}.get(res["state"], 2))
     findings, summary, rid = analyze(root)
     print(json.dumps({"summary": summary, "receipt_id": rid, "findings": findings}, indent=2))
     sys.exit(1 if summary["CRITICAL"] else 0)

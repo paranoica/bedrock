@@ -24,4 +24,5 @@ Sequence for the generation half (after the spec is confirmed):
    project has a real visual web surface (project-type web-app/dashboard).
 5. `tools/project-map/build.py <root>` — the first map.
 6. The gate: `analyze_spec.py <root>` (deterministic) + spawn `spec-verifier` (fresh context) +
-   `backlog.py validate`. Do not declare ready on a skipped gate.
+   `backlog.py validate`; before declaring ready, confirm the receipt is still fresh
+   (`analyze_spec.py <root> --check`). Do not declare ready on a skipped **or stale** gate.
