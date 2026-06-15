@@ -63,10 +63,14 @@ activated branches**. Each gate is a cheap yes/no read of the brief; a "no" skip
 3. **Tasks derive from the spec.** Each task: `acceptance` (EARS array), `verify {kind,handle}`,
    `files`, and `spec_refs` (the **single** task→spec link — its keys *are* the trace). Hashes are
    stamped by `backlog.py` via the shared `anchors.py`, never by hand.
-4. **Open decisions stay wired.** A task that depends on an open `TODO(decision:)` lists that id in
-   its `spec_refs`. `spec-analyze` then flags the task as resting on an unresolved decision — it
-   cannot be declared execution-ready. The unknown physically blocks the dependent work instead of
-   floating as a note. **(This is the model pattern — keep it.)**
+4. **Open decisions stay wired — to their real dependents only.** A task that depends on an open
+   `TODO(decision:)` lists that id in its `spec_refs`. `spec-analyze` then flags the task as resting
+   on an unresolved decision — it cannot be declared execution-ready. The unknown physically blocks
+   the dependent work instead of floating as a note. **(Model pattern — keep it.)**
+   **Do NOT `refs:` an open decision from a *settled* decision** — every task tracing the settled
+   decision would then inherit it through the closure and be falsely blocked (over-firing). Wire the
+   open decision straight into the `spec_refs` of the tasks that actually need it (e.g. only the
+   remote-driver task, not the local-write task).
 
 ## 4. Term-anchor discipline (refinement: close the gap at write-time)
 

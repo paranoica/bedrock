@@ -1,0 +1,63 @@
+{
+  "project": "Backup CLI",
+  "tasks": [
+    {
+      "id": "T001",
+      "title": "Snapshot core + local target write (with checksum)",
+      "sprint": "S1",
+      "status": "todo",
+      "dependencies": [],
+      "spec_refs": { "decision:cli-surface": null, "decision:integrity": null, "decision:storage-targets": null },
+      "acceptance": ["WHEN `backup <path>` runs THEN the system SHALL write a Snapshot to the local Target and store its Checksum in the index"],
+      "verify": { "kind": "test", "handle": "pytest tests/test_backup.py" },
+      "files": ["src/core/*", "src/target/local.py"]
+    },
+    {
+      "id": "T002",
+      "title": "Restore with checksum verification",
+      "sprint": "S1",
+      "status": "todo",
+      "dependencies": ["T001"],
+      "spec_refs": { "decision:integrity": null },
+      "acceptance": ["WHEN `restore` runs on a Snapshot whose Checksum mismatches THEN the system SHALL abort before writing any file"],
+      "verify": { "kind": "test", "handle": "pytest tests/test_restore.py" },
+      "files": ["src/core/restore.py"]
+    },
+    {
+      "id": "T003",
+      "title": "Prune by retention (explicit only)",
+      "sprint": "S2",
+      "status": "todo",
+      "dependencies": ["T001"],
+      "spec_refs": { "decision:retention": null },
+      "acceptance": [
+        "WHEN `prune` runs THEN the system SHALL apply keep-last-N and max-age",
+        "WHEN `backup` runs THEN the system SHALL NOT delete any Snapshot"
+      ],
+      "verify": { "kind": "test", "handle": "pytest tests/test_prune.py" },
+      "files": ["src/core/prune.py"]
+    },
+    {
+      "id": "T004",
+      "title": "Remote Target driver",
+      "sprint": "S3",
+      "status": "todo",
+      "dependencies": ["T001"],
+      "spec_refs": { "decision:storage-targets": null, "decision:remote-backend": null },
+      "acceptance": ["WHEN a remote Target is configured THEN the system SHALL write and read Snapshots through the Target interface"],
+      "verify": { "kind": "test", "handle": "pytest tests/test_remote.py" },
+      "files": ["src/target/remote.py"]
+    },
+    {
+      "id": "T010",
+      "title": "Wire up CI (.github/workflows/ci.yml)",
+      "sprint": "S1",
+      "status": "todo",
+      "dependencies": [],
+      "spec_refs": { "decision:cli-surface": null },
+      "acceptance": ["WHEN a pull request is opened THEN CI SHALL run lint + test + build and report a status check"],
+      "verify": { "kind": "manual", "handle": "push a branch and confirm the ci workflow goes green" },
+      "files": [".github/workflows/ci.yml"]
+    }
+  ]
+}

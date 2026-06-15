@@ -15,6 +15,9 @@ python3 "$ROOT/tools/drift-check.py" || fail=1
 step "genesis seam regression (anchor/normalizer + gate teeth)"
 python3 "$ROOT/.claude/skills/genesis/evals/seam_test.py" || fail=1
 
+step "genesis parametricity (non-web fixture: a backup CLI)"
+python3 "$ROOT/.claude/skills/genesis/evals/parametric_test.py" || fail=1
+
 step "project-map smoke (build, then --check must be fresh)"
 if python3 "$ROOT/tools/project-map/build.py" "$ROOT" >/dev/null \
    && python3 "$ROOT/tools/project-map/build.py" "$ROOT" --check >/dev/null; then
