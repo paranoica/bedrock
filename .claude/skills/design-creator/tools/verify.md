@@ -12,6 +12,13 @@ Inside the design-QA gate (`design-qa.md`), for every generation step, across **
 
 1. **Screenshots** — one per section × theme × breakpoint. The engine then *looks at the PNGs* (the same way you'd scrub a video frame by frame), not at the code. This is also how the user is shown the mockup at Gate 1 — the screenshot is the artifact they approve.
 2. **Numbers** — accessibility, layout, and performance metrics from real tooling.
+3. **Motion facts** — a scripted-scroll pass measuring `motion_non_inert` (the page actually moves on
+   scroll — the hook is not inert), `scroll_jank` (longtask budget during the scroll),
+   `reduced_motion_respected` (the motion collapses under `prefers-reduced-motion`), and for a webgl
+   `<canvas>` the `webgl_render_loop_paused` + an approximate `webgl_script_budget`. These convert
+   design-qa's "hook enacted", the reduced-motion rule, and the 3D perf discipline from Tier-3
+   judgment to measured facts in the same hash-bound report (`report.motion` + `measured[]`;
+   advisory/3D-budget + mockup-fidelity in `advisory[]`).
 
 ## Tooling (environment-dependent — degrade gracefully)
 
@@ -60,8 +67,14 @@ This needs a headless browser. Pick what the environment allows; if none is avai
 the mockup file:
 
 ```
-node tools/verify.mjs <url|file.html> --out .design/verify
+node tools/verify.mjs <url|file.html> --out .design/verify \
+  [--deliverable landing|app|component] [--mockup <approved-mockup.html>]
 ```
+
+`--deliverable` (default `landing`) gates `motion_non_inert` — blocking for a landing, advisory for
+an app surface / component. `--mockup` adds the advisory **structural fidelity** check (build vs the
+approved mockup: section count + heading order — a non-blocking drift signal, since the mockup is
+rough by design).
 
 It writes `.design/verify/verify-report.json` + screenshots and exits `0` (measured pass),
 `1` (measured fail), or `3` (no browser). See `tools/USAGE.md`.
@@ -74,11 +87,13 @@ green condition is a fact about that file:
 1. **Freshness binding.** The report carries `build_hash` (a hash of the build). If it doesn't
    match the current build, the report is **stale** → the gate is not green. This kills "I ran
    it earlier, then edited three lines and still call it passed".
-2. **Three tiers, explicit.** `measured` (axe serious/critical, 320px overflow, CLS, LCP — the
-   script decides, binary) · `visual_required` (what only eyes can judge: hierarchy, optical
-   balance, hook realized, slop tells, ambition; plus contrast axe marked *incomplete* = text
-   over photo/gradient) · `unverified` (no browser). **`MEASURED_PASS` is NOT "gate green"** —
-   the `visual_required` list must still be done against the PNGs before the result ships.
+2. **Tiers, explicit.** `measured` (axe serious/critical, 320px overflow, CLS, LCP, **and the
+   motion pass** — `scroll_jank`, `motion_non_inert`, `reduced_motion_respected`,
+   `webgl_render_loop_paused` — the script decides, binary) · `visual_required` (what only eyes can
+   judge: hierarchy, optical balance, hook *quality*, slop tells, ambition; plus contrast axe marked
+   *incomplete* = text over photo/gradient) · `advisory` (non-blocking signals: `webgl_script_budget`,
+   `mockup_fidelity`) · `unverified` (no browser). **`MEASURED_PASS` is NOT "gate green"** — the
+   `visual_required` list must still be done against the PNGs before the result ships.
 3. **No eyes ⇒ never all-green.** A report with `browser: false` and zero `unverified` is a
    contradiction the gate rejects. You cannot claim everything passed without rendering.
 

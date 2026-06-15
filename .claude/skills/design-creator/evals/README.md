@@ -14,6 +14,10 @@ Two tools ship a zero-dependency `selftest` that guards their math — run them 
 - `node evals/diversity.mjs selftest` — the spread metric flags a clustered set and passes a varied one.
 - `node tools/calibration.mjs selftest` — the critic-calibration Brier + `--kind` filter compute correctly (guards the critic feedback loop wired into the QA gate).
 
+A third eval is **render-backed** (needs a browser; self-skips cleanly otherwise):
+
+- `node evals/motion.mjs` — runs the `tools/verify.mjs` motion pass on fixtures and asserts the verdicts have teeth (an inert page FAILs `motion_non_inert`; a page that ignores `prefers-reduced-motion` FAILs `reduced_motion_respected`). Run after editing the motion thresholds or the scroll/measure logic in `verify.mjs`. Wired into `tools/run-evals.sh`, browser-gated.
+
 ## How to run (Claude.ai / no-subagent flow)
 
 For each brief: read `index.json` + `invariants.md`, then follow the skill to produce the deliverable (or a mockup). Grade the output against `rubric.md` — every rubric line is yes/no, the same discipline as the QA gate. Record fails. A regression is any rubric line that passed before an edit and fails after.

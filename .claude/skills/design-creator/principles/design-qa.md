@@ -26,7 +26,7 @@ If unsure which branch, ask — do not default to the landing branch and then "r
 
 Run **every** check in the applicable branch before showing any result. Each is binary — yes/no, no scoring. **Any "no" blocks the result.** Claude fixes the defect silently and re-runs the whole checklist. Loop until all green. Only then is the result shown.
 
-**Measured vs read.** The checks tagged **[render]** below are runtime facts and are verified by actually rendering and measuring (`tools/verify.md` → the bundled `tools/verify.mjs`) — not by reading the source. The gate reads `.design/verify/verify-report.json`, and "green" is a fact about that file, not a narrated claim: (a) its `build_hash` must match the current build (a stale report does not count — this stops "I ran it earlier"); (b) `measured` checks must have zero `blocking_failures`; (c) every `visual_required` entry must be done by LOOKING at the screenshots, not the source — `MEASURED_PASS` alone is NOT a green gate. If no headless browser is available, the report is `UNVERIFIED`: label those checks "requires render — not verified" rather than self-attesting a pass. A report claiming all-green with `browser: false` is a contradiction — reject it.
+**Measured vs read.** The checks tagged **[render]** below are runtime facts and are verified by actually rendering and measuring (`tools/verify.md` → the bundled `tools/verify.mjs`) — not by reading the source. The gate reads `.design/verify/verify-report.json`, and "green" is a fact about that file, not a narrated claim: (a) its `build_hash` must match the current build (a stale report does not count — this stops "I ran it earlier"); (b) `measured` checks must have zero `blocking_failures`; (c) every `visual_required` entry must be done by LOOKING at the screenshots, not the source — `MEASURED_PASS` alone is NOT a green gate. If no headless browser is available, the report is `UNVERIFIED`: label those checks "requires render — not verified" rather than self-attesting a pass. A report claiming all-green with `browser: false` is a contradiction — reject it. **The motion pass is `measured` too:** `scroll_jank`, `motion_non_inert` (landing), `reduced_motion_respected`, and — when a webgl canvas exists — `webgl_render_loop_paused` carry the same teeth (a `false` is a `blocking_failure`, read from `report.motion`). `advisory[]` entries (`webgl_script_budget`, `mockup_fidelity`) are signals, never gates.
 
 **Structure & layout**
 - Spacing values all come from the scale - yes/no.
@@ -34,17 +34,17 @@ Run **every** check in the applicable branch before showing any result. Each is 
 - Visual hierarchy is present (the eye has an obvious first landing) - yes/no.
 - **[render]** No overflow at 320px (`scrollWidth <= clientWidth`) - yes/no.
 - **[render]** No layout shift on load / on async content arriving (CLS) - yes/no.
-- Scroll-linked animation is present (animated scroll is always on — `storytelling.md`) - yes/no.
+- **[render]** Scroll-linked animation is present and not inert — elements actually transform/fade across a scripted scroll (`verify.mjs` → `motion_non_inert`, landing); animated scroll is always on (`storytelling.md`) - yes/no.
 - **[render]** That scroll animation breaks nothing: with a representative overlay open (modal/dropdown/toast, if the page has one), it centers on the viewport at every breakpoint and no fixed/sticky element is trapped by a transformed/smooth-scroll ancestor (`frontend-gotchas.md` #1) - yes/no.
 
 **Accessibility**
 - **[render]** Body text contrast >= 4.5:1, large text >= 3:1, measured over the real rendered background (photo/blur/glow included), via axe-core - yes/no.
 - `:focus-visible` present on every interactive element - yes/no.
 - Touch targets >= 44x44px - yes/no.
-- `prefers-reduced-motion` fallback exists for every animation - yes/no.
+- **[render]** `prefers-reduced-motion` fallback exists for every animation — the motion measurably collapses under the preference (`verify.mjs` → `reduced_motion_respected`) - yes/no.
 
 **The hook**
-- The site's stated hook (`concept.md`) is actually realized in this section - yes/no.
+- The site's stated hook (`concept.md`) is actually realized in this section, **enacted not inert** — `verify.mjs` → `motion_non_inert` is the measured floor (the page demonstrably moves on scroll); whether the hook is *good* stays a judgment (critic Tier-3) - yes/no.
 
 **Interaction detail - element by element** (per `interaction-detail.md`)
 - Every button has idle + hover + active states, hover does something real (not just opacity) - yes/no.

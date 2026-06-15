@@ -23,6 +23,8 @@ A claim you cannot tie to a screenshot, a measured number, or a token is not a v
   component), the **mode** (Clean / Statement), and the matching `references/` exemplar **plus any
   owner taste-anchor** from `tools/taste.mjs` (a logged winner of this family) — prefer the owner
   anchor over the generic exemplar for the Tier-3 pairwise when one exists.
+- the **assigned spread cell** `{archetype, mechanism}` from `spread.mjs assign` (when this is a
+  best-of-N candidate), and `.design/journal.md` (the decisions + reference-lineage journal).
 If a path wasn't passed, find it (`Glob`/`Grep`) or say it's missing — don't assume.
 
 ## Protocol — produce a verdict per check, each in its tier
@@ -36,6 +38,12 @@ If a path wasn't passed, find it (`Glob`/`Grep`) or say it's missing — don't a
    **CLS ≤ 0.1**, **LCP ≤ 2.5s**, across both themes. Cite the failing node / number.
 3. **Token conformance:** spot-check the rendered values against `.design/tokens.json` — are
    colors, spacing, radii, type from the scale, or are there off-system ad-hoc values? FAIL on drift.
+3b. **Motion pass (cite `report.motion`, do not eyeball):** verdict each measured motion check —
+   `scroll_jank` (longtask budget during the scripted scroll), `motion_non_inert` (landing: elements
+   actually transform/fade across scroll), `reduced_motion_respected` (the motion collapses under
+   prefers-reduced-motion), and when `report.motion.webgl.present` the `webgl_render_loop_paused`
+   check. Measured now — a FAIL cites the number (`changed`, `longtask_ms`, `changed_reduced`,
+   `offscreen_raf_500ms`), never "looks static" / "feels smooth".
 
 ### Tier 2 — VISUAL (LOOK at the screenshots in `.design/verify/`, not the code)
 Open the PNGs (per theme × {320,768,1280}) and judge against the pixels:
@@ -63,8 +71,10 @@ Open the PNGs (per theme × {320,768,1280}) and judge against the pixels:
    — judge it by eye; if it's hard to read, FAIL.
 
 ### Tier 3 — JUDGMENT (label it as judgment, with grounding — `tools/ambition-check.md`)
-9. **Hook enacted, not inert** — does the stated hook actually *do* something (move, reveal,
-   respond), or is it a clever static idea sitting in the layout? Inert → FAIL.
+9. **Hook enacted, not inert** — the *measured* floor is `motion_non_inert` (Tier-1 §3b): if it
+   FAILED, the hook is inert, full stop. If it passed, judge the part a number can't — does the
+   motion that fires actually *express the hook* (the right thing moves/reveals/responds), or does
+   the page merely twitch while the hook stays a static idea? Moves-but-doesn't-express → FAIL.
 10. **Ambition / gallery-tier.** Run `ambition-check.md`: Step-1 binary proxies (≥1 *named*
     signature device; focal technique-stack depth ≥2; non-default composition; not a ledger
     repeat) + Step-2 **pairwise vs the exemplar**, anchored on those proxies, **both orders**
@@ -82,6 +92,18 @@ Open the PNGs (per theme × {320,768,1280}) and judge against the pixels:
     **app surface** = skip the scroll-storytelling spine; **component** = minimal. Demanding a
     spine from a login form, or skipping the hook check on a landing, is itself a FAIL.
 
+### Tier-4 — PROCESS PROVENANCE (cheap, high-signal; cite the file)
+12. **Reference lineage actually pulled** (expressive landings). `reference-scout` is a
+    MUSTHAVE-DEFAULT "shift the mean off the training median" step. Open `.design/journal.md`: it
+    must cite ≥1 reference lineage ("…informed by <studio/case-study>"). None on an expressive
+    landing → FAIL (the anti-slop move didn't run; the page is likely the median). Skip for app
+    surfaces / tiny edits.
+13. **Spread cell honoured** (best-of-N candidates). If an assigned cell `{archetype, mechanism}`
+    was passed, observe the realized archetype + hook-mechanism from the page and compare. A
+    candidate generated outside its assigned cell silently defeats the diversity spread (the
+    `assign→generate` seam) → FAIL unless the deviation is explicitly justified. Emit the observed
+    cell (`observed_cell`) so the engine can reconcile against the ledger.
+
 ## Anti-rationalization (apply to yourself)
 - You must actually open every screenshot and file you rule on. "Looks fine" unread is not a verdict.
 - Don't rubber-stamp to be agreeable; don't fail true-passing work to seem rigorous.
@@ -95,8 +117,11 @@ Open the PNGs (per theme × {320,768,1280}) and judge against the pixels:
   "deliverable_branch": "landing|app|component",
   "critic_tier": "A|B|C",
   "report": { "source": "existing|ran|unverified", "build_hash": "..." },
+  "observed_cell": { "archetype": "...", "mechanism": "...", "matches_assigned": true },
   "checks": [
     {"id":"axe_a11y","tier":"measured","verdict":"PASS|FAIL|UNVERIFIED","evidence":"report: 0 serious; or 'color-contrast at button.cta'"},
+    {"id":"motion_non_inert","tier":"measured","verdict":"PASS|FAIL","evidence":"report.motion: changed 7 across scroll"},
+    {"id":"reference_lineage","tier":"provenance","verdict":"PASS|FAIL","evidence":"journal.md cites 'pinned-reveal pacing informed by <case-study>'"},
     {"id":"ambition","tier":"judgment","verdict":"PASS|FAIL","evidence":"in-tier vs statement-exemplar both orders; signature: scroll type-mask; focal stack 3"}
     /* ...one per check above... */
   ],
