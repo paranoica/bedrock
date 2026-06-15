@@ -1,0 +1,34 @@
+name: Feature request
+description: Propose new work or a change in scope.
+labels: ["feature"]
+body:
+  - type: markdown
+    attributes:
+      value: >
+        In a genesis-managed project, a feature enters through the **spec + backlog**: it becomes a
+        decision/task (run genesis `replan` — amend the spec, then re-derive), not a change made
+        straight in code. Describe the *what* and *why*; the *how* is derived from the spec.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / user need
+      description: What can't be done today, and for whom?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: The outcome you want. Keep it to the what; leave implementation to the plan.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: In / out of scope
+      description: What this explicitly does and does not include.
+  - type: textarea
+    id: open-questions
+    attributes:
+      label: Open questions
+      description: Anything undecided — record it here rather than guessing.

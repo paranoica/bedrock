@@ -1,0 +1,30 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Source of truth + history — COMMITTED (NOT ignored; no pattern below matches them):
+#   docs/  PLAN.md  genesis.tasks.json  RULES.md  CLAUDE.md  project-context/
+# A committed stale .map/ would lie to the next clone (the failure freshness-stamping
+# exists to prevent); a git-ignored genesis.tasks.json would lose the backlog. Keep the
+# split exact.
+# NOTE: .gitignore has NO inline/trailing comments — every pattern is alone on its line
+# (a trailing "# ..." becomes part of the pattern and silently breaks the ignore).
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Derived / rebuildable / local — never commit (regenerated on demand):
+#   .map/      project map, rebuilt by tools/project-map/build.py
+#   .genesis/  genesis receipts, interview log, calibration snapshot
+#   .refiner/  prompt-refiner calibration
+.map/
+.genesis/
+.refiner/
+
+# code-review's own policy: commit suppressions.json + standards.md; ignore the rebuildable:
+.review/index.json
+.review/outcomes.jsonl
+
+# design-creator's own policy: ignore ONLY the heavy mockup iterations:
+.design/mockups/
+
+# Language / tooling noise:
+__pycache__/
+*.py[cod]
+node_modules/
+.DS_Store

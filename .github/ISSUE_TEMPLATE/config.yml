@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: How this project works
+    url: https://github.com/
+    about: "Read .template/INSTRUCTIONS.en.md (or .ru.md) and docs/ before opening an issue."

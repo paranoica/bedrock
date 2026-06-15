@@ -1,0 +1,32 @@
+name: Bug report
+description: Something behaves incorrectly.
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: The symptom — what you observed, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Minimal steps. Include the request/command and any relevant file paths.
+      placeholder: |
+        1. …
+        2. …
+        3. observed: … / expected: …
+    validations:
+      required: true
+  - type: input
+    id: location
+    attributes:
+      label: Likely location (if known)
+      description: "file:line, module, or surface — helps route the fix."
+  - type: textarea
+    id: context
+    attributes:
+      label: Environment / context
+      description: OS, runtime versions, branch/commit. Note if the project is genesis-managed.

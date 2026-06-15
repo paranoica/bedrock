@@ -1,0 +1,10 @@
+# Code owners — auto-request review when matching paths change.
+# Replace @owner with your GitHub handle/team once you create your repo from this template.
+
+# Default owner for everything:
+# *                                  @owner
+
+# The template's load-bearing machinery (review these carefully):
+# /tools/                            @owner
+# /.claude/skills/                   @owner
+# /CLAUDE.md                         @owner

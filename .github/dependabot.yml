@@ -1,0 +1,14 @@
+version: 2
+updates:
+  # The only ecosystem present in the bare template is GitHub Actions (the evals workflow).
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels: ["dependencies"]
+
+  # Add ecosystems as your project gains manifests, e.g.:
+  # - package-ecosystem: "npm"   (directory: "/" or "/apps/web")
+  # - package-ecosystem: "pip"   (directory wherever requirements/pyproject live)
+  # - package-ecosystem: "docker"
