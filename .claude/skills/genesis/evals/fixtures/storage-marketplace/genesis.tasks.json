@@ -1,0 +1,44 @@
+{
+  "project": "Storage Marketplace",
+  "tasks": [
+    {
+      "id": "T001",
+      "title": "Account model + roles",
+      "sprint": "S1",
+      "status": "done",
+      "dependencies": [],
+      "spec_refs": { "decision:auth-model": null },
+      "acceptance": ["WHEN a user registers THEN the system SHALL create an Account with role renter by default"],
+      "verify": { "kind": "test", "handle": "pnpm test account.spec.ts" },
+      "files": ["api/account/*"]
+    },
+    {
+      "id": "T003",
+      "title": "Email/password + Google OAuth signup",
+      "sprint": "S1",
+      "status": "todo",
+      "dependencies": ["T001"],
+      "spec_refs": { "decision:auth-model": null },
+      "acceptance": [
+        "WHEN a user registers with a valid email and password THEN the system SHALL create an unverified Account and send a verification email",
+        "WHEN Google OAuth completes with a verified email matching an existing Account THEN the system SHALL link not duplicate"
+      ],
+      "verify": { "kind": "test", "handle": "pnpm test auth/signup.spec.ts" },
+      "files": ["api/auth/*"]
+    },
+    {
+      "id": "T010",
+      "title": "Escrow balance + monthly payout",
+      "sprint": "S2",
+      "status": "todo",
+      "dependencies": ["T003"],
+      "spec_refs": { "decision:money-custody": null },
+      "acceptance": [
+        "WHEN a monthly charge succeeds THEN the system SHALL credit Escrow and record the owner claimable minus Commission",
+        "WHEN a payout run executes THEN the system SHALL transfer each owner Payout and mark it paid"
+      ],
+      "verify": { "kind": "test", "handle": "pnpm test payments/escrow.spec.ts" },
+      "files": ["api/payments/*"]
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "_comment": "Router + state map for genesis (v0.1.0). Read FIRST. Lazy-load only what a phase needs; keep invariants near the work; keep durable state in files.",
+  "invariants_file": "references/invariants.md",
+  "reinjection_rule": "Re-read references/invariants.md at each phase boundary, before writing any spec doc, and at the top of the spec-analyze gate. It is short by design; never rely on having read it earlier in a long session.",
+  "always_first": [
+    "references/invariants.md",
+    "references/anchor-contract.md"
+  ],
+  "modes": {
+    "_comment": "Pick ONE from the user's request, then read its file.",
+    "greenfield": "modes/greenfield.md",
+    "adopt": "modes/adopt.md",
+    "replan": "modes/replan.md"
+  },
+  "references": {
+    "interview_taxonomy": "references/interview-taxonomy.md",
+    "anchor_contract": "references/anchor-contract.md",
+    "spec_templates": "references/spec-templates/",
+    "backlog_spec": "references/backlog-spec.md",
+    "canon_template": "references/canon-template.md",
+    "readme_template": "references/readme-template.md",
+    "design_handoff": "references/design-handoff.md"
+  },
+  "subagents": {
+    "spec_verifier": "subagents/spec-verifier.md"
+  },
+  "scripts": {
+    "_comment": "anchors.py is the ONE implementation of the anchor grammar/normalizer/hash from references/anchor-contract.md; backlog.py and analyze_spec.py both import it.",
+    "anchors": "scripts/anchors.py",
+    "analyze_spec": "scripts/analyze_spec.py",
+    "backlog": "scripts/backlog.py",
+    "preflight": "scripts/preflight.sh",
+    "calibration": "scripts/calibration.py"
+  },
+  "external_tools": {
+    "project_map": "tools/project-map/build.py (the cartographer; genesis invokes it at pipeline step 5; see tools/project-map/CONTRACT.md)"
+  },
+  "state_files": {
+    "_comment": "Durable state lives in files in the USER's repo, not in the conversation.",
+    "spec_docs": "docs/{decisions,architecture,glossary,open-questions}.md — anchored; COMMITTED; the source of truth",
+    "backlog_machine": "genesis.tasks.json — machine source of task state; COMMITTED; mutated only via backlog.py",
+    "backlog_render": "PLAN.md — GENERATED human render; COMMITTED; never hand-edited",
+    "canon": "RULES.md (canon) + CLAUDE.md (@import wrapper) — COMMITTED; never overwrite, read-and-extend",
+    "archive": "project-context/ — raw interview + distilled summary; COMMITTED; NOT a source of truth",
+    "map": ".map/project.json — rebuildable; GITIGNORED",
+    "genesis_state": ".genesis/ — receipts (spec-receipt.json), interview log, calibration; GITIGNORED/local"
+  },
+  "gitignore_policy": "Commit docs/, genesis.tasks.json, PLAN.md, RULES.md, CLAUDE.md, project-context/ (source of truth + history). Gitignore .map/ and .genesis/ (rebuildable/local)."
+}
