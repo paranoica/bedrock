@@ -18,9 +18,12 @@ done work**. Never hand-patch a frozen plan — the spec is the source; re-deriv
   Only after the amend do the steps below have anything to act on. (This is why a feature routed from
   refiner lands here and not in code directly — it enters through the spec + backlog, never around them.)
 
-## Step 1 — classify the flips
+## Step 1 — classify the flips, and read the accumulated signal
 `calibration.py classify` — `new-decision` / `open-question-resolved` are NEUTRAL; `settled-overturned`
 is a candidate, recorded `charged=false` (enters the interview bar only if a human later `tag`s it).
+Then **`calibration.py report` — read it before re-interviewing**: a non-zero `interview_bar_signal`
+(human-tagged "should've-been-caught" misses) means dig deeper on those axes this time. This is the
+loop's consumer — the signal is produced **and read**, not write-only telemetry.
 
 ## Step 2 — see the impact (dry-run)
 `backlog.py re-derive` — which tasks drift (→ `needs-review`, soft) vs structural change (→ `stale`,
