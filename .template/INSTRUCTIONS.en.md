@@ -85,7 +85,10 @@ CRITICAL; an orphan decision with no task is a LOW flag; no anchoring contradict
 annotation / duplicate ids fail) **plus** a fresh-context **spec-verifier** that reads the spec cold
 and judges the harder *coverage* question — is anything required missing a task? — that the
 deterministic pass can't prove. The gate is blocking — genesis never declares the spec "ready" on a
-skipped **or stale** gate (the receipt's `--check` must be fresh).
+skipped **or stale** gate (the receipt's `--check` must be fresh). The deterministic half + backlog
+consistency are **also enforced in the seeded project's CI** (`.github/workflows/spec-gate.yml`, pure
+Python, no model) — so "blocking" holds mechanically, not only by the model; the fresh-context
+verifier is the authoring-time half.
 
 ### adopt-mode honesty
 In adopt mode genesis can see **what** the code is but not **why**. Observed facts go to

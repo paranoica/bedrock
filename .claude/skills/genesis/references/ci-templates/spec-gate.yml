@@ -1,0 +1,23 @@
+# spec-gate.yml — emitted by genesis so the spec↔backlog gate is enforced in the seeded project's
+# CI, not only by the model at authoring time. Pure Python, NO AI. It blocks a PR when the committed
+# spec/backlog is inconsistent (dangling refs, partial annotation, duplicate anchors, a hand-edited
+# PLAN.md, a DAG cycle). The fresh-context spec-verifier (the judgement half) stays at authoring time
+# — it needs a model and cannot run here; this workflow covers the DETERMINISTIC half + consistency.
+name: spec-gate
+on:
+  push:
+  pull_request:
+jobs:
+  spec-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Backlog consistency (DAG cycles, dangling refs/deps, PLAN.md in sync)
+        run: python3 .claude/skills/genesis/scripts/backlog.py --root . validate
+      - name: Spec-analyze (deterministic gate — fails the build on any CRITICAL)
+        run: python3 .claude/skills/genesis/scripts/analyze_spec.py .
+# Note: HIGH findings (a task resting on an open decision) do NOT fail the build — an open question is
+# a valid state; it blocks that task's execution-readiness, surfaced in the analyze output, not CI.

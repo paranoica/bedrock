@@ -52,6 +52,15 @@ artifact:
 }
 ```
 
+## Also emit a spec-gate workflow (enforce the gate in CI, not just at authoring)
+
+genesis **also** emits `.github/workflows/spec-gate.yml` (prototype: `ci-templates/spec-gate.yml`).
+It runs the **deterministic** half of the gate on every PR — `backlog.py validate` (DAG, dangling
+refs, PLAN.md sync) + `analyze_spec.py .` (fails on any CRITICAL) — pure Python, no AI. That makes
+"the gate is blocking" true *mechanically* in the seeded project, not only by the model running it at
+authoring time. (The fresh-context `spec-verifier` is the judgement half and stays at authoring time —
+it needs a model and can't run in CI.)
+
 ## This is the PROJECT's CI — not the template's
 
 Bedrock's own self-test is `tools/run-evals.sh` (run by `.github/workflows/evals.yml`) — a different
