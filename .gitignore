@@ -1,6 +1,6 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # Source of truth + history — COMMITTED (NOT ignored; no pattern below matches them):
-#   docs/  PLAN.md  genesis.tasks.json  RULES.md  CLAUDE.md  project-context/
+#   docs/  PLAN.md  genesis.tasks.json  AGENTS.md  CLAUDE.md  project-context/
 # A committed stale .map/ would lie to the next clone (the failure freshness-stamping
 # exists to prevent); a git-ignored genesis.tasks.json would lose the backlog. Keep the
 # split exact.

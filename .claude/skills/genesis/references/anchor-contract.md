@@ -23,7 +23,7 @@ atomic unit it tags:
 
 - `<id>` = `<type>:<slug>` where `slug = [a-z0-9-]+` and `type` is one of, each with its home:
   `decision` (`decisions.md`), `term` (`glossary.md`), `arch` (the Invariants section of
-  `architecture.md`), `canon` (a hard rule in `RULES.md` a task is bound to — optional; `RULES.md`
+  `architecture.md`), `canon` (a hard rule in `AGENTS.md` a task is bound to — optional; `AGENTS.md`
   is not a must-anchor file). Ids are **stable** — renaming a slug is a structural change.
 - `refs:` is **optional**. Zero refs is valid (a decision that depends on nothing parses fine).
 - refs are comma-separated; surrounding spaces are tolerated (`refs:term:a, term:b`).

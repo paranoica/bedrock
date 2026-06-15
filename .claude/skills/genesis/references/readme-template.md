@@ -17,7 +17,7 @@ It is for a human landing on *the project* — it is **not** the template's own 
 
 <one line: what it is and for whom — from docs/decisions.md>
 
-> Status: in development. Source of truth: `docs/`. Plan: `PLAN.md`. Rules: `RULES.md`.
+> Status: in development. Source of truth: `docs/`. Plan: `PLAN.md`. Rules: `AGENTS.md`.
 
 ## What it does
 <2–4 bullets from the in-MVP scope>
@@ -28,5 +28,5 @@ It is for a human landing on *the project* — it is **not** the template's own 
 ## How this project is organised
 - `docs/` — decisions, architecture, glossary, open questions (the spec; source of truth).
 - `PLAN.md` — the task plan (generated; change task state via the backlog tool, not by hand).
-- `RULES.md` / `CLAUDE.md` — the rules every coding session follows.
+- `AGENTS.md` / `CLAUDE.md` — the rules every coding session follows.
 ```

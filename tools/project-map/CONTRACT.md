@@ -101,7 +101,7 @@ States and exit codes:
 A `stale` result lists the changed files so a rebuild is incremental: `build.py` reuses every
 file whose `hash` is unchanged and re-parses only the rest, then refreshes the stamp.
 
-## Read protocol (every consumer follows this; canon `RULES.md` re-states it)
+## Read protocol (every consumer follows this; canon `AGENTS.md` re-states it)
 
 1. **Before analyzing the project, run `--check`.**
 2. `fresh` → consult the map.

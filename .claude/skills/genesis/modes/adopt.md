@@ -20,6 +20,7 @@ You can observe **what** the code is; you cannot know **why** it was decided. So
 3. Draft `architecture.md` (observed, cited) + `glossary.md` (terms actually in use) +
    `open-questions.md` (inferred rationale, pending confirmation).
 4. Short interview: confirm inferred decisions, fill scope/MVP and anything the code can't reveal.
-5. **Read-and-extend** any existing `CLAUDE.md` (never overwrite); emit `RULES.md`.
+5. **Read-and-extend** any existing `CLAUDE.md`/`AGENTS.md` (never overwrite); fill `AGENTS.md`'s
+   "Project rules" section inline.
 6. Derive a backlog for the **work the user wants next** — not a rewrite of what already exists.
 7. `backlog.py stamp` · `calibration.py snapshot` · run the gate.
