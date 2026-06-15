@@ -26,6 +26,9 @@ else
   echo "  FAIL"; fail=1
 fi
 
+step "codex skill-mirror drift (.agents/skills vs .claude/skills)"
+python3 "$ROOT/tools/port-skills.py" --check --root "$ROOT" || fail=1
+
 if [ "$fail" -ne 0 ]; then
   printf '\nEVALS: FAIL\n'; exit 1
 fi
