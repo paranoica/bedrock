@@ -3,8 +3,9 @@
 Bedrock is a GitHub **template repository** for starting software projects with high-quality,
 AI-assisted output from day one. You clone it, describe what you want to build, and a small set of
 cooperating **agent skills** sets up your spec, your task plan, and the rules every change follows —
-then keeps the work flowing through the right quality gate. Built for **Claude Code**, and — via the
-cross-agent **`AGENTS.md`** standard — usable from Cursor, Codex, Windsurf, and more.
+then keeps the work flowing through the right quality gate. The **skills run in Claude Code**; the
+**project they produce** is agent-agnostic — its rules live in the cross-agent **`AGENTS.md`**, so
+Cursor, Codex, Windsurf, and more work under the same canon afterwards.
 
 ## What you get
 
@@ -35,5 +36,6 @@ cross-agent **`AGENTS.md`** standard — usable from Cursor, Codex, Windsurf, an
 
 ## Start
 
-Open the repo in your coding agent and say what you want to build, or run `/genesis`. For every
-feature, how each part works, and the edge cases, read **[INSTRUCTIONS.en.md](INSTRUCTIONS.en.md)**.
+Run `/genesis` in Claude Code and say what you want to build (the resulting project then works with
+any AGENTS.md-aware agent). For every feature, how each part works, and the edge cases, read
+**[INSTRUCTIONS.en.md](INSTRUCTIONS.en.md)**.

@@ -80,10 +80,12 @@ On a spec change, `backlog.py re-derive` compares hashes and flags tasks — see
 (§10) for the exact `needs-review` vs `stale` behaviour. `done` work is preserved.
 
 ### The gate before "ready" (spec-analyze)
-Two layers: a **deterministic** check (every requirement traces to a task and back; no anchoring
-contradictions; no dangling refs; partial annotation / duplicate ids fail) **plus** a fresh-context
-**spec-verifier** that reads the spec cold and looks for coverage gaps, contradictions, and invented
-decisions. The gate is blocking — genesis never declares the spec "ready" on a skipped gate.
+Two layers: a **deterministic** check (each task traces to a real spec anchor — a dangling ref is
+CRITICAL; an orphan decision with no task is a LOW flag; no anchoring contradictions; partial
+annotation / duplicate ids fail) **plus** a fresh-context **spec-verifier** that reads the spec cold
+and judges the harder *coverage* question — is anything required missing a task? — that the
+deterministic pass can't prove. The gate is blocking — genesis never declares the spec "ready" on a
+skipped **or stale** gate (the receipt's `--check` must be fresh).
 
 ### adopt-mode honesty
 In adopt mode genesis can see **what** the code is but not **why**. Observed facts go to
