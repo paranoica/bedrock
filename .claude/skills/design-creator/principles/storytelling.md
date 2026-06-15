@@ -25,6 +25,44 @@ These are the techniques that make scroll *narrative*. At least one substantial 
 
 Supporting/lighter techniques: scroll-reveal of sections (the baseline — always present, but never the whole story), light parallax, clip-mask reveal, word-by-word text reveal, scroll progress indicator, before/after swipe, number counter, background-color shift.
 
+## The hero / fold — pick a scroll behaviour (the most-defaulted moment)
+
+The first fold is where the median model is weakest: it ships a static hero with fade-in sections
+below — a brochure. The mechanics above are *section-level*; the **hero's own behaviour as you
+leave it** is a separate, deliberate decision. Every landing picks **one**, stated in the narrative:
+
+- **Static + handoff** (Clean default) — the hero holds; the move is the *handoff*: the next
+  section enters over it or pushes it out. Valid for Clean, but it must be a designed handoff
+  (overlap / push / colour-carry), never a hard cut to a stacked block.
+- **Sticky-overlay** — the hero pins (~100vh, `position: sticky`) while the next section scrolls
+  up over it on a higher layer with its own background. Revealed, then covered. Native, cheap.
+- **Scale-down / release** — past the fold the hero's focal element (oversized title / visual)
+  scales down and fades, then releases as content enters (`animation-timeline: view()` or GSAP
+  scrub). The fold compresses into the page.
+- **Parallax-push** — the hero visual moves slower than the foreground (0.4–0.6×) and the next
+  section pushes it out of frame. Depth at the fold.
+
+Reduced-motion: the hero resolves to its composed static state and the next section sits plainly
+below — designed, not stripped (`motion.md`).
+
+## Section entrances — pick per section (not fade-everything)
+
+A whole landing on one fade is the brochure tell — and now a measured one (it fails the gate's
+`motion_non_inert`). Choose entrances per section from this menu. Trigger a little before centre
+(~80% of viewport), 600–900ms, gentle ease, `transform`/`opacity` only:
+
+| Entrance | What | Use on |
+|---|---|---|
+| Reveal (baseline) | fade + 24–48px rise | quiet / connective sections only |
+| Stagger cascade | children enter in sequence, ~60–100ms apart | lists, card grids, feature rows |
+| Count-up | numbers climb from 0 as they enter | stats / metrics |
+| Clip-mask | content revealed by an expanding `clip-path` | a focal headline or image reveal |
+| Word-rise | heading words rise out of a mask, staggered | the one statement headline |
+| Parallax media | image/figure shifts at ~0.5× behind text | editorial / testimonial media |
+
+Vary the entrance down the page (intensity-by-hierarchy): reveal is the *floor* between louder
+beats, never the whole page. Same surprise/rhythm rules as below.
+
 ## How to choose
 
 The **spine** decides which mechanics are used and where — pinning goes on the section that is a process or a build; sticky-swap goes where a visual must track an explanation; horizontal goes on a sequence. Pick deliberately against the spine. But the rule is firm: a Statement page that ships with only fade-in reveal and no pin / sticky / horizontal / scroll-tied moment **has no storytelling** and fails QA. "I labelled the sections Act 1..7" is not storytelling either — labels are not mechanics.
@@ -107,6 +145,8 @@ respect `prefers-reduced-motion` with a designed static alternate, and sit withi
 
 - A narrative spine, proposed to the user, every section justified against it: **MUSTHAVE-BASE**.
 - At least one substantial scroll-storytelling mechanic (pin / sticky-swap / horizontal / scroll-tied) on a Statement page — reveal-only is a QA failure: **MUSTHAVE-BASE**.
+- **The hero/fold has a chosen scroll behaviour** (sticky-overlay / scale-down-release / parallax-push / deliberate static-handoff) — a static hero with fade-in sections below is the brochure default and now fails the measured `motion_non_inert` check: **MUSTHAVE-DEFAULT**.
+- **Section entrances are varied per section** (the menu above), not one fade down the whole page: **MUSTHAVE-DEFAULT**.
 - **On a long expressive landing, MULTIPLE beats of different types (not one), paced by hierarchy** — a single-device long landing is a timidity fail: **MUSTHAVE-DEFAULT**.
 - Unhurried timing, rhythm of density, one surprise moment, reduced-motion fallback: **MUSTHAVE-DEFAULT**.
 - Which specific mechanics, and where: **chosen against the spine** — proposed in the narrative, approved by the user.
