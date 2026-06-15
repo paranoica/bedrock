@@ -61,6 +61,13 @@ refs, PLAN.md sync) + `analyze_spec.py .` (fails on any CRITICAL) — pure Pytho
 authoring time. (The fresh-context `spec-verifier` is the judgement half and stays at authoring time —
 it needs a model and can't run in CI.)
 
+**Verify on first real seed.** A *generated* workflow is not a *proven* one until it goes green on a
+real GitHub Actions run. `spec-gate.yml`'s steps are verified locally (pure Python — `backlog.py
+validate` + `analyze_spec.py .`); `ci.yml`'s steps depend on the project's toolchain and can only run
+once there's code. So the **first seeded project must show a green Actions run** — otherwise a bug in
+an emitted workflow is discovered by a user, not by you. Treat the first green Actions run as the
+acceptance check for the CI emitter.
+
 ## This is the PROJECT's CI — not the template's
 
 Bedrock's own self-test is `tools/run-evals.sh` (run by `.github/workflows/evals.yml`) — a different

@@ -38,3 +38,14 @@ agents gate). Never overwrite a real wrapper — read-and-extend.
   frontmatter/placeholders (`allowed-tools`, `disallowed-tools`, `arguments`, `${CLAUDE_SKILL_DIR}`,
   `$ARGUMENTS`) — Codex doesn't document those. Subagent definitions differ per agent (out of scope for
   v1). (Codex's exact script-execution mechanism was not primary-verified.)
+
+## Codex setup (one place)
+
+- **Rules** — Codex reads root `AGENTS.md` natively; nothing to emit.
+- **Scripts** — the genesis scripts live at `.claude/skills/genesis/scripts/` and are callable by path
+  (the `spec-gate.yml` workflow does exactly this) regardless of agent.
+- **Skills** — to use the consume-side skills (`prompt-refiner`, `code-review`, `design-creator`) as
+  Codex `/skills`, run `python3 tools/port-skills.py <skill>`: it mirrors the folder into
+  `.agents/skills/` and strips Claude-only frontmatter. **genesis runs in Claude Code — don't port
+  it** (it's the inception front door and references `.claude/...` paths; other agents consume its
+  output, not the skill).
