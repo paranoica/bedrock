@@ -13,6 +13,7 @@ Two tools ship a zero-dependency `selftest` that guards their math — run them 
 
 - `node evals/diversity.mjs selftest` — the spread metric flags a clustered set and passes a varied one.
 - `node tools/calibration.mjs selftest` — the critic-calibration Brier + `--kind` filter compute correctly (guards the critic feedback loop wired into the QA gate).
+- `node tools/contrast.mjs selftest` — the WCAG contrast math + the token-classify floor check (the layer-1 contrast pre-check the engine runs at token-lock).
 
 A third eval is **render-backed** (needs a browser; self-skips cleanly otherwise):
 
