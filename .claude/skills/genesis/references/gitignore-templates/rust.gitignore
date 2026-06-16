@@ -1,0 +1,13 @@
+# ── Rust ──────────────────────────────────────────────────────────────────────
+# Vendored & curated from github/gitignore (Rust.gitignore) — CC0-1.0.
+# NOTE: Cargo.lock — COMMIT for a binary/app; ignore ONLY for a library crate.
+# Default keeps it committed; drop it here only if the project is a library.
+
+# Build output
+/target/
+
+# rustfmt backups
+**/*.rs.bk
+
+# MSVC debug info
+*.pdb

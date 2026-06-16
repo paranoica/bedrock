@@ -1,0 +1,20 @@
+# ── bedrock — skill artifacts (derived / local; rebuilt on demand) ────────────
+# The "ours" half genesis merges in, ALWAYS LAST. The COMMITTED counterparts
+# (docs/, PLAN.md, genesis.tasks.json, AGENTS.md, CLAUDE.md, project-context/) are the
+# source of truth and are deliberately NOT listed here. No trailing comments on patterns.
+
+# project-map — rebuilt by tools/project-map/build.py
+.map/
+
+# genesis receipts / interview log / calibration — local
+.genesis/
+
+# prompt-refiner calibration — local
+.refiner/
+
+# code-review — commit suppressions.json + standards.md; ignore the rebuildable
+.review/index.json
+.review/outcomes.jsonl
+
+# design-creator — ignore ONLY the heavy mockup iterations
+.design/mockups/

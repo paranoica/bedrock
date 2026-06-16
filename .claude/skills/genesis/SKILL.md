@@ -59,8 +59,9 @@ The residue between all skills belongs to **prompt-refiner**.
                              (references/agent-wrappers.md; CLAUDE.md=@AGENTS.md ships already) + the
                              project README.md (replace the Bedrock stub) + .github/workflows/ci.yml
                              (stack × project-type) + .github/workflows/spec-gate.yml (the gate in CI)
-                             + a "Wire up CI" backlog task. See references/canon-template.md +
-                             readme-template.md + ci-emit.md
+                             + a "Wire up CI" backlog task + .gitignore (compose common + stack +
+                             bedrock block). See references/canon-template.md + readme-template.md +
+                             ci-emit.md + gitignore-emit.md
 5  First project-map       → tools/project-map/build.py → .map/project.json
 6  spec-analyze gate       → deterministic checks + fresh-context spec-verifier + hash receipt (BLOCKING)
 7  Archive + handoff       → project-context/ (raw + summary; NOT source of truth); design-brief if visual work follows

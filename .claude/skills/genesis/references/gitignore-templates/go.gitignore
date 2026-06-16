@@ -1,0 +1,21 @@
+# ── Go ────────────────────────────────────────────────────────────────────────
+# Vendored & curated from github/gitignore (Go.gitignore) — CC0-1.0.
+# NOTE: go.mod and go.sum are COMMITTED — not ignored. vendor/ is usually committed too.
+
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary / output
+*.test
+*.out
+
+# Build output
+/bin/
+/dist/
+
+# Go workspace checksum
+go.work.sum

@@ -1,0 +1,47 @@
+# ── Common base — OS · editors · env · logs · temp ───────────────────────────
+# Vendored & curated from github/gitignore (Global/*) — CC0-1.0 (public domain).
+# Source: https://github.com/github/gitignore  ·  applies to ANY stack.
+# RULE: never add a lockfile here — lockfiles are COMMITTED for reproducible installs.
+# RULE: no trailing comments on a pattern line (a "# ..." becomes part of the pattern).
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+
+# Editors / IDEs (keep shared VSCode config; ignore the rest)
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.swp
+*.swo
+*.sublime-workspace
+
+# Environment / secrets — commit a .env.example, never real secrets
+.env
+.env.*
+!.env.example
+
+# Logs & temp
+*.log
+logs/
+*.tmp
+*.temp
+.cache/
+tmp/

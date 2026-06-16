@@ -1,0 +1,31 @@
+# ── Node / TypeScript ─────────────────────────────────────────────────────────
+# Vendored & curated from github/gitignore (Node.gitignore) — CC0-1.0.
+# NOTE: lockfiles (package-lock.json, yarn.lock, pnpm-lock.yaml) are COMMITTED — not ignored.
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.*
+
+# Build output
+dist/
+build/
+out/
+.next/
+.nuxt/
+.svelte-kit/
+.turbo/
+
+# Caches
+.eslintcache
+*.tsbuildinfo
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*

@@ -74,6 +74,7 @@ defaults but still extracts the minimum.
 - `README.md` — your project's readme (replaces the Bedrock stub).
 - `.map/project.json` — a first structural map.
 - `.github/workflows/ci.yml` + `spec-gate.yml` — a real, working CI (see **CI** below).
+- `.gitignore` — composed from github/gitignore (your stack) + bedrock's skill-artifact block.
 - `project-context/` — the raw interview + a summary (history, **not** the source of truth).
 
 ### How re-planning stays honest (the anchor mechanism)
@@ -102,6 +103,15 @@ artifact. The only network use is an optional one-time refresh of version pins a
 → it keeps the prototype's pins and leaves a `# verify pins` comment**. The companion `spec-gate.yml`
 (the deterministic gate half, above) runs on every PR. This is the *project's* CI — Bedrock's own
 self-test is `tools/run-evals.sh` (§8), a different file.
+
+### .gitignore — composed, not hand-rolled
+genesis composes the project's `.gitignore` from the **official [github/gitignore](https://github.com/github/gitignore)**
+patterns (CC0): a universal `common` base (OS / editors / `.env*` secrets / logs / temp) + the
+fragment(s) for your **stack** (Node / Python / Go / Rust; an unknown stack → `common` + a TODO, never
+a fake-complete ignore) + bedrock's own skill-artifact block (`.map/`, `.genesis/`, …), merged in that
+order. Fragments are vendored (works offline), with an optional one-time refresh from the source.
+**Lockfiles are never ignored** (committed for reproducible installs); `.vscode/` isn't
+blanket-ignored; an existing `.gitignore` is extended, never overwritten.
 
 ### adopt-mode honesty
 In adopt mode genesis can see **what** the code is but not **why**. Observed facts go to
@@ -284,6 +294,12 @@ bash tools/run-evals.sh
 - *A generated workflow is not a proven one* → `ci.yml`'s real steps only run once there's code, so the
   **first seeded project must show a green Actions run** ("verify on first real seed"). `spec-gate.yml`
   is pure Python and verified locally.
+
+**.gitignore (composed)**
+- *Unknown stack* → `common` + bedrock block + a `# TODO(genesis)` marker — never a fake-complete ignore.
+- *A lockfile* (`package-lock.json`, `uv.lock`, `Cargo.lock`, …) → **never ignored** — committed for
+  reproducible installs.
+- *You already have a `.gitignore`* → genesis extends it (appends the missing sections), never overwrites.
 
 ---
 

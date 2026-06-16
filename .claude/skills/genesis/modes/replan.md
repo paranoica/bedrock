@@ -35,7 +35,9 @@ re-derive them). On a new-work amend, the new anchors surface as additions → n
 
 ## Step 4 — address
 Re-derive `stale` tasks (re-trace to the new/renamed anchors); add tasks for new anchors; confirm each
-`needs-review` still holds, then clear it via `backlog.py status <id> <state>`.
+`needs-review` still holds, then clear it via `backlog.py status <id> <state>`. If the **stack** changed,
+re-emit `.github/workflows/ci.yml` and the project `.gitignore` to match (`references/ci-emit.md` /
+`references/gitignore-emit.md`).
 
 ## Step 5 — re-baseline
 `backlog.py stamp` — refresh closures + hashes. `calibration.py snapshot` — new baseline.

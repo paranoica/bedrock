@@ -22,6 +22,8 @@
     "readme_template": "references/readme-template.md",
     "ci_emit": "references/ci-emit.md",
     "ci_templates": "references/ci-templates/",
+    "gitignore_emit": "references/gitignore-emit.md",
+    "gitignore_templates": "references/gitignore-templates/",
     "design_handoff": "references/design-handoff.md"
   },
   "subagents": {
@@ -48,5 +50,5 @@
     "map": ".map/project.json — rebuildable; GITIGNORED",
     "genesis_state": ".genesis/ — receipts (spec-receipt.json), interview log, calibration; GITIGNORED/local"
   },
-  "gitignore_policy": "Commit docs/, genesis.tasks.json, PLAN.md, AGENTS.md, CLAUDE.md, project-context/ (source of truth + history). Gitignore .map/ and .genesis/ (rebuildable/local)."
+  "gitignore_policy": "Commit docs/, genesis.tasks.json, PLAN.md, AGENTS.md, CLAUDE.md, project-context/ (source of truth + history). Gitignore .map/ and .genesis/ (rebuildable/local). genesis composes the PROJECT's .gitignore at pipeline step 4 by merging github/gitignore stack fragments + bedrock's skill-artifact block (references/gitignore-emit.md); never ignore a lockfile."
 }
