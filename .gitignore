@@ -23,9 +23,10 @@
 # design-creator's own policy: ignore ONLY the heavy mockup iterations:
 .design/mockups/
 
-# Language / tooling noise:
+# bedrock's OWN dev noise (this is NOT the template for seeded projects — genesis composes
+# their .gitignore from references/gitignore-templates/). Lockfiles are NEVER ignored here:
+# they must be committed for reproducible installs.
 __pycache__/
 *.py[cod]
 node_modules/
-package-lock.json
 .DS_Store
