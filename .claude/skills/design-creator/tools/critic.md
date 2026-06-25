@@ -25,6 +25,9 @@ A claim you cannot tie to a screenshot, a measured number, or a token is not a v
   anchor over the generic exemplar for the Tier-3 pairwise when one exists.
 - the **assigned spread cell** `{archetype, mechanism}` from `spread.mjs assign` (when this is a
   best-of-N candidate), and `.design/journal.md` (the decisions + reference-lineage journal).
+- when a **baked 3D asset** is part of the result: `.design/3d/render-report.json` (the headless
+  Blender harness verdict — the offline sibling of verify-report.json) and the render PNG it cites,
+  plus `references/3d-render-exemplar.md` (the compare-to-reference anchor for baked 3D).
 If a path wasn't passed, find it (`Glob`/`Grep`) or say it's missing — don't assume.
 
 ## Protocol — produce a verdict per check, each in its tier
@@ -44,6 +47,13 @@ If a path wasn't passed, find it (`Glob`/`Grep`) or say it's missing — don't a
    prefers-reduced-motion), and when `report.motion.webgl.present` the `webgl_render_loop_paused`
    check. Measured now — a FAIL cites the number (`changed`, `longtask_ms`, `changed_reduced`,
    `offscreen_raf_500ms`), never "looks static" / "feels smooth".
+3c. **Baked-3D measured (cite `.design/3d/render-report.json`, do not eyeball)** — only when a
+   baked 3D asset is shipped. Get a fresh hash-bound report; if it's missing or its `scene_hash` ≠
+   the current recipe+params, run it yourself: `node tools/blender-render.mjs <recipe> --out
+   .design/3d --params '<json>'`. No Blender → `UNVERIFIED`, never PASS (exit 3 — the asset must
+   fall back to browser R3F / a placeholder). Verdict each measured check from the report:
+   `render_succeeded`, `not_black` (alpha coverage + luminance stddev — catches a black/empty/flat
+   frame), `poly_budget`, and `glb_valid` when a validator ran. Cite the number, never "looks rendered".
 
 ### Tier 2 — VISUAL (LOOK at the screenshots in `.design/verify/`, not the code)
 Open the PNGs (per theme × {320,768,1280}) and judge against the pixels:
@@ -69,6 +79,14 @@ Open the PNGs (per theme × {320,768,1280}) and judge against the pixels:
     flag animated `backdrop-filter` blur values and icon hard-swaps. FAIL on breakage.
 8. **Contrast axe couldn't auto-decide** (report `visual_required`, e.g. text over photo/glow)
    — judge it by eye; if it's hard to read, FAIL.
+8b. **Baked-3D render quality** — only when a baked 3D asset is shipped. LOOK at the render PNG
+   **against `references/3d-render-exemplar.md`, not in a vacuum**: lighting believable (not flat
+   default-clay); composition/framing intentional; the material reads as intended (glass refracts,
+   metal reflects an environment, emissive glows from within); silhouette legible; no fireflies /
+   noise / clipping. The model's spatial/material taste is its **weakest** axis, so this is
+   explicitly compare-to-reference — if low-confidence or you'd flip on re-derivation, return
+   `UNVERIFIED` for it and recommend an **owner vote** (`tools/taste.mjs`) rather than forcing
+   PASS/FAIL, exactly as the ambition escalation in §10.
 
 ### Tier 3 — JUDGMENT (label it as judgment, with grounding — `tools/ambition-check.md`)
 9. **Hook enacted, not inert** — the *measured* floor is `motion_non_inert` (Tier-1 §3b): if it

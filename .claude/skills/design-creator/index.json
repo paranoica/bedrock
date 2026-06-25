@@ -90,7 +90,8 @@
     "principles/kinetic-type.md": "expressive / animated typography (SITUATIONAL / STATEMENT)",
     "principles/decorative-graphics.md": "background / decorative graphic layers (SITUATIONAL / STATEMENT)",
     "principles/cursor.md": "custom cursor work (SITUATIONAL / STATEMENT)",
-    "principles/photography.md": "photographic content / art direction"
+    "principles/photography.md": "photographic content / art direction",
+    "principles/3d-baked.md": "a 3D request routed to the BAKED tier (offline headless Blender → PNG/EXR/webm/GLB) per Q4 production method; live browser 3D stays on 3d.md. Pairs with tools/blender-render.md + tools/blender/"
   },
   "section_recipe_dir": "patterns/",
   "state_files": {

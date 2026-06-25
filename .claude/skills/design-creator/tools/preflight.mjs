@@ -79,4 +79,26 @@ try {
   } else out.tells = { status: "absent", note: "principles/tells-current.md not found; using anti-slop.md only." };
 } catch (e) { out.tells = { status: "error", note: String(e && e.message || e) }; }
 
+// --- Baked-3D tier (principles/3d-baked.md): probe headless Blender + the GLB validator.
+// Absent Blender is NOT an error — the baked tier just isn't available; the engine routes 3D to
+// the browser R3F layer (3d.md) or labels a baked asset "requires render", never faking one.
+out.blender = { available: false, version: null, gltf_validator: false, baked_3d: "unavailable", note: "" };
+try {
+  const { spawnSync } = await import("node:child_process");
+  const p = spawnSync("blender", ["--version"], { encoding: "utf8" });
+  if (!p.error && p.status === 0) {
+    out.blender.available = true;
+    out.blender.version = (p.stdout || "").split("\n")[0].trim();
+  }
+  for (const bin of ["gltf-validator", "gltf_validator"]) {
+    const v = spawnSync(bin, ["--version"], { encoding: "utf8" });
+    if (!v.error) { out.blender.gltf_validator = true; break; }
+  }
+} catch {}
+out.blender.baked_3d = out.blender.available ? "available" : "unavailable";
+out.blender.note = out.blender.available
+  ? `Baked-3D tier available (${out.blender.version}). tools/blender-render.mjs renders recipes to a hash-bound report. ` +
+    (out.blender.gltf_validator ? "gltf-validator present → GLB validity gated." : "No gltf-validator → GLB validity ships advisory/UNVERIFIED.")
+  : "No Blender on PATH → baked-3D tier OFF. Route 3D to browser R3F (3d.md), or label a baked asset 'requires render' — never fake a render. Install Blender 5.x to enable.";
+
 process.stdout.write(JSON.stringify(out, null, 2) + "\n");
