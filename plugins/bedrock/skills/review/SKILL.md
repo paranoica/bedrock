@@ -52,12 +52,17 @@ Done when: the agent's report lists each requirement as done, missing or out of 
   abstraction with one implementation, a test for an impossible case.
 - A fix starts from the cause (`debug` skill for anything that is not obvious), never a patch
   over the symptom. A new test for a fix is red before the fix.
+- Prove the test guards the fix: put the old line back for a moment, the test must fail,
+  then restore it. Run Python this way with `PYTHONDONTWRITEBYTECODE=1`, or a cached `.pyc`
+  of the old line can keep the run green. A test that stays green guards nothing: rewrite it.
 - Record each outcome with the code-review skill's `scripts/record_outcome.py tp|fp`, so
   types that are almost always rejected get muted at the retro.
 Done when: every finding is fixed or rejected with a reason in the report.
 
 ## 5. Re-review only the fixes
-- Each next round reviews only the previous round's fixes.
+- Each next round reviews only the previous round's fixes, plus the sibling paths of each
+  fix: the same kind of input reaching another entry point (a guard fixed for one command
+  is checked for the other commands that take the same input).
 - Stop when a round finds nothing real.
 - Real findings not falling between rounds mean the design is wrong: back to the plan or the
   `debug` skill, a fresh view if needed.

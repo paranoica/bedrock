@@ -82,7 +82,8 @@
     "severity_rubric": "references/severity-rubric.md",
     "report_template": "references/report-template.md",
     "invariants": "references/invariants.md",
-    "review_discipline": "references/review-discipline.md"
+    "review_discipline": "references/review-discipline.md",
+    "security_precision": "references/security-precision.md"
   },
   "subagents": {
     "finding_verifier": "subagents/finding-verifier.md"

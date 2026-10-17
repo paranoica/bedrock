@@ -112,7 +112,9 @@ specific pattern uncertainty, a dependency at an unusual version. **Budget: max 
 Cache topic+date so you don't repeat.
 
 ### Step 5 — LLM-driven review
-First read **`checklists/taint-spine.md`** — the language-agnostic source→sink→sanitizer
+First study the repo's own defenses: **`references/security-precision.md` §1** (auth,
+validation, escaping, secrets, threat model). A finding is a deviation from them, not a
+guess. Then read **`checklists/taint-spine.md`** — the language-agnostic source→sink→sanitizer
 model and the finding rule. Then load checklists by relevance via `index.json` (don't read
 all of them — that just burns context):
 - `always_checklists` — injection-deep, security-general, performance, resilience. Every review.
@@ -150,6 +152,9 @@ section). Then:
 3. Honor verdicts: `CUT_NO_FILE`/`CUT_NO_QUOTE`/`CUT_BAD_CVE` → delete; `RELOCATE` → keep,
    replace lines with `actual_lines`; `NEEDS_HUMAN` → keep only as `needs verification`;
    `VERIFIED` → ship. When it says CUT, you cut — don't rephrase it back in.
+3b. **Security findings** pass `references/security-precision.md` §2–§4: a named exploit
+   path, at least 0.8 sure of exploitability for CRITICAL/HIGH, and nothing from the
+   not-a-vulnerability list or against a precedent. Drop or move what fails, before the verifier.
 4. **Self-consistency** for `confidence: low` survivors: re-derive once from scratch; can't
    reproduce → downgrade or cut.
 4b. **Counterfactual on "safe" verdicts:** when you called a spot safe *because of a defense*,
