@@ -1,0 +1,11 @@
+{
+  "project": "bedrock",
+  "leaks": {
+    "allow": ["claude", "anthropic"],
+    "ignore": ["tests/test_leaks.py", "plugins/bedrock/scripts/bedrock_lib/leaks.py"]
+  },
+  "checks": {
+    "allow_hosts": ["registry.npmjs.org", "api.npmjs.org", "pypi.org", "pypistats.org"],
+    "ignore": ["tests/test_codecheck.py"]
+  }
+}
