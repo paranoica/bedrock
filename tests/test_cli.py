@@ -595,3 +595,36 @@ def test_leaks_ignore_never_hides_a_secret(
     assert code == 1
     assert "fixtures/conf.py:1: secret" in out
     assert token not in out
+
+
+def test_session_set_get_and_clear(
+    capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
+) -> None:
+    env = {**env_at(home, "2026-10-17T12:00:00Z"), "CLAUDE_CODE_SESSION_ID": "s1"}
+    argv = ["session", "set", "task=dedupe search", "plan=[2,5]", "estimate_min=40"]
+    assert run(capsys, argv, env, workspace)[0] == 0
+    code, out, _ = run(capsys, ["session", "get"], env, workspace)
+    assert code == 0
+    assert json.loads(out) == {"task": "dedupe search", "plan": [2, 5], "estimate_min": 40}
+    run(capsys, ["session", "set", "plan=null"], env, workspace)
+    _, out, _ = run(capsys, ["session", "get"], env, workspace)
+    assert "plan" not in json.loads(out)
+
+
+def test_session_needs_an_id(
+    capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
+) -> None:
+    code, _, err = run(capsys, ["session", "get"], env_at(home, "2026-10-17T12:00:00Z"), workspace)
+    assert code == 1
+    assert "session" in err
+
+
+def test_review_record_for_a_branch(
+    capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
+) -> None:
+    env = env_at(home, "2026-10-17T12:00:00Z")
+    assert run(capsys, ["review", "pass", "fix/x-1"], env, workspace)[0] == 0
+    record = home / ".local/state/bedrock/reviews/Acme/fix__x-1.json"
+    assert json.loads(record.read_text())["passed"] is True
+    run(capsys, ["review", "fail", "fix/x-1"], env, workspace)
+    assert json.loads(record.read_text())["passed"] is False

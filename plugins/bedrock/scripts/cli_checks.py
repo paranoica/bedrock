@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import argparse
-import fnmatch
-from collections.abc import Callable, Iterable
+from collections.abc import Callable
 from pathlib import Path
 
 from bedrock_lib import codecheck, leaks, packages
@@ -35,63 +34,43 @@ def _message(ctx: Context) -> str | None:
     return ctx.args.message
 
 
-def _kept(found: Iterable[tuple[str, str, str]], ignore: list[str]) -> list[str]:
-    # Ignore globs are for a checker's own fixtures; a found secret is never ignored.
-    return [
-        line
-        for path, rule, line in found
-        if rule == "secret" or not any(fnmatch.fnmatch(path, glob) for glob in ignore)
-    ]
-
-
 def _leaks(ctx: Context) -> int:
     args = ctx.args
     home = Path(ctx.env.get("HOME", str(Path.home())))
     terms = leaks.load_terms(args.terms or home / ".config" / "bedrock" / "leak-terms.txt")
-    settings = ctx.settings("leaks")
-    workspace = ctx.workspace() if settings else None
-    root = workspace.root if workspace else ctx.cwd
-    allow = [*args.allow, *settings.get("allow", [])]
+    settings = dict(ctx.settings("leaks"))
+    settings["allow"] = [*args.allow, *settings.get("allow", [])]
+    if args.no_gitleaks:
+        settings["gitleaks"] = False
+    workspace = ctx.workspace() if ctx.settings("leaks") else None
     try:
-        found = leaks.check_staged(root, terms, allow=allow, gitleaks=not args.no_gitleaks)
+        lines = leaks.report(
+            workspace.root if workspace else ctx.cwd, terms, settings, _message(ctx)
+        )
     except leaks.LeakCheckError as error:
         raise CannotRun(str(error)) from error
-    if message := _message(ctx):
-        found += leaks.scan_text(message, terms)
-    lines = [(f.path, f.rule, f"{f.path}:{f.line}: {f.rule}: {f.excerpt}") for f in found]
-    report = _kept(lines, settings.get("ignore", []))
-    for line in report:
+    for line in lines:
         print(line)
-    return 1 if report else 0
+    return 1 if lines else 0
 
 
 def _check(ctx: Context) -> int:
     args = ctx.args
-    settings = ctx.settings("checks")
-    limits = codecheck.Limits(
-        file_lines=int(settings.get("file_lines", codecheck.Limits.file_lines)),
-        function_lines=int(settings.get("function_lines", codecheck.Limits.function_lines)),
-    )
     try:
         repo = Path(codecheck.git_root(ctx.cwd))
-        found = codecheck.run_checks(
+        lines = codecheck.report(
             repo,
+            ctx.settings("checks"),
+            _message(ctx),
             base=args.base,
             network=not args.no_network,
             allow_test_changes=args.allow_test_changes,
-            limits=limits,
-            allow_hosts=tuple(settings.get("allow_hosts", ())),
         )
     except (codecheck.CheckError, packages.RegistryError) as error:
         raise CannotRun(str(error)) from error
-    message = _message(ctx)
-    if message is not None:
-        found += codecheck.check_message(message)
-    lines = [(f.path, f.check, f"{f.path}:{f.line}: {f.check}: {f.message}") for f in found]
-    report = _kept(lines, settings.get("ignore", []))
-    for line in report:
+    for line in lines:
         print(line)
-    return 1 if report else 0
+    return 1 if lines else 0
 
 
 HANDLERS: dict[str, Callable[[Context], int]] = {"leaks": _leaks, "check": _check}

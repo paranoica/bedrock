@@ -218,3 +218,8 @@ def test_transcript_spend_skips_synthetic_messages(tmp_path: Path) -> None:
     spend = ledger.transcript_spend(path)
     assert spend.turns == 1
     assert spend.start_context == 1010
+
+
+def test_ledger_accepts_an_unknown_verdict_until_review(cfg: UserConfig) -> None:
+    ledger.add(cfg, entry(accepted=None), now=utc("2026-10-17T12:00:00"))
+    assert ledger.summary(cfg)["inventory"]["accepted"] == 0

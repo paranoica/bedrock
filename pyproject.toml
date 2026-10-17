@@ -16,7 +16,7 @@ target-version = "py312"
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "PTH", "BLE", "C90", "D"]
 ignore = ["D203", "D213"]
 # Russian text is a first-class input here; its letters are not homoglyph attacks.
-allowed-confusables = ["а", "в", "е", "к", "м", "н", "о", "р", "с", "т", "у", "х", "А", "В", "Е", "К", "М", "Н", "О", "Р", "С", "Т", "Х"]
+allowed-confusables = ["а", "в", "г", "е", "к", "м", "н", "о", "р", "с", "т", "у", "х", "А", "В", "Е", "К", "М", "Н", "О", "Р", "С", "Т", "Х"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

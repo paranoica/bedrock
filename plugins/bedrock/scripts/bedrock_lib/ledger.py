@@ -61,9 +61,10 @@ def _check(entry: dict[str, Any]) -> None:
         kinds = (int,) if whole else (int, float)
         if isinstance(value, bool) or not isinstance(value, kinds) or not 0 <= value < math.inf:
             raise LedgerError(f"{key} must be a non-negative {'integer' if whole else 'number'}")
-    for key in ("cap_hit", "accepted"):
-        if not isinstance(entry[key], bool):
-            raise LedgerError(f"{key} must be true or false")
+    if not isinstance(entry["cap_hit"], bool):
+        raise LedgerError("cap_hit must be true or false")
+    if entry["accepted"] is not None and not isinstance(entry["accepted"], bool):
+        raise LedgerError("accepted must be true, false, or null until reviewed")
 
 
 def add(cfg: UserConfig, entry: dict[str, Any], now: datetime | None = None) -> dict[str, Any]:

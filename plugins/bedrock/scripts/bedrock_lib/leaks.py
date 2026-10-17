@@ -6,6 +6,7 @@ in the owner's local config, never in a repository.
 
 from __future__ import annotations
 
+import fnmatch
 import json
 import re
 import shutil
@@ -65,10 +66,14 @@ def _mask(text: str, start: int, end: int) -> str:
 
 
 def _term_pattern(terms: Iterable[str]) -> re.Pattern[str] | None:
-    words = sorted({term for term in terms if term}, key=len, reverse=True)
+    """Match listed names as whole words; `=Name` in the list matches only that exact case."""
+    words = sorted({term for term in terms if term.lstrip("=")}, key=len, reverse=True)
     if not words:
         return None
-    return re.compile(r"(?<!\w)(?:" + "|".join(map(re.escape, words)) + r")(?!\w)", re.IGNORECASE)
+    parts = [
+        re.escape(word[1:]) if word.startswith("=") else f"(?i:{re.escape(word)})" for word in words
+    ]
+    return re.compile(r"(?<!\w)(?:" + "|".join(parts) + r")(?!\w)")
 
 
 def _trace_pattern(allow: Iterable[str]) -> re.Pattern[str]:
@@ -197,3 +202,20 @@ def check_staged(
     if gitleaks:
         found += _gitleaks(repo, which)
     return found
+
+
+def report(repo: Path, terms: list[str], settings: dict, message: str | None = None) -> list[str]:
+    """Check the staged change and message under a project's `leaks` settings; one line each.
+
+    Ignore globs cover a checker's own fixtures; a secret found by gitleaks is never ignored.
+    """
+    allow = list(settings.get("allow", []))
+    found = check_staged(repo, terms, allow=allow, gitleaks=settings.get("gitleaks", True))
+    if message:
+        found += scan_text(message, terms)
+    ignore = list(settings.get("ignore", []))
+    return [
+        f"{f.path}:{f.line}: {f.rule}: {f.excerpt}"
+        for f in found
+        if f.rule == "secret" or not any(fnmatch.fnmatch(f.path, glob) for glob in ignore)
+    ]

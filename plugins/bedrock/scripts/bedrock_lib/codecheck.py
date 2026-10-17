@@ -7,14 +7,17 @@ Duplicates, dead code and import contracts need per-language tools and are not d
 from __future__ import annotations
 
 import ast
+import fnmatch
 import re
-import subprocess
 from collections.abc import Callable, Iterator
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any
 
 from . import packages
+from .gitdiff import Change, changes, deleted_paths
+from .gitdiff import CheckError as CheckError
+from .gitdiff import git_root as git_root
 
 CODE = {".py", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".go", ".java", ".kt", ".rb"}
 CODE |= {".rs", ".swift", ".cs", ".php", ".c", ".cc", ".cpp", ".h", ".hpp", ".dart", ".sh"}
@@ -59,10 +62,6 @@ MIN_AGE_DAYS = 90
 MIN_WEEKLY_DOWNLOADS = 1000
 
 
-class CheckError(Exception):
-    """A check could not run (git failed, the registry is unreachable)."""
-
-
 @dataclass(frozen=True)
 class Finding:
     """One violation: where, which check, and what is wrong."""
@@ -79,91 +78,6 @@ class Limits:
 
     file_lines: int = 400
     function_lines: int = 60
-
-
-@dataclass
-class Change:
-    """One changed file: status, added and removed lines, old and new text."""
-
-    path: str
-    status: str
-    added: list[tuple[int, str]] = field(default_factory=list)
-    removed: list[str] = field(default_factory=list)
-    old: str | None = None
-    new: str | None = None
-
-
-def _git(repo: Path, *args: str) -> str:
-    done = subprocess.run(
-        ["git", "-C", str(repo), *args], capture_output=True, text=True, check=False
-    )
-    if done.returncode != 0:
-        raise CheckError(f"git {' '.join(args[:2])} failed: {done.stderr.strip()}")
-    return done.stdout
-
-
-def git_root(start: Path) -> str:
-    """Return the top folder of the git repository holding `start`."""
-    return _git(start, "rev-parse", "--show-toplevel").strip()
-
-
-def _show(repo: Path, spec: str) -> str | None:
-    done = subprocess.run(
-        ["git", "-C", str(repo), "show", spec], capture_output=True, text=True, check=False
-    )
-    return done.stdout if done.returncode == 0 else None
-
-
-def _revisions(repo: Path, base: str | None) -> tuple[list[str], str, str]:
-    """Return the diff range arguments and the specs of the old and new trees."""
-    if base is None:
-        return ["--cached"], "HEAD", ""
-    merge_base = _git(repo, "merge-base", base, "HEAD").strip()
-    return [merge_base, "HEAD"], merge_base, "HEAD"
-
-
-def changes(repo: Path, base: str | None = None) -> list[Change]:
-    """Collect the changed files of the staged change, or of HEAD against `base`."""
-    revisions, old_rev, new_rev = _revisions(repo, base)
-    found: dict[str, Change] = {}
-    for line in _git(repo, "diff", *revisions, "--name-status", "--no-renames").splitlines():
-        status, _, path = line.partition("\t")
-        found[path] = Change(path, status[:1])
-    patch = _git(repo, "diff", *revisions, "-U0", "--no-color", "--no-renames", "--no-ext-diff")
-    _read_patch(patch, found)
-    for change in found.values():
-        if change.status != "A":
-            change.old = _show(repo, f"{old_rev}:{change.path}")
-        if change.status != "D":
-            change.new = _show(repo, f"{new_rev}:{change.path}")
-    return list(found.values())
-
-
-def _read_patch(patch: str, found: dict[str, Change]) -> None:
-    current: Change | None = None
-    number = 0
-    previous = ""
-    for line in patch.splitlines():
-        header = previous.startswith("--- ")
-        previous = line
-        if header and line.startswith("+++ "):
-            current = found.get(line[4:].removeprefix("b/"))
-        elif line.startswith("--- ") and not header:
-            continue
-        elif line.startswith("@@"):
-            match = re.search(r"\+(\d+)", line)
-            number = int(match.group(1)) if match else 0
-        elif current is not None and line.startswith("+"):
-            current.added.append((number, line[1:]))
-            number += 1
-        elif current is not None and line.startswith("-"):
-            current.removed.append(line[1:])
-
-
-def _deleted_paths(repo: Path, base: str | None) -> list[str]:
-    revisions, _, _ = _revisions(repo, base)
-    listing = _git(repo, "diff", *revisions, "--name-status", "--no-renames")
-    return [line.split("\t", 1)[1] for line in listing.splitlines() if line.startswith("D")]
 
 
 def is_test(path: str) -> bool:
@@ -288,6 +202,11 @@ def check_internal_mock(change: Change, packages: set[str]) -> Iterator[Finding]
             yield Finding(change.path, number, "internal mock", message)
 
 
+def _loopback(address: str) -> bool:
+    # Loopback and "all interfaces" mean "this machine", not a deployment setting.
+    return address.startswith("127.") or address == "0.0.0.0"
+
+
 def check_hardcoded(change: Change, allow_hosts: tuple[str, ...] = ()) -> Iterator[Finding]:
     """No URLs or IP addresses written into source code, except hosts the project allows."""
     if not is_code(change.path) or is_test(change.path) or CONFIG_PATH.search(change.path):
@@ -296,7 +215,8 @@ def check_hardcoded(change: Change, allow_hosts: tuple[str, ...] = ()) -> Iterat
     for number, text in change.added:
         hosts = [match.group(1) for match in URL.finditer(text)]
         url = any(not host.endswith(safe) for host in hosts)
-        if url or IP.search(text):
+        addresses = [match.group(1) for match in IP.finditer(text)]
+        if url or any(not _loopback(address) for address in addresses):
             message = f"belongs in config: {text.strip()}"
             yield Finding(change.path, number, "hardcoded config", message)
 
@@ -353,7 +273,7 @@ def run_checks(
     if not allow_test_changes:
         found += [
             Finding(path, 0, "test tampering", "test file deleted")
-            for path in _deleted_paths(repo, base)
+            for path in deleted_paths(repo, base)
             if is_test(path)
         ]
     if network:
@@ -361,3 +281,35 @@ def run_checks(
         problems = packages.check(added, fetch or packages.fetch_json)
         found += [Finding(label, 0, "package", message) for label, message in problems]
     return found
+
+
+def report(
+    repo: Path,
+    settings: dict[str, Any],
+    message: str | None = None,
+    *,
+    base: str | None = None,
+    network: bool = True,
+    allow_test_changes: bool = False,
+) -> list[str]:
+    """Run the checks under a project's `checks` settings; one line per finding."""
+    limits = Limits(
+        file_lines=int(settings.get("file_lines", Limits.file_lines)),
+        function_lines=int(settings.get("function_lines", Limits.function_lines)),
+    )
+    found = run_checks(
+        repo,
+        base=base,
+        network=network,
+        allow_test_changes=allow_test_changes,
+        limits=limits,
+        allow_hosts=tuple(settings.get("allow_hosts", ())),
+    )
+    if message is not None and settings.get("commit_format", True):
+        found += check_message(message)
+    ignore = list(settings.get("ignore", []))
+    return [
+        f"{f.path}:{f.line}: {f.check}: {f.message}"
+        for f in found
+        if not any(fnmatch.fnmatch(f.path, glob) for glob in ignore)
+    ]

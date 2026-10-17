@@ -301,3 +301,9 @@ def test_failed_downloads_lookup_does_not_block_a_verified_package() -> None:
         return {"time": {"created": "2015-01-01T00:00:00.000Z"}}
 
     assert packages.check([("pypi", "requests"), ("npm", "react")], fetch, 1_792_000_000.0) == []
+
+
+@pytest.mark.parametrize("line", ['HOST = "127.0.0.1"', 'BIND = "0.0.0.0"', 'LOOP = "127.0.0.53"'])
+def test_loopback_addresses_are_not_config(repo: Path, line: str) -> None:
+    stage(repo, {"app/net.py": line + "\n"})
+    assert checks(repo) == []

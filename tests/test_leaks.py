@@ -164,3 +164,12 @@ def test_added_line_starting_with_plus_plus_is_still_scanned() -> None:
     text = header + "+intro\n+++ ask Quentin\n"
     found = leaks.scan_diff(text, ["Quentin"])
     assert [(f.path, f.line, f.rule) for f in found] == [("a.md", 2, "listed name")]
+
+
+def test_equals_prefix_makes_a_term_case_sensitive(tmp_path: Path) -> None:
+    path = tmp_path / "terms.txt"
+    path.write_text("=Quentin\nzorvath\n")
+    terms = leaks.load_terms(path)
+    assert leaks.scan_diff(diff("a.py", 'tool = "quentin"'), terms) == []
+    assert rules(leaks.scan_diff(diff("a.md", "ask Quentin"), terms)) == ["listed name"]
+    assert rules(leaks.scan_diff(diff("a.md", "ZORVATH said"), terms)) == ["listed name"]

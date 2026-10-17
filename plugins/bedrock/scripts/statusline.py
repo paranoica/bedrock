@@ -8,6 +8,7 @@ everything else.
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 from dataclasses import replace
@@ -173,6 +174,19 @@ def _minutes(cfg: UserConfig, data: dict[str, Any], session: dict[str, Any] | No
     return daylog.minutes(cfg, project.name, str(session["block"]), now=clock.now_utc())
 
 
+def _snapshot_limits(cfg: UserConfig, data: dict[str, Any]) -> None:
+    # Hooks read the subscription limits from here: only the status line receives them.
+    limits = data.get("rate_limits")
+    if not isinstance(limits, dict):
+        return
+    snapshot = {key: limits[key] for key in ("five_hour", "seven_day") if key in limits}
+    snapshot["ts"] = clock.iso(clock.now_utc())
+    cfg.state_dir.mkdir(parents=True, exist_ok=True)
+    temporary = cfg.state_dir / f"limits.{os.getpid()}.tmp"
+    temporary.write_text(json.dumps(snapshot), encoding="utf-8")
+    temporary.replace(cfg.state_dir / "limits.json")
+
+
 def _with_project_window(cfg: UserConfig, data: dict[str, Any]) -> UserConfig:
     if not isinstance(data.get("cwd"), str):
         return cfg
@@ -193,6 +207,7 @@ def main(stdin: TextIO = sys.stdin, stdout: TextIO = sys.stdout) -> int:
         data = json.loads(stdin.read())
         if not isinstance(data, dict):
             data = {}
+        _snapshot_limits(cfg, data)
         cfg = _with_project_window(cfg, data)
         session = _session(cfg, data.get("session_id"))
         line = render(cfg, data, session, _minutes(cfg, data, session))

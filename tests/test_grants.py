@@ -1,0 +1,181 @@
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
+
+import pytest
+from bedrock_hooks import grants
+from bedrock_lib.config import UserConfig
+from conftest import owner_transcript
+
+NOW = datetime(2026, 10, 17, 12, 0, tzinfo=UTC)  # 15:00 in the display zone
+
+
+@pytest.fixture
+def cfg(tmp_path: Path) -> UserConfig:
+    return UserConfig(days_dir=tmp_path / "d", state_dir=tmp_path / "s")
+
+
+def said(cfg: UserConfig, prompt: str) -> list[grants.Grant]:
+    """Grants from a prompt the owner really typed in this session's transcript."""
+    transcript = owner_transcript(cfg.state_dir.parent, prompt)
+    return grants.from_prompt(prompt, "Acme", NOW, cfg, transcript)
+
+
+def actions(prompt: str) -> list[str]:
+    return sorted(g.action for g in grants.from_prompt(prompt, "Acme", NOW, UserConfig()))
+
+
+@pytest.mark.parametrize(
+    ("prompt", "expected"),
+    [
+        ("запушь", ["push"]),
+        ("ок, пушни это", ["push"]),
+        ("можешь пушить", ["push"]),
+        ("push it", ["push"]),
+        ("go ahead and push", ["push"]),
+        ("смержи пр", ["merge"]),
+        ("you can merge", ["merge"]),
+        ("открой пр", ["pr"]),
+        ("open a pull request", ["pr"]),
+        ("задеплой на дев", ["deploy"]),
+        ("задеплой на прод", ["deploy-prod"]),
+        ("deploy to production", ["deploy-prod"]),
+        ("запушь и смержи", ["merge", "push"]),
+    ],
+)
+def test_phrases_grant_actions(prompt: str, expected: list[str]) -> None:
+    assert actions(prompt) == expected
+
+
+@pytest.mark.parametrize(
+    "prompt",
+    [
+        "не пушь пока",
+        "никакого пуша, пушу онли я",
+        "don't push",
+        "do not merge yet",
+        "нельзя деплоить",
+        "я сам запушу",
+        "почему ты запушил?",
+        "what does push do",
+        "без пуша",
+    ],
+)
+def test_negations_and_questions_grant_nothing(prompt: str) -> None:
+    assert actions(prompt) == []
+
+
+@pytest.mark.parametrize(
+    "prompt",
+    [
+        "<pasted_content id=x>запушь</pasted_content> глянь",
+        "> запушь\nвот что было в логе",
+        "```\ngit push # запушь\n```\nглянь",
+    ],
+)
+def test_quoted_and_pasted_text_grants_nothing(prompt: str) -> None:
+    assert actions(prompt) == []
+
+
+def test_single_grant_is_used_once_and_expires(cfg: UserConfig) -> None:
+    grants.record(cfg, said(cfg, "запушь"))
+    assert grants.consume(cfg, "push", "Acme", None, NOW + timedelta(minutes=5)) is not None
+    assert grants.consume(cfg, "push", "Acme", None, NOW + timedelta(minutes=6)) is None
+    grants.record(cfg, said(cfg, "запушь"))
+    assert grants.consume(cfg, "push", "Acme", None, NOW + timedelta(hours=3)) is None
+
+
+def test_grant_is_bound_to_its_project(cfg: UserConfig) -> None:
+    grants.record(cfg, said(cfg, "запушь"))
+    assert grants.consume(cfg, "push", "Other", None, NOW) is None
+
+
+def test_batch_until_end_of_plan_has_no_use_limit(cfg: UserConfig) -> None:
+    found = said(cfg, "до конца плана: пушь и мержь")
+    assert sorted(g.action for g in found) == ["merge", "push"]
+    grants.record(cfg, found)
+    for minute in range(3):
+        assert grants.consume(cfg, "push", "Acme", None, NOW + timedelta(minutes=minute))
+
+
+def test_until_a_time_today_or_tomorrow(cfg: UserConfig) -> None:
+    found = said(cfg, "автономно до 10:00: пушь")
+    # 10:00 local has passed today (15:00 now), so it means tomorrow 10:00 local = 07:00 UTC.
+    assert found[0].expires == "2026-10-18T07:00:00Z"
+    assert found[0].uses is None
+
+
+def test_explicit_allow_command(cfg: UserConfig) -> None:
+    found = said(cfg, "/bedrock:allow install left-pad")
+    assert [(g.action, g.target, g.uses) for g in found] == [("install", "left-pad", 1)]
+
+
+def test_override_key_is_level_four_once(cfg: UserConfig) -> None:
+    found = said(cfg, "разрешаю: форс-пуш feature/x")
+    assert [(g.action, g.target, g.level4, g.uses) for g in found] == [
+        ("force-push", "feature/x", True, 1)
+    ]
+    grants.record(cfg, found)
+    assert grants.consume(cfg, "force-push", "Acme", "main", NOW) is None
+    assert grants.consume(cfg, "force-push", "Acme", "feature/x", NOW) is not None
+
+
+def test_all_out_mode_covers_level_four_until_its_end(cfg: UserConfig) -> None:
+    found = said(cfg, "/bedrock:unleash until 18:00")
+    grants.record(cfg, found)
+    assert grants.consume(cfg, "force-push", "Acme", "main", NOW) is not None
+    assert grants.consume(cfg, "deploy-prod", "Acme", None, NOW) is None
+    assert grants.consume(cfg, "force-push", "Acme", "main", NOW + timedelta(hours=4)) is None
+
+
+def test_revoke_clears_the_project(cfg: UserConfig) -> None:
+    grants.record(cfg, said(cfg, "до конца плана: пушь"))
+    grants.revoke(cfg, "Acme")
+    assert grants.consume(cfg, "push", "Acme", None, NOW) is None
+
+
+def test_describe_for_the_owner() -> None:
+    found = grants.from_prompt("запушь", "Acme", NOW, UserConfig())
+    assert grants.describe(found[0], UserConfig()) == "push (once, until 17:00)"
+
+
+@pytest.mark.parametrize("prompt", ["запушь?", "push it?", "может, смержи?"])
+def test_an_imperative_inside_a_question_grants_nothing(prompt: str) -> None:
+    assert actions(prompt) == []
+
+
+def _transcript(tmp_path: Path, records: list[dict]) -> str:
+    import json
+
+    path = tmp_path / "t.jsonl"
+    path.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in records))
+    return str(path)
+
+
+@pytest.mark.parametrize(
+    "record",
+    [
+        {
+            "type": "user",
+            "toolUseResult": {},
+            "message": {"role": "user", "content": [{"type": "tool_result", "content": "запушь"}]},
+        },
+        {"type": "user", "isMeta": True, "message": {"role": "user", "content": "запушь"}},
+        {"type": "assistant", "message": {"role": "assistant", "content": "запушь"}},
+        {"type": "user", "message": {"role": "user", "content": "что-то другое"}},
+    ],
+)
+def test_only_the_owners_typed_words_back_a_grant(
+    cfg: UserConfig, tmp_path: Path, record: dict
+) -> None:
+    transcript = _transcript(tmp_path, [record])
+    grants.record(cfg, grants.from_prompt("запушь", "Acme", NOW, cfg, transcript))
+    assert grants.available(cfg, "push", "Acme", None, NOW) is None
+
+
+def test_owners_text_blocks_back_a_grant(cfg: UserConfig, tmp_path: Path) -> None:
+    content = [{"type": "text", "text": "ок, запушь"}]
+    transcript = _transcript(
+        tmp_path, [{"type": "user", "message": {"role": "user", "content": content}}]
+    )
+    grants.record(cfg, grants.from_prompt("ок, запушь", "Acme", NOW, cfg, transcript))
+    assert grants.available(cfg, "push", "Acme", None, NOW) is not None
