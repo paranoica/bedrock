@@ -47,10 +47,24 @@ def change(
 
 
 def update(cfg: UserConfig, session: str, values: dict[str, Any]) -> dict[str, Any]:
-    """Merge values into the state; a None value removes its key."""
+    """Merge values into the state; a None value removes its key.
+
+    A key `outer.inner` sets one field of the object under `outer` and keeps its other fields.
+    """
 
     def merge(data: dict[str, Any]) -> dict[str, Any]:
-        merged = {**data, **values}
-        return {key: value for key, value in merged.items() if value is not None}
+        merged = dict(data)
+        for key, value in values.items():
+            outer, dot, inner = key.partition(".")
+            target = merged
+            if dot:
+                nested = merged.get(outer)
+                target = merged[outer] = dict(nested) if isinstance(nested, dict) else {}
+                key = inner
+            if value is None:
+                target.pop(key, None)
+            else:
+                target[key] = value
+        return merged
 
     return change(cfg, session, merge)

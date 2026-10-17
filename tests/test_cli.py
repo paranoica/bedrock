@@ -611,6 +611,28 @@ def test_session_set_get_and_clear(
     assert "plan" not in json.loads(out)
 
 
+def test_session_dotted_keys_merge_into_a_nested_object(
+    capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
+) -> None:
+    env = {**env_at(home, "2026-10-17T12:00:00Z"), "CLAUDE_CODE_SESSION_ID": "s1"}
+    auto = '{"next": {"id": "T1"}, "attempts": {"T1": 2}, "steps": 7}'
+    assert run(capsys, ["session", "set", f"autocontinue={auto}"], env, workspace)[0] == 0
+    argv = ["session", "set", 'autocontinue.next={"id": "T2", "title": "b", "safe": true}']
+    assert run(capsys, argv, env, workspace)[0] == 0
+    _, out, _ = run(capsys, ["session", "get"], env, workspace)
+    assert json.loads(out)["autocontinue"] == {
+        "next": {"id": "T2", "title": "b", "safe": True},
+        "attempts": {"T1": 2},
+        "steps": 7,
+    }
+    run(capsys, ["session", "set", "autocontinue.next=null"], env, workspace)
+    _, out, _ = run(capsys, ["session", "get"], env, workspace)
+    assert json.loads(out)["autocontinue"] == {"attempts": {"T1": 2}, "steps": 7}
+    assert run(capsys, ["session", "set", "task.x=1"], env, workspace)[0] == 0
+    _, out, _ = run(capsys, ["session", "get"], env, workspace)
+    assert json.loads(out)["task"] == {"x": 1}
+
+
 def test_session_needs_an_id(
     capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
 ) -> None:
