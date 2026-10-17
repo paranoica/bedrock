@@ -1,4 +1,4 @@
-"""Subcommands for the knowledge base: create, validate, drift, modules without notes, backlinks."""
+"""Subcommands for the knowledge base and its backup, and for the machine map of the code."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from collections.abc import Callable
 from dataclasses import asdict
 from pathlib import Path
 
-from bedrock_lib import codecheck, codemap, kb
+from bedrock_lib import backup, clock, codecheck, codemap, kb, kbdrift
 from bedrock_lib.config import find_project
 from cli_context import Context, UsageError, print_json
 
@@ -27,6 +27,8 @@ def register(subcommands: argparse._SubParsersAction) -> list[argparse.ArgumentP
     bare.add_argument("--repo", type=Path, default=None)
     links = actions.add_parser("backlinks", help="notes linking to a note")
     links.add_argument("name")
+
+    subcommands.add_parser("backup", help="encrypt and commit today's snapshot (never pushes)")
 
     atlas = subcommands.add_parser("map", help="the machine map of the code (leads, not facts)")
     atlas.add_argument("action", choices=("build", "check", "defs", "callers"))
@@ -50,7 +52,7 @@ def _kb(ctx: Context) -> int:
         print_json(problems)
         return 1 if problems else 0
     elif args.action == "drift":
-        print_json(kb.drift(bank, project, _repo(ctx)))
+        print_json(kbdrift.drift(bank, project, _repo(ctx)))
     elif args.action == "uncovered":
         print_json(kb.uncovered(bank, project, _repo(ctx), args.root or ["src"]))
     else:
@@ -84,5 +86,17 @@ def _map(ctx: Context) -> int:
     return 0
 
 
-HANDLERS: dict[str, Callable[[Context], int]] = {"kb": _kb, "map": _map}
-FAILURES: tuple[type[Exception], ...] = (codecheck.CheckError,)
+def _backup(ctx: Context) -> int:
+    cfg = ctx.cfg
+    if cfg.backup_repo is None or not cfg.backup_recipient:
+        raise UsageError(
+            "set backup.repo and backup.recipient in ~/.config/bedrock/config.json first"
+        )
+    day = clock.in_zone(ctx.now, cfg.display_tz).date().isoformat()
+    home = Path(ctx.env.get("HOME", str(Path.home())))
+    print(backup.run(cfg, home, cfg.backup_repo, cfg.backup_recipient, day=day))
+    return 0
+
+
+HANDLERS: dict[str, Callable[[Context], int]] = {"kb": _kb, "map": _map, "backup": _backup}
+FAILURES: tuple[type[Exception], ...] = (codecheck.CheckError, backup.BackupError)

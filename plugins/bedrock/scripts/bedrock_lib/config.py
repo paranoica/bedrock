@@ -14,6 +14,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 PROJECT_FILE = Path(".claude") / "bedrock.json"
 SAFE_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\Z")
+AGE_RECIPIENT = re.compile(r"age1[02-9ac-hj-np-z]{58}\Z")
 
 
 class ConfigError(Exception):
@@ -34,6 +35,8 @@ class UserConfig:
     days_dir: Path = Path("projects-days")
     memory_bank_dir: Path = Path("projects-memory-bank")
     state_dir: Path = Path(".local/state/bedrock")
+    backup_repo: Path | None = None
+    backup_recipient: str = ""
 
 
 @dataclass(frozen=True)
@@ -76,6 +79,18 @@ def _check_hhmm(text: str) -> str:
     return text
 
 
+def _backup(data: dict[str, Any], home: Path) -> tuple[Path | None, str]:
+    section = data.get("backup", {})
+    if not isinstance(section, dict):
+        raise ConfigError("backup must be an object with repo and recipient")
+    repo, recipient = section.get("repo"), section.get("recipient", "")
+    if not isinstance(recipient, str) or (recipient and not AGE_RECIPIENT.match(recipient)):
+        raise ConfigError("backup.recipient must be an age public key (age1...)")
+    if repo is not None and not isinstance(repo, str):
+        raise ConfigError("backup.repo must be a folder path")
+    return (Path(repo.replace("~", str(home), 1)) if repo else None), recipient
+
+
 def load_user_config(env: Mapping[str, str] | None = None) -> UserConfig:
     """Load the owner's settings from BEDROCK_CONFIG or `~/.config/bedrock/config.json`."""
     env = env if env is not None else os.environ
@@ -89,6 +104,8 @@ def load_user_config(env: Mapping[str, str] | None = None) -> UserConfig:
     window = data.get("compact_window", defaults.compact_window)
     if isinstance(window, bool) or not isinstance(window, int) or not 100000 <= window <= 1000000:
         raise ConfigError("compact_window must be an integer from 100000 to 1000000")
+
+    backup_repo, backup_recipient = _backup(data, home)
 
     def directory(key: str, env_key: str, default: Path) -> Path:
         value = env.get(env_key) or data.get(key)
@@ -107,6 +124,8 @@ def load_user_config(env: Mapping[str, str] | None = None) -> UserConfig:
             "memory_bank_dir", "BEDROCK_MEMORY_BANK", defaults.memory_bank_dir
         ),
         state_dir=directory("state_dir", "BEDROCK_STATE_DIR", defaults.state_dir),
+        backup_repo=backup_repo,
+        backup_recipient=backup_recipient,
     )
 
 

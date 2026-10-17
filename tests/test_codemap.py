@@ -77,3 +77,29 @@ def test_outside_git_the_tree_is_walked(tmp_path: Path) -> None:
     data = codemap.build(tmp_path)
     assert list(data["files"]) == ["a.py"]
     assert data["stamp"]["git_head"] is None
+
+
+def test_old_or_partial_maps_are_rebuilt_not_trusted(repo: Path, tmp_path: Path) -> None:
+    data = codemap.build(repo, previous={"version": 0, "files": {"api/auth.py": {"hash": "x"}}})
+    assert "verify_token" in data["symbols"]
+    target = tmp_path / "m.json"
+    target.write_text('{"version": 0}')
+    assert codemap.load(target) is None
+    assert codemap.check(repo, target) == "absent"
+
+
+def test_rust_go_and_java_definitions(tmp_path: Path) -> None:
+    (tmp_path / "lib.rs").write_text(
+        "pub fn parse() {}\npub struct Doc;\nimpl Doc {\n    pub fn len(&self) {}\n}\n"
+    )
+    (tmp_path / "svc.go").write_text("func (s *Svc) Handle() {}\nfunc main() {}\n")
+    (tmp_path / "A.java").write_text("public class A {\n    public void run() {}\n}\n")
+    files = codemap.build(tmp_path)["files"]
+    assert {"parse", "Doc", "len"} <= set(files["lib.rs"]["defs"])
+    assert {"Handle", "main"} <= set(files["svc.go"]["defs"])
+    assert {"A", "run"} <= set(files["A.java"]["defs"])
+
+
+def test_non_ascii_paths_are_mapped(repo: Path) -> None:
+    (repo / "api" / "файл.py").write_text("def f():\n    pass\n")
+    assert "api/файл.py" in codemap.build(repo)["files"]

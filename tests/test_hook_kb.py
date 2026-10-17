@@ -130,3 +130,58 @@ def test_changes_from_another_session_do_not_stop_this_one(home: Path, work: Pat
     record = {"ts": NOW, "path": "src/ingest/chunk.py", "session": "other", "agent": ""}
     marks.write_text(json.dumps(record) + "\n")
     assert hook(home, "Stop", {"cwd": str(work), "stop_hook_active": False}) == {}
+
+
+def test_restamping_only_the_commit_is_not_an_update(home: Path, work: Path) -> None:
+    hook(home, "SessionStart", {"cwd": str(work), "source": "startup"})
+    edit(home, work, "src/ingest/chunk.py")
+    note = home / "projects-memory-bank" / "Acme" / "ingest.md"
+    text = note.read_text()
+    old = next(line for line in text.splitlines() if line.startswith("verified_at:"))
+    note.write_text(text.replace(old, "verified_at: abcdef1"))
+    later = 1_792_238_460
+    os.utime(note, (later, later))
+    sh(home / "projects-memory-bank", "commit", "-qam", "docs: restamp")
+    result = hook(home, "Stop", {"cwd": str(work), "stop_hook_active": False})
+    assert result.get("decision") == "block"
+    assert "ingest" in result["reason"]
+
+
+def test_a_real_update_after_session_start_is_quiet(home: Path, work: Path) -> None:
+    hook(home, "SessionStart", {"cwd": str(work), "source": "startup"})
+    edit(home, work, "src/ingest/chunk.py")
+    note = home / "projects-memory-bank" / "Acme" / "ingest.md"
+    os.utime(note, (1_700_000_000, 1_700_000_000))
+    note.write_text(note.read_text().replace("## Rules\nx", "## Rules\nchunks stay under 2 KB"))
+    os.utime(note, (1_700_000_000, 1_700_000_000))
+    sh(home / "projects-memory-bank", "commit", "-qam", "docs: ingest rule")
+    assert hook(home, "Stop", {"cwd": str(work), "stop_hook_active": False}) == {}
+
+
+def test_resume_keeps_the_first_snapshot(home: Path, work: Path) -> None:
+    hook(home, "SessionStart", {"cwd": str(work), "source": "startup"})
+    note = home / "projects-memory-bank" / "Acme" / "ingest.md"
+    note.write_text(note.read_text().replace("## Rules\nx", "## Rules\nnew rule"))
+    sh(home / "projects-memory-bank", "commit", "-qam", "docs: ingest rule")
+    hook(home, "SessionStart", {"cwd": str(work), "source": "resume"})
+    edit(home, work, "src/ingest/chunk.py")
+    os.utime(note, (1_700_000_000, 1_700_000_000))
+    assert hook(home, "Stop", {"cwd": str(work), "stop_hook_active": False}) == {}
+
+
+def test_session_start_lists_modules_without_a_note(home: Path, work: Path) -> None:
+    (work / "src" / "billing").mkdir()
+    (work / "src" / "billing" / "pay.py").write_text("x = 1\n")
+    start = {"cwd": str(work), "source": "startup"}
+    assert "billing" not in context(hook(home, "SessionStart", start))
+    settings = {"project": "Acme", "kb": {"roots": ["src", "missing", "../..", 5]}}
+    (work / ".claude" / "bedrock.json").write_text(json.dumps(settings))
+    text = context(hook(home, "SessionStart", start))
+    assert "src/billing" in text and "src/ingest" not in text
+
+
+def test_a_malformed_kb_setting_does_not_hide_the_rest(home: Path, work: Path) -> None:
+    (work / ".claude" / "bedrock.json").write_text(json.dumps({"project": "Acme", "kb": []}))
+    (home / "projects-memory-bank" / "Acme" / "stray.md").write_text("# no frontmatter\n")
+    text = context(hook(home, "SessionStart", {"cwd": str(work), "source": "startup"}))
+    assert "bedrock kb validate" in text

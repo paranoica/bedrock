@@ -2,7 +2,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
-from bedrock_lib import kb
+from bedrock_lib import kb, kbdrift
 
 DECISION = """---
 type: decision
@@ -196,12 +196,12 @@ def module_note(bank: Path, commit: str, anchors: str = "[]") -> None:
 
 def test_drift_lists_notes_whose_code_changed(bank: Path, code: Path) -> None:
     module_note(bank, sh(code, "rev-parse", "HEAD"))
-    assert kb.drift(bank, "Acme", code) == []
+    assert kbdrift.drift(bank, "Acme", code) == []
     (code / "src" / "ingest" / "chunk.py").write_text(
         "def split():\n    return 3\n\n\ndef join():\n    return 2\n"
     )
     sh(code, "commit", "-qam", "fix: x")
-    found = kb.drift(bank, "Acme", code)
+    found = kbdrift.drift(bank, "Acme", code)
     assert len(found) == 1
     assert "ingest" in found[0] and "src/ingest/chunk.py" in found[0]
 
@@ -212,17 +212,17 @@ def test_drift_with_anchors_counts_only_the_anchored_symbols(bank: Path, code: P
         "def split():\n    return 3\n\n\ndef join():\n    return 2\n"
     )
     sh(code, "commit", "-qam", "fix: x")
-    assert kb.drift(bank, "Acme", code) == []
+    assert kbdrift.drift(bank, "Acme", code) == []
     (code / "src" / "ingest" / "chunk.py").write_text(
         "def split():\n    return 3\n\n\ndef join():\n    return 9\n"
     )
     sh(code, "commit", "-qam", "fix: y")
-    assert len(kb.drift(bank, "Acme", code)) == 1
+    assert len(kbdrift.drift(bank, "Acme", code)) == 1
 
 
 def test_drift_with_an_unknown_commit_says_so(bank: Path, code: Path) -> None:
     module_note(bank, "deadbeef")
-    assert "unknown commit" in kb.drift(bank, "Acme", code)[0]
+    assert "unknown commit" in kbdrift.drift(bank, "Acme", code)[0]
 
 
 def test_module_without_a_note_is_flagged(bank: Path, code: Path) -> None:
@@ -243,3 +243,115 @@ def test_notes_covering_changed_files(bank: Path, code: Path) -> None:
 def test_hidden_folders_are_not_modules(bank: Path, code: Path) -> None:
     (code / ".github").mkdir()
     assert kb.uncovered(bank, "Acme", code, ["."]) == ["src"]
+
+
+# review round
+
+
+def test_block_lists_in_frontmatter_are_read() -> None:
+    note = kb.parse(
+        "x", "---\ntype: module\ncovers:\n  - src/a\n  - src/b\ntags:\n  - x\n---\n# X\n"
+    )
+    assert note.meta["covers"] == ["src/a", "src/b"]
+    assert note.meta["tags"] == ["x"]
+
+
+def test_duplicate_note_names_are_flagged_and_both_validated(bank: Path) -> None:
+    write(bank / "Acme" / "runbooks", "deploy", "---\ntype: runbook\n---\n# a\n")
+    write(bank / "Acme" / "archive", "deploy", "---\ntype: runbook\n---\n# b [[nowhere]]\n")
+    found = " ".join(problems(bank))
+    assert "name collision" in found
+    assert "nowhere" in found
+
+
+def test_empty_and_placeholder_fields_count_as_missing(bank: Path) -> None:
+    text = DECISION.format(status="accepted").replace("decided_by: owner", "decided_by:")
+    text = text.replace("date: 2026-10-01", "date: {date}")
+    write(bank / "Acme" / "decisions", "ACME-D1", text)
+    found = " ".join(problems(bank))
+    assert "missing field 'decided_by'" in found
+    assert "missing field 'date'" in found
+
+
+def test_bad_runbook_date_is_reported(bank: Path) -> None:
+    head = RUNBOOK_HEAD + "updated: 2026-10-17\nverified: soon\n---\n"
+    write(
+        bank / "Acme" / "runbooks", "deploy", head + "# D\n## Steps\n## Check it worked\n## Traps\n"
+    )
+    write(bank / "Acme", "runbooks", INDEX + "# Runbooks\n- [[deploy]]\n")
+    assert any("not a date" in m for m in problems(bank))
+
+
+def test_superseded_decision_linked_by_path(bank: Path) -> None:
+    write(bank / "Acme" / "decisions", "ACME-D1", DECISION.format(status="superseded"))
+    body = "# Ingest\n## Purpose\nx\n## Boundaries\nx\n## Rules\nSee [[decisions/ACME-D1]].\n"
+    write(bank / "Acme" / "architecture", "ingest", MODULE_HEAD + body + "## Pitfalls\nx\n")
+    assert any("superseded" in m for m in problems(bank))
+
+
+def test_failure_notes_may_describe_history(bank: Path) -> None:
+    text = (
+        "---\ntype: failure\ncode: ACME-F1\ndate: 2026-10-01\ntags: [failure]\n"
+        'parent: "[[failures]]"\n'
+        "updated: 2026-10-01\n---\n# ACME-F1. Lock\n## Tried\nThe flag was changed to 0.\n"
+        "## Failed because\nIt previously held the lock.\n## Mechanism\nx\n## Caught now by\nx\n"
+    )
+    write(bank / "Acme" / "failures", "ACME-F1", text)
+    assert not any("edit history" in m for m in problems(bank))
+
+
+def test_escaped_pipe_and_fenced_links(bank: Path) -> None:
+    write(
+        bank / "Acme",
+        "status",
+        (bank / "Acme" / "status.md").read_text()
+        + "\n| a | [[entry\\|Home]] |\n```\n[[not-a-note]]\n```\n",
+    )
+    found = " ".join(problems(bank))
+    assert "entry\\" not in found
+    assert "not-a-note" not in found
+
+
+def test_drift_inside_a_class_method_with_anchors(bank: Path, code: Path) -> None:
+    cls = (
+        "class Chunker:\n    def split(self):\n        return 1\n\n"
+        "    def join(self):\n        return 2\n"
+    )
+    (code / "src" / "ingest" / "chunk.py").write_text(cls)
+    sh(code, "commit", "-qam", "chore: class")
+    module_note(bank, sh(code, "rev-parse", "HEAD"), anchors="[join]")
+    (code / "src" / "ingest" / "chunk.py").write_text(cls.replace("return 2", "return 9"))
+    sh(code, "commit", "-qam", "fix: join")
+    assert len(kbdrift.drift(bank, "Acme", code)) == 1
+
+
+def test_drift_reports_covered_paths_that_do_not_exist(bank: Path, code: Path) -> None:
+    text = (
+        '---\ntype: module\ntags: [architecture]\nparent: "[[architecture]]"\nupdated: 2026-10-17\n'
+        f"covers: [src/ingets]\nanchors: []\nverified_at: {sh(code, 'rev-parse', 'HEAD')}\n"
+        "---\n# I\n"
+    )
+    write(bank / "Acme" / "architecture", "ingest", text)
+    assert "does not exist" in " ".join(kbdrift.drift(bank, "Acme", code))
+
+
+def test_uncovered_skips_vendored_folders(bank: Path, code: Path) -> None:
+    (code / "node_modules").mkdir()
+    (code / "dist").mkdir()
+    assert kb.uncovered(bank, "Acme", code, ["."]) == ["src"]
+
+
+def test_stale_handoff_is_flagged_after_a_newer_decision(bank: Path) -> None:
+    write(
+        bank / "Acme" / "decisions",
+        "ACME-D2",
+        DECISION.format(status="accepted")
+        .replace("ACME-D1", "ACME-D2")
+        .replace("date: 2026-10-01", "date: 2026-10-10"),
+    )
+    handoff = (
+        '---\ntype: handoff\ntags: [handoff]\nparent: "[[handoffs]]"\nupdated: 2026-10-05\n'
+        "stands_on: [ACME-D1]\n---\n# Handoff\n"
+    )
+    write(bank / "Acme" / "handoffs", "h1", handoff)
+    assert any("re-check before use" in m for m in problems(bank))

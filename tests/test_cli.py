@@ -674,3 +674,45 @@ def test_map_build_check_and_lookups(
     assert json.loads(run(capsys, ["map", "defs", "verify"], env, workspace)[1]) == ["src/auth.py"]
     callers = json.loads(run(capsys, ["map", "callers", "verify"], env, workspace)[1])
     assert callers == ["src/views.py"]
+
+
+AGE = shutil.which("age", path=ORIGINAL_PATH)
+AGE_KEYGEN = shutil.which("age-keygen", path=ORIGINAL_PATH)
+
+
+@pytest.mark.skipif(AGE is None or AGE_KEYGEN is None, reason="age is not installed")
+def test_backup_uses_the_configured_repo_and_key(
+    capsys: pytest.CaptureFixture[str],
+    home: Path,
+    workspace: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    tools = home / "age-bin"
+    tools.mkdir()
+    (tools / "age").symlink_to(str(AGE))
+    monkeypatch.setenv("PATH", f"{os.environ['PATH']}{os.pathsep}{tools}")
+    env = env_at(home, "2026-10-17T12:00:00Z")
+    assert run(capsys, ["backup"], env, workspace)[0] == 1
+    key = home / "key.txt"
+    subprocess.run([str(AGE_KEYGEN), "-o", str(key)], check=True, capture_output=True)
+    recipient = next(r.split(": ")[1] for r in key.read_text().splitlines() if "public key" in r)
+    config = home / ".config" / "bedrock" / "config.json"
+    config.parent.mkdir(parents=True)
+    repo = home / "backups" / "memory"
+    config.write_text(json.dumps({"backup": {"repo": str(repo), "recipient": recipient}}))
+    (home / "projects-memory-bank").mkdir()
+    code, out, _ = run(capsys, ["backup"], env, workspace)
+    assert code == 0
+    assert out.strip() == str(repo / "snapshots" / "2026-10-17.tar.gz.age")
+
+
+def test_backup_rejects_a_recipient_that_is_not_an_age_key(
+    capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
+) -> None:
+    config = home / ".config" / "bedrock" / "config.json"
+    config.parent.mkdir(parents=True)
+    backup_config = {"repo": str(home / "b"), "recipient": "-o /tmp/x"}
+    config.write_text(json.dumps({"backup": backup_config}))
+    code, _, err = run(capsys, ["backup"], env_at(home, "2026-10-17T12:00:00Z"), workspace)
+    assert code == 1 and "recipient" in err
+    assert not (home / "b").exists()

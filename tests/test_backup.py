@@ -72,3 +72,26 @@ def test_bad_recipient_fails_loudly(setup) -> None:
     cfg, home, repo, _ = setup
     with pytest.raises(backup.BackupError):
         backup.run(cfg, home, repo, "age1notakey", day="2026-10-17")
+
+
+def test_every_day_stays_restorable(setup, tmp_path: Path) -> None:
+    cfg, home, repo, recipient = setup
+    first = backup.run(cfg, home, repo, recipient, day="2026-10-16")
+    (cfg.memory_bank_dir / "Acme" / "status.md").write_text("now: ship\n")
+    second = backup.run(cfg, home, repo, recipient, day="2026-10-17")
+    log = subprocess.run(
+        ["git", "-C", str(repo), "log", "--format=%s"], capture_output=True, text=True, check=True
+    )
+    assert log.stdout.split("\n")[:2] == [
+        "chore(backup): snapshot 2026-10-17",
+        "chore(backup): snapshot 2026-10-16",
+    ]
+    for snapshot, expected in ((first, b"now: dedupe\n"), (second, b"now: ship\n")):
+        plain = tmp_path / f"{snapshot.name}.tar.gz"
+        subprocess.run(
+            ["age", "-d", "-i", str(tmp_path / "key.txt"), "-o", str(plain), str(snapshot)],
+            check=True,
+        )
+        with tarfile.open(plain) as archive:
+            member = archive.extractfile("projects-memory-bank/Acme/status.md")
+            assert member is not None and member.read() == expected

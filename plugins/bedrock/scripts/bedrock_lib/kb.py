@@ -1,11 +1,12 @@
 """The knowledge base: one folder per project in a local git store (D023 to D027).
 
-Notes, their frontmatter and links; the validator; the drift detector against the code;
-modules without a note; backlinks; and creating a project's minimal folder.
+Notes, their frontmatter and links; the validator; modules without a note; backlinks; and
+creating a project's minimal folder. Drift against the code lives in `kbdrift`.
 """
 
 from __future__ import annotations
 
+import hashlib
 import re
 import subprocess
 from dataclasses import dataclass, field
@@ -13,9 +14,14 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+from .codemap import SKIP_DIRS
+
 TEMPLATES = Path(__file__).resolve().parents[2] / "templates" / "kb"
-LINK = re.compile(r"\[\[([^\]|#]+)(?:[#|][^\]]*)?\]\]")
+LINK = re.compile(r"\[\[([^\]|#]+?)\\?(?:[#|][^\]]*)?\]\]")
+FENCE = re.compile(r"^```.*?^```", re.MULTILINE | re.DOTALL)
+PLACEHOLDER = re.compile(r"^\{.*\}$|^\[\{.*\}\]$")
 FIELDS = ("type", "tags", "parent", "updated")
+DATE_FIELDS = ("updated", "date", "verified")
 TYPE_FIELDS = {
     "decision": ("code", "status", "date", "decided_by"),
     "failure": ("code",),
@@ -38,6 +44,7 @@ HEADINGS = {
     "status": ("Now", "Blocked", "Next"),
 }  # fmt: skip
 NOT_ORPHANS = {"entry", "summary"}
+HISTORY_TYPES = {"failure", "call"}
 EDIT_HISTORY = re.compile(
     r"\bpreviously\b|\bupdated on\b|\bwas changed\b|\bused to be\b|~~[^~]+~~"
     r"|^\s*(?:upd|edit|update)\s*:",
@@ -74,39 +81,82 @@ def _value(text: str) -> Any:
     return text.strip("'\"")
 
 
+def _frontmatter(head: str) -> dict[str, Any]:
+    """A flat YAML subset: `key: value`, `key: [a, b]` and block lists of `- item`."""
+    meta: dict[str, Any] = {}
+    current: str | None = None
+    for line in head.splitlines():
+        stripped = line.strip()
+        if current and stripped.startswith("- ") and line[:1].isspace():
+            items = meta[current] if isinstance(meta[current], list) else []
+            meta[current] = [*items, stripped[2:].strip().strip("'\"")]
+            continue
+        key, colon, value = line.partition(":")
+        if colon and key.strip() and not key.startswith(" "):
+            current = key.strip()
+            meta[current] = _value(value) if value.strip() else []
+            if value.strip():
+                current = None
+    return {key: ("" if value == [] else value) for key, value in meta.items()}
+
+
+def _links(text: str) -> list[str]:
+    visible = FENCE.sub("", text)
+    return [match.group(1).strip().rstrip("\\").split("/")[-1] for match in LINK.finditer(visible)]
+
+
 def parse(name: str, text: str, path: Path | None = None) -> Note:
-    """Split a note into frontmatter (a flat YAML subset) and body, and collect its links."""
+    """Split a note into frontmatter and body, and collect its links (code fences ignored)."""
     meta: dict[str, Any] = {}
     body = text
     if text.startswith("---\n"):
         head, sep, rest = text[4:].partition("\n---")
         if sep:
             body = rest.split("\n", 1)[1] if "\n" in rest else ""
-            for line in head.splitlines():
-                key, colon, value = line.partition(":")
-                if colon and key.strip() and not key.startswith(" "):
-                    meta[key.strip()] = _value(value)
-    links = [match.group(1).strip().split("/")[-1] for match in LINK.finditer(text)]
-    return Note(name, meta, body, path, links)
+            meta = _frontmatter(head)
+    return Note(name, meta, body, path, _links(text))
+
+
+def all_notes(bank: Path, project: str) -> list[Note]:
+    """Every note of a project and of `_shared`, one entry per file."""
+    found = []
+    for folder in (bank / "_shared", bank / project):
+        for path in sorted(folder.rglob("*.md")) if folder.is_dir() else []:
+            found.append(parse(path.stem, path.read_text(encoding="utf-8"), path))
+    return found
 
 
 def notes(bank: Path, project: str) -> dict[str, Note]:
-    """Every note of a project and of `_shared`, by name."""
-    found: dict[str, Note] = {}
-    for folder in (bank / "_shared", bank / project):
-        for path in sorted(folder.rglob("*.md")) if folder.is_dir() else []:
-            found[path.stem] = parse(path.stem, path.read_text(encoding="utf-8"), path)
-    return found
+    """Notes by name; a project note shadows a `_shared` one (the validator flags it)."""
+    return {note.name: note for note in all_notes(bank, project)}
 
 
 def _rel(bank: Path, note: Note) -> str:
     return str(note.path.relative_to(bank)) if note.path else note.name
 
 
+def _empty(value: Any) -> bool:
+    if isinstance(value, list):
+        return not value or all(PLACEHOLDER.match(str(item)) for item in value)
+    return not str(value).strip() or bool(PLACEHOLDER.match(str(value).strip()))
+
+
+def _parse_date(text: str) -> date | None:
+    try:
+        return date.fromisoformat(text)
+    except ValueError:
+        return None
+
+
 def _shape(note: Note) -> list[str]:
     kind = str(note.meta.get("type", ""))
-    missing = [f for f in (*FIELDS, *TYPE_FIELDS.get(kind, ())) if f not in note.meta]
-    found = [f"missing field '{f}'" for f in missing]
+    base = [f for f in FIELDS if not (kind == "entry" and f == "parent")]
+    wanted = (*base, *TYPE_FIELDS.get(kind, ()))
+    found = [f"missing field '{f}'" for f in wanted if _empty(note.meta.get(f, ""))]
+    for key in DATE_FIELDS:
+        value = str(note.meta.get(key, "")).strip()
+        if value and not _empty(value) and _parse_date(value) is None:
+            found.append(f"field '{key}' is not a date (YYYY-MM-DD): {value!r}")
     headings = set(re.findall(r"^##\s+(.+?)\s*$", note.body, re.MULTILINE))
     found += [f"missing heading '{h}'" for h in HEADINGS.get(kind, ()) if h not in headings]
     return found
@@ -119,38 +169,60 @@ def _content(note: Note, code: str, today: date) -> list[str]:
         prefix = f"{code}-{'D' if kind == 'decision' else 'F'}"
         if not str(note.meta.get("code", "")).startswith(prefix):
             found.append(f"code '{note.meta.get('code')}' lacks the project prefix {prefix}")
-    if EDIT_HISTORY.search(note.body):
+    if kind not in HISTORY_TYPES and EDIT_HISTORY.search(FENCE.sub("", note.body)):
         found.append("edit history in the body: state the current fact, git keeps the history")
     if note.body.count("\n") > MAX_LINES:
         found.append(f"over {MAX_LINES} lines: split it into notes of one topic each")
-    if kind == "runbook" and _days(note.meta.get("verified"), today) > RUNBOOK_DAYS:
+    verified = _parse_date(str(note.meta.get("verified", "")))
+    if kind == "runbook" and verified and (today - verified).days > RUNBOOK_DAYS:
         found.append(f"verified over {RUNBOOK_DAYS} days ago: re-verify the steps, then the date")
     return found
 
 
-def _days(stamp: Any, today: date) -> int:
-    try:
-        return (today - date.fromisoformat(str(stamp))).days
-    except ValueError:
-        return 0
+def _handoff(note: Note, decisions: list[Note]) -> list[str]:
+    if note.meta.get("type") != "handoff":
+        return []
+    written = _parse_date(str(note.meta.get("updated", "")))
+    newer = [
+        d.name
+        for d in decisions
+        if written and (when := _parse_date(str(d.meta.get("date", "")))) and when > written
+    ]
+    if newer:
+        return [f"re-check before use: decisions newer than this handoff: {', '.join(newer)}"]
+    return []
+
+
+def _collisions(found: list[Note], bank: Path) -> list[Problem]:
+    seen: dict[str, Note] = {}
+    problems = []
+    for note in found:
+        if note.name in seen:
+            other = _rel(bank, seen[note.name])
+            problems.append(Problem(_rel(bank, note), f"name collision with {other}: rename one"))
+        else:
+            seen[note.name] = note
+    return problems
 
 
 def validate(bank: Path, project: str, today: str | None = None) -> list[Problem]:
     """Return every problem in a project's notes (D025, D026.2)."""
     day = date.fromisoformat(today) if today else date.today()
-    found = notes(bank, project)
-    entry = found.get("entry")
+    found = all_notes(bank, project)
+    names = {note.name for note in found}
+    entry = next((n for n in found if n.name == "entry"), None)
     code = str(entry.meta.get("code", "")) if entry else ""
-    superseded = {n.name for n in found.values() if n.meta.get("status") == "superseded"}
-    inbound = {name for note in found.values() for name in note.links if name != note.name}
-    problems = []
-    for note in found.values():
+    decisions = [n for n in found if n.meta.get("type") == "decision"]
+    superseded = {n.name for n in decisions if n.meta.get("status") == "superseded"}
+    inbound = {name for note in found for name in note.links if name != note.name}
+    problems = _collisions(found, bank)
+    for note in found:
         if note.path is None or not note.path.is_relative_to(bank / project):
             continue
-        messages = _shape(note) + _content(note, code, day)
-        messages += [f"broken link [[{link}]]" for link in note.links if link not in found]
-        for line in note.body.splitlines():
-            for link in LINK.findall(line):
+        messages = _shape(note) + _content(note, code, day) + _handoff(note, decisions)
+        messages += [f"broken link [[{link}]]" for link in note.links if link not in names]
+        for line in FENCE.sub("", note.body).splitlines():
+            for link in _links(line):
                 if link in superseded and "supersed" not in line.lower():
                     messages.append(f"links superseded {link} as current: point to its successor")
         if note.name not in inbound and note.name not in NOT_ORPHANS:
@@ -159,57 +231,29 @@ def validate(bank: Path, project: str, today: str | None = None) -> list[Problem
     return problems
 
 
-def _git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        ["git", "-C", str(repo), *args], capture_output=True, text=True, check=False, timeout=30
-    )
+def fingerprint(text: str) -> str:
+    """A hash of a note that ignores restamping `verified_at` and `updated` alone."""
+    kept = [line for line in text.splitlines() if not re.match(r"(verified_at|updated)\s*:", line)]
+    return hashlib.sha256("\n".join(kept).encode("utf-8")).hexdigest()
 
 
 def covers(note: Note) -> list[str]:
-    """The paths a module note covers."""
+    """The paths a module note covers (placeholders left from the template are not paths)."""
     value = note.meta.get("covers") or []
-    return [str(item).rstrip("/") for item in (value if isinstance(value, list) else [value])]
+    items = value if isinstance(value, list) else [value]
+    return [str(item).rstrip("/") for item in items if str(item).strip() and not _empty(item)]
 
 
-def drift(bank: Path, project: str, repo: Path) -> list[str]:
-    """List module notes whose covered code changed since the commit they were verified at."""
-    found = []
-    for note in notes(bank, project).values():
-        if note.meta.get("type") != "module" or not covers(note):
-            continue
-        commit = str(note.meta.get("verified_at", ""))
-        if _git(repo, "cat-file", "-e", f"{commit}^{{commit}}").returncode != 0:
-            found.append(f"note {note.name}: verified_at {commit!r} is an unknown commit")
-            continue
-        changed = _git(repo, "diff", "--name-only", commit, "HEAD", "--", *covers(note))
-        files = changed.stdout.split()
-        anchors = note.meta.get("anchors") or []
-        if files and anchors:
-            patch = _git(repo, "diff", "-U0", commit, "HEAD", "--", *covers(note)).stdout
-            changed_lines = [
-                row
-                for row in patch.splitlines()
-                if row.startswith(("@@", "+", "-")) and not row.startswith(("+++", "---"))
-            ]
-            touched = any(anchor in row for row in changed_lines for anchor in anchors)
-            files = files if touched else []
-        if files:
-            found.append(
-                f"note {note.name} is stale: {', '.join(files)} changed since {commit[:10]}; "
-                "update § Boundaries/Rules or record that nothing changes and why (D026)"
-            )
-    return found
+def under(path: str, cover: str) -> bool:
+    """True when a repository path is the covered path or inside it."""
+    return path == cover or path.startswith(cover + "/")
 
 
 def covering(bank: Path, project: str, paths: list[str]) -> list[Note]:
     """Module notes whose covered paths include any of the given files."""
-
-    def under(path: str, cover: str) -> bool:
-        return path == cover or path.startswith(cover + "/")
-
     return [
         note
-        for note in notes(bank, project).values()
+        for note in all_notes(bank, project)
         if note.meta.get("type") == "module"
         and any(under(p, c) for p in paths for c in covers(note))
     ]
@@ -217,24 +261,28 @@ def covering(bank: Path, project: str, paths: list[str]) -> list[Note]:
 
 def uncovered(bank: Path, project: str, repo: Path, roots: list[str]) -> list[str]:
     """Top-level modules under the given roots that no module note covers (D026.6)."""
-    covered = [c for n in notes(bank, project).values() for c in covers(n)]
+    covered = [c for n in all_notes(bank, project) for c in covers(n)]
     missing = []
+    top = repo.resolve()
     for root in roots:
-        children = (p for p in (repo / root).iterdir() if p.is_dir() and not p.name.startswith("."))
+        folder = (repo / root).resolve()
+        if not folder.is_dir() or not folder.is_relative_to(top):
+            continue
+        children = (
+            p
+            for p in folder.iterdir()
+            if p.is_dir() and not p.name.startswith(".") and p.name not in SKIP_DIRS
+        )
         for child in sorted(children):
-            rel = child.relative_to(repo).as_posix()
-            if not any(
-                rel == c or rel.startswith(c + "/") or c.startswith(rel + "/") for c in covered
-            ):
+            rel = child.relative_to(top).as_posix()
+            if not any(under(rel, c) or c.startswith(rel + "/") for c in covered):
                 missing.append(rel)
     return missing
 
 
 def backlinks(bank: Path, project: str, name: str) -> list[str]:
     """Names of the notes that link to `name`."""
-    return sorted(
-        n.name for n in notes(bank, project).values() if name in n.links and n.name != name
-    )
+    return sorted(n.name for n in all_notes(bank, project) if name in n.links and n.name != name)
 
 
 def _render(template: str, values: dict[str, str]) -> str:
@@ -261,5 +309,5 @@ def init(bank: Path, project: str, code: str, today: str | None = None) -> Path:
             head = f'---\ntype: index\ntags: [index]\nparent: "[[entry]]"\nupdated: {day}\n---\n'
             target.write_text(f"{head}# {title}\n", encoding="utf-8")
     if not (bank / ".git").exists():
-        _git(bank, "init", "-q")
+        subprocess.run(["git", "-C", str(bank), "init", "-q"], capture_output=True, check=False)
     return folder
