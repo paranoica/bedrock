@@ -31,7 +31,8 @@ Done when: every line of the answer below rests on one of these reads.
 Ждём: <who or what, and what unblocks it>
 Можно отдыхать: <да / нет — one reason>
 ```
-- "Можно чиллить?" gets yes or no first, then the reason (D021).
+- "Можно чиллить?": the reply opens with one word, «да», «нет» or «не знаю», then one reason
+  (D021). «не знаю» is right when the state cannot be read.
 - Nothing is called done that was not checked; say "не проверено" instead.
 - No PR numbers, hashes or file lists unless asked (D021).
 
