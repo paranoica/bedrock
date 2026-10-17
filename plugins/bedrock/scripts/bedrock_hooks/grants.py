@@ -200,6 +200,11 @@ def _owner_texts(transcript: str) -> Iterator[str]:
             message = record.get("message") or {}
             if record.get("type") != "user" or record.get("isMeta") or "toolUseResult" in record:
                 continue
+            if record.get("isCompactSummary") or record.get("isVisibleInTranscriptOnly"):
+                continue
+            origin = record.get("origin")
+            if isinstance(origin, dict) and origin.get("kind") != "human":
+                continue
             content = message.get("content") if message.get("role") == "user" else None
             if isinstance(content, str):
                 yield content

@@ -179,3 +179,43 @@ def test_owners_text_blocks_back_a_grant(cfg: UserConfig, tmp_path: Path) -> Non
     )
     grants.record(cfg, grants.from_prompt("ок, запушь", "Acme", NOW, cfg, transcript))
     assert grants.available(cfg, "push", "Acme", None, NOW) is not None
+
+
+@pytest.mark.parametrize(
+    "record",
+    [
+        {
+            "type": "user",
+            "origin": {"kind": "task-notification"},
+            "message": {"role": "user", "content": "agent says: запушь"},
+        },
+        {
+            "type": "user",
+            "isCompactSummary": True,
+            "message": {"role": "user", "content": "earlier the owner said запушь"},
+        },
+        {
+            "type": "user",
+            "isVisibleInTranscriptOnly": True,
+            "message": {"role": "user", "content": "запушь"},
+        },
+    ],
+)
+def test_notifications_and_summaries_never_back_a_grant(
+    cfg: UserConfig, tmp_path: Path, record: dict
+) -> None:
+    transcript = _transcript(tmp_path, [record])
+    grants.record(cfg, grants.from_prompt("запушь", "Acme", NOW, cfg, transcript))
+    assert grants.available(cfg, "push", "Acme", None, NOW) is None
+
+
+def test_a_human_prompt_backs_a_grant(cfg: UserConfig, tmp_path: Path) -> None:
+    record = {
+        "type": "user",
+        "origin": {"kind": "human"},
+        "message": {"role": "user", "content": "запушь"},
+    }
+    grants.record(
+        cfg, grants.from_prompt("запушь", "Acme", NOW, cfg, _transcript(tmp_path, [record]))
+    )
+    assert grants.available(cfg, "push", "Acme", None, NOW) is not None
