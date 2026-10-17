@@ -372,3 +372,23 @@ def test_refusals_and_bad_times_on_the_exact_paths_grant_nothing(prompt: str) ->
 )
 def test_the_exact_paths_still_grant(prompt: str, expected: list[str]) -> None:
     assert actions(prompt) == expected
+
+
+@pytest.mark.parametrize(
+    ("prompt", "expected"),
+    [
+        ("закоммить и запушь", ["push"]),
+        ("запушь изменения", ["push"]),
+        ("пушь, спасибо", ["push"]),
+        ("please push", ["push"]),
+        ("push the changes", ["push"]),
+        ("go ahead, push", ["push"]),
+        ("можно пушить и мержить", ["merge", "push"]),
+        ("можно пушить до конца дня", ["push"]),
+        ("пушь до 7 утра", ["push"]),
+        ("пушь до 7 вечера", []),
+        ("запушь в main", []),
+    ],
+)
+def test_everyday_phrases_the_owner_uses(prompt: str, expected: list[str]) -> None:
+    assert actions(prompt) == expected

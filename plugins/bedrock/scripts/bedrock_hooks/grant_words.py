@@ -14,8 +14,10 @@ from bedrock_lib.config import UserConfig
 SINGLE_USE_HOURS = 2
 PHRASES = {
     "push": r"(?:за)?пуш(?:ь|ни|ните|ай)\b|пушить можно|(?:можешь|можно) (?:за)?пушить"
-    r"|\bpush (?:it|this|that|them|the branch)\b|\bgo ahead and push\b|\byou can push\b|^push\b",
+    r"|\bpush (?:it|this|that|them|the branch|the changes|changes)\b|\bgo ahead(?: and|,)? push\b"
+    r"|\byou can push\b|\bplease push\b|^push\b",
     "merge": r"(?:с|за)?мерж(?:ь|ни|и|ите)\b|(?:можешь|можно) (?:с|за)?мерж\w*|мержить можно"
+    r"|(?:пушить )?\bи (?:с|за)?мержить\b"
     r"|\bmerge (?:it|this|that|the pr)\b|\byou can merge\b|^merge\b",
     "pr": r"(?:открой|создай|сделай|заведи) (?:pr|пр|пулл? ?реквест)\b"
     r"|\b(?:open|create) (?:a |the )?(?:pr|pull request)\b",
@@ -25,7 +27,7 @@ PHRASES = {
 }
 PROD = re.compile(r"прод\b|продакш[еэ]?н\w*|\bproduction\b|\bprod\b", re.IGNORECASE)
 UNTIL_PLAN = re.compile(r"до конца (?:плана|блока)|until the end of the plan|end of (?:the )?plan")
-UNTIL_DAY = re.compile(r"на сегодня|на весь день|\btoday\b|for the day")
+UNTIL_DAY = re.compile(r"на сегодня|на весь день|до конца дня|\btoday\b|for the day")
 UNTIL_TIME = re.compile(r"(?:до|until)\s+(\d{1,2})(?::(\d{2}))?\b")
 UNTIL_MORNING = re.compile(r"до утра|until (?:the )?morning")
 MORNING_HOUR = 12  # the night mode ends at noon local (D046)
@@ -67,6 +69,11 @@ FILLER = {
     "пр",
     "ветку",
     "branch",
+    "закоммить",
+    "изменения",
+    "спасибо",
+    "thanks",
+    "утра",  # «до 7 утра» is 07:00; «вечера» stays out, the time would read as 07:00
 }
 ENVIRONMENT = re.compile(
     r"\b(?:на|в|to|on)\s+(?:дев\w*|прод\w*|стейдж\w*|staging|production|prod|dev)\b"
