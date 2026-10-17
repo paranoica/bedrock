@@ -1,3 +1,4 @@
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -143,6 +144,7 @@ def test_staged_check_reads_only_what_is_staged(repo: Path) -> None:
     assert [(f.path, f.line, f.rule) for f in found] == [("b.py", 1, "listed name")]
 
 
+@pytest.mark.skipif(shutil.which("gitleaks") is None, reason="gitleaks is not installed")
 def test_staged_check_runs_gitleaks_on_a_secret(repo: Path) -> None:
     key = "ghp_" + "9fZq2Lw8Xc3Vb7Nm1Kp4Rt6Yh0Ju5Ie2Wo8a"
     (repo / "conf.py").write_text(f'token = "{key}"\n')
