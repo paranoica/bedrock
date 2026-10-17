@@ -6,11 +6,14 @@ requires-python = ">=3.12"
 
 [tool.black]
 line-length = 100
+# The ported code-review skill keeps its own style; it is maintained as a unit.
+extend-exclude = "plugins/bedrock/skills/code-review"
 target-version = ["py312"]
 
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+extend-exclude = ["plugins/bedrock/skills/code-review"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "PTH", "BLE", "C90", "D"]

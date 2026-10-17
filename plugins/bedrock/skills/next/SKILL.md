@@ -1,0 +1,52 @@
+---
+name: next
+description: Status navigator — what is done, what is left, who is waited on, can the owner rest. Use for "что дальше", "всё сделал?", "можно чиллить?", "what's next", "where are we".
+---
+
+# Navigator
+
+Answers the owner's recurring status questions from files, never from memory (D014, D042).
+
+## Triggers
+- RU: «что дальше», «всё сделал?», «что осталось», «можно чиллить?»
+- EN: "what's next", "are we done", "what's left", "can I rest"
+
+## 1. Read the state
+Read, in this order, and stop reading once the answer is clear:
+1. `bedrock backlog list` (open tasks, priority, claims) and `bedrock backlog next`.
+2. The project status note: `~/projects-memory-bank/<project>/status.md`.
+3. Today's day log: `bedrock minutes <block> --open` for the current block, and the log file
+   under `~/projects-days/<project>/<work-date>/log.jsonl`.
+4. `git status` and `git log --oneline -10` in the workspace.
+5. Other sessions in this project: the SessionStart context lists them.
+
+Done when: every line of the answer below rests on one of these reads.
+
+## 2. Answer in a fixed shape (Russian, plain words)
+```
+Сделано: <what changed for the product, one line each>
+Осталось: <open tasks, most urgent first, with P0–P3>
+Ждём: <who or what, and what unblocks it>
+Можно отдыхать: <да / нет — one reason>
+```
+- "Можно чиллить?" gets yes or no first, then the reason (D021).
+- Nothing is called done that was not checked; say "не проверено" instead.
+- No PR numbers, hashes or file lists unless asked (D021).
+
+Done when: the four lines are written and each claim has its source in the reads above.
+
+## 3. Offer the next step
+- One line: the next task and who does it (session or agent).
+- If the next task needs the owner (a grant, a decision, a login), give the exact step:
+  the command, where to click, what to send back.
+
+## Skill map (when the owner asks "что ты умеешь")
+| When | Skill | How to tell it worked |
+|---|---|---|
+| A new request or task | `day` | a plan file, then commits per task |
+| A bug | `debug` | a cause record and a red-then-green test |
+| A review of a change | `review` | findings fixed, one summary line |
+| A question about the project | `ask` | answer with source and confidence |
+| Ending a session or a phase | `handoff` | a handoff note in the base |
+| Notes, decisions, failures | `kb` | `bedrock kb validate` clean |
+| Writing skills, agents, briefs | `writing` | `skillcheck.py --strict` clean |

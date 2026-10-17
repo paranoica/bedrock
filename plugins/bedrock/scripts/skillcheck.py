@@ -130,12 +130,14 @@ def check_prose(path: Path, rel: str, text: str) -> list[Finding]:
                 findings.append(
                     Finding(rel, number, "WARN", "long-sentence", "over 40 words, split it")
                 )
+    # `references/x.md` names a file from the skill's root, wherever it is written.
+    skill_root = path.parent.parent if path.parent.name == "references" else path.parent
     for number, raw in lines:
         links = LINK_RE.findall(INLINE_CODE_RE.sub("", raw))
-        targets = [t for t in links if not t.startswith(EXTERNAL_PREFIXES)]
-        targets += REFERENCE_PATH_RE.findall(raw)
-        for target in targets:
-            if not (path.parent / target.split("#", 1)[0]).exists():
+        targets = [(path.parent, t) for t in links if not t.startswith(EXTERNAL_PREFIXES)]
+        targets += [(skill_root, t) for t in REFERENCE_PATH_RE.findall(raw)]
+        for base, target in targets:
+            if not (base / target.split("#", 1)[0]).exists():
                 findings.append(Finding(rel, number, "ERROR", "link", f"{target} does not exist"))
     return findings
 

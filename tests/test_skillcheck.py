@@ -260,3 +260,12 @@ def test_byte_order_mark_is_tolerated(tmp_path: Path) -> None:
 def test_link_syntax_inside_inline_code_is_ignored(tmp_path: Path) -> None:
     skill(tmp_path, "day", "x", body="Write `[a](b.md)` for a link.\n")
     assert run(tmp_path).returncode == 0
+
+
+def test_reference_paths_inside_references_resolve_from_the_skill_root(tmp_path: Path) -> None:
+    skill(tmp_path, "demo", "Does a thing.", "See `references/a.md`.\n")
+    write(tmp_path / "skills" / "demo" / "references" / "a.md", "Then read `references/b.md`.\n")
+    write(tmp_path / "skills" / "demo" / "references" / "b.md", "End.\n")
+    assert run(tmp_path).returncode == 0
+    write(tmp_path / "skills" / "demo" / "references" / "a.md", "Then read `references/c.md`.\n")
+    assert run(tmp_path).returncode == 1
