@@ -16,8 +16,7 @@ about that: the owner decides, Claude does the work, and nothing leaves the mach
 /plugin install bedrock@bedrock
 ```
 
-(this works once v2 is the repository's default branch), or, from a local checkout,
-`claude --plugin-dir ./plugins/bedrock`. Then run `bedrock doctor`
+or, from a local checkout, `claude --plugin-dir ./plugins/bedrock`. Then run `bedrock doctor`
 (the plugin puts `bedrock` on the PATH of the session) to see what the machine has and lacks.
 
 Requirements: Claude Code, git, Python 3.12+. Optional: uv (`uvx`), Node 20+, gitleaks, age,

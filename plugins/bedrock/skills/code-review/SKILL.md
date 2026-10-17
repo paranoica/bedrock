@@ -178,6 +178,16 @@ safety** (likely the PoC was wrong); keep at reasoned severity or downgrade only
 reasoning was shaky. `available: false` → leave the finding as reasoned. The runner executes
 **only your tiny PoC** — never the project's app/tests/build/install, never a fix.
 
+**Probing the project's own functions.** The runner mounts the filesystem read-only with no
+network, so a PoC may import a module of the project (put the repo on `sys.path` or use an
+absolute `import()`) and call one of its functions with the crafted input. Use it for HIGH
+or CRITICAL correctness findings too, not only security: "this parser drops the last
+record", "this check passes a negated phrase". Rules: call functions, never the app's entry
+points, servers, CLIs, tests, builds or installs; nothing that needs a network, a database or
+a write outside the runner's temp folder; a module whose import itself starts work (connects,
+spawns, schedules) is out. A reproduced probe is cited as "Execution: reproduced (project
+code)".
+
 ### Step 6 — Write the report + close out
 Output format is fixed: read `references/report-template.md` and follow it. **Adapt detail
 to scope** (tiny diff → conversational enumerate; PR → full template tight; big audit →
@@ -243,5 +253,6 @@ for the user's yes. Suggest-only is what keeps the two from ping-ponging.
 - **Does not run the project's app/tests/build/install.** Static by default. The one guarded
   exception is Step 5d: a minimal self-contained PoC snippet it wrote, under isolation, only
   when preflight reports a backend. No isolation ⇒ no execution. `scripts/` are read-only
-  analyzers; `poc_runner.sh` is the one sandboxed executor and runs nothing from the project.
+  analyzers; `poc_runner.sh` is the one sandboxed executor: it runs your PoC, which may call
+  a project function (Step 5d), never the project's app, tests, build or install.
 - **Does not approve or merge.** Output is a report.
