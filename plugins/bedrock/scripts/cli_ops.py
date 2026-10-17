@@ -8,8 +8,9 @@ import sys
 from collections.abc import Callable
 from dataclasses import asdict
 from datetime import UTC, datetime
+from pathlib import Path
 
-from bedrock_lib import insights, night, notify, projectcheck
+from bedrock_lib import doctor, insights, night, notify, projectcheck
 from bedrock_lib.config import find_project
 from cli_context import Context, UsageError, print_json
 
@@ -25,6 +26,7 @@ def register(subcommands: argparse._SubParsersAction) -> list[argparse.ArgumentP
     watch = subcommands.add_parser("night", help="keep a command alive until a deadline")
     watch.add_argument("action", choices=("watch",))
     watch.add_argument("--until", required=True, help="local clock time, HH:MM")
+    subcommands.add_parser("doctor", help="what this machine has and lacks for bedrock")
     settings = subcommands.add_parser("project", help="check the workspace settings")
     settings.add_argument("action", choices=("check",))
     return [retro]
@@ -64,7 +66,15 @@ def _project(ctx: Context) -> int:
     return 1 if problems else 0
 
 
+def _doctor(ctx: Context) -> int:
+    checks = doctor.run(ctx.cfg, Path(ctx.env.get("HOME", str(Path.home()))))
+    for check in checks:
+        print(f"{check.level:4}  {check.name:14} {check.detail}")
+    return doctor.exit_code(checks)
+
+
 HANDLERS: dict[str, Callable[[Context], int]] = {
+    "doctor": _doctor,
     "retro": _retro,
     "arch": _arch,
     "night": _night,
