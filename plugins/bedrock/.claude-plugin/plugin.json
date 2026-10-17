@@ -6,5 +6,6 @@
   "author": {
     "name": "paranoica"
   },
-  "repository": "https://github.com/paranoica/bedrock"
+  "repository": "https://github.com/paranoica/bedrock",
+  "license": "MIT"
 }
