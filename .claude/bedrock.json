@@ -20,7 +20,8 @@
     "ignore": [
       "tests/test_codecheck.py",
       "plugins/bedrock/skills/code-review/*",
-      "plugins/bedrock/skills/design-creator/*"
+      "plugins/bedrock/skills/design-creator/*",
+      "plugins/bedrock/skills/humanize/*"
     ]
   },
   "commands": {

@@ -1,0 +1,40 @@
+{
+  "name": "humanize",
+  "version": "1.0.0",
+  "entry": "SKILL.md",
+  "profile": "~/.config/bedrock/voice.md",
+  "profile_template": "config/profile.template.md",
+  "setup": "setup/questionnaire.md",
+  "scripts": {
+    "to_slack": "scripts/to_slack.py"
+  },
+  "commands": {
+    "/humanize": "clean + format text using the profile; auto-detect mode",
+    "/humanize:slack": "force Slack mrkdwn output",
+    "/humanize:plain": "force plain text, no platform formatting",
+    "/humanize:doc": "force document mode, neutral voice",
+    "/humanize:setup": "run questionnaire and (re)write ~/.config/bedrock/voice.md"
+  },
+  "references": {
+    "antislop-core": "references/antislop-core.md",
+    "antislop-ru": "references/antislop-ru.md",
+    "antislop-en": "references/antislop-en.md",
+    "platforms": "references/platforms.md",
+    "style-matching": "references/style-matching.md",
+    "anti-hallucination": "references/anti-hallucination.md"
+  },
+  "routing": [
+    { "when": "profile missing or still template", "load": ["setup/questionnaire.md"] },
+    { "when": "always", "load": ["~/.config/bedrock/voice.md", "references/antislop-core.md"] },
+    { "when": "output language is russian", "load": ["references/antislop-ru.md"] },
+    { "when": "output language is english", "load": ["references/antislop-en.md"] },
+    { "when": "mode is reply (a thread or message was pasted)", "load": ["references/style-matching.md", "references/anti-hallucination.md"] },
+    { "when": "target platform in [slack, telegram, discord, email]", "load": ["references/platforms.md"] },
+    { "when": "output must be sanitized for slack", "run": "scripts/to_slack.py" }
+  ],
+  "constraints": {
+    "skill_md_max_lines": 180,
+    "reference_md_max_lines": 250,
+    "file_separation": "one concern per file; no rule duplicated across files; load only what the map points to"
+  }
+}
