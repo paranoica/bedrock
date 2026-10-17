@@ -227,9 +227,38 @@ def check_agent(agent_md: Path, root: Path) -> list[Finding]:
     return findings
 
 
+def check_registry(root: Path) -> list[Finding]:
+    """Every skill appears in the navigator's skill map, and the map names only real skills.
+
+    No navigator (`skills/next`), no registry: a plugin without one is not checked here.
+    """
+    navigator = root / "skills" / "next" / "SKILL.md"
+    if not navigator.is_file():
+        return []
+    text = read(navigator)
+    section = text.split("## Skill map", 1)[1] if "## Skill map" in text else ""
+    listed = set()
+    for line in section.splitlines():
+        if line.startswith("|"):
+            cells = line.split("|")
+            if len(cells) > 2:
+                listed |= set(re.findall(r"`([a-z0-9-]+)`", cells[2]))
+    skills = {p.parent.name for p in root.glob("skills/*/SKILL.md")} - {"next"}
+    rel = navigator.relative_to(root).as_posix()
+    found = [
+        Finding(rel, 1, "ERROR", "registry", f"skill '{name}' is missing from the skill map")
+        for name in sorted(skills - listed)
+    ]
+    found += [
+        Finding(rel, 1, "ERROR", "registry", f"the skill map names '{name}', which does not exist")
+        for name in sorted(listed - skills)
+    ]
+    return found
+
+
 def check(root: Path) -> list[Finding]:
     """Check every skill and agent under the plugin root."""
-    findings: list[Finding] = []
+    findings: list[Finding] = check_registry(root)
     for skill_md in sorted(root.glob("skills/*/SKILL.md")):
         findings += check_skill(skill_md, root)
     for agent_md in sorted(root.glob("agents/*.md")):

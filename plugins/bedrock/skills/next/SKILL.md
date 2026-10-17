@@ -66,3 +66,5 @@ Done when: the line is sent.
 | Work while the owner sleeps | `night` | a morning report |
 | A new or existing project | `start` | `bedrock project check` prints `[]` |
 | Granting an action, all-out, withdrawing | `allow`, `unleash`, `revoke` | the hook's notice |
+| Auditing code for bugs, security, speed | `code-review` | a report that passes its receipt check |
+| Designing or rebuilding a web interface | `design-creator` | its quality gate passes |

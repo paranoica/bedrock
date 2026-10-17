@@ -300,3 +300,31 @@ def test_a_ported_skill_s_references_keep_their_style(tmp_path: Path) -> None:
     skill(tmp_path, "debug", "Diagnose a failure. Triggers debug, разберись.")
     write(tmp_path / "skills" / "debug" / "references" / "x.md", words(45) + ".\n")
     assert run(tmp_path, "--strict").returncode == 1
+
+
+def _map(root: Path, names: str) -> None:
+    body = "## Skill map\n| When | Skill | Check |\n|---|---|---|\n" + "".join(
+        f"| x | `{n}` | y |\n" for n in names.split()
+    )
+    skill(root, "next", "Navigator. Use for что дальше, what next.", body)
+
+
+def test_every_skill_is_in_the_navigator_map(tmp_path: Path) -> None:
+    _map(tmp_path, "debug")
+    skill(tmp_path, "debug", "Diagnose a failure. Triggers debug, разберись.")
+    skill(tmp_path, "hunt", "Break green code. Use for сломай, break it.")
+    result = run(tmp_path)
+    assert result.returncode == 1 and "hunt" in result.stdout and "registry" in result.stdout
+
+
+def test_the_map_names_only_real_skills(tmp_path: Path) -> None:
+    _map(tmp_path, "debug ghost")
+    skill(tmp_path, "debug", "Diagnose a failure. Triggers debug, разберись.")
+    result = run(tmp_path)
+    assert result.returncode == 1 and "ghost" in result.stdout
+
+
+def test_a_complete_map_is_clean(tmp_path: Path) -> None:
+    _map(tmp_path, "debug")
+    skill(tmp_path, "debug", "Diagnose a failure. Triggers debug, разберись.")
+    assert run(tmp_path).returncode == 0
