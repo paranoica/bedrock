@@ -797,3 +797,34 @@ def test_log_at_before_the_block_s_last_event_is_refused(
         assert code == 1 and "last event" in err
     argv = ["log", "closed", "--block", "T1", "--at", "2026-10-16T10:00:00Z"]
     assert run(capsys, argv, later, workspace)[0] == 0
+
+
+def test_call_archive_and_quote_check_from_the_cli(
+    capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
+) -> None:
+    env = env_at(home, "2026-10-17T12:00:00Z")
+    raw = home / "t.txt"
+    raw.write_text("[00:00:10] Quentin: we ship csv first\n", encoding="utf-8")
+    argv = ["call", "add", str(raw), "--source", "krisp", "--title", "Sync", "--date", "2026-10-16"]
+    code, out, _ = run(capsys, argv, env, workspace)
+    call_id = out.strip()
+    assert code == 0 and call_id == "2026-10-16-sync"
+    assert run(capsys, ["call", "verify", call_id], env, workspace)[:2] == (0, "intact\n")
+    debrief = home / "d.md"
+    debrief.write_text(f"## Decided\n- «we pay double» ({call_id} @ 00:00:10)\n", encoding="utf-8")
+    code, out, _ = run(capsys, ["call", "quotes", call_id, str(debrief)], env, workspace)
+    assert code == 1 and json.loads(out)[0]["quote"] == "we pay double"
+    code, out, _ = run(capsys, ["call", "search", "CSV first"], env, workspace)
+    assert json.loads(out)[0]["time"] == "00:00:10"
+
+
+def test_text_check_from_a_file(
+    capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
+) -> None:
+    env = env_at(home, "2026-10-17T12:00:00Z")
+    text = home / "msg.txt"
+    text.write_text("Готово — проверил.\n", encoding="utf-8")
+    code, out, _ = run(capsys, ["text", "check", str(text), "--slack"], env, workspace)
+    assert code == 1 and json.loads(out)[0]["rule"] == "dash"
+    text.write_text("Готово, проверил.\n", encoding="utf-8")
+    assert run(capsys, ["text", "check", str(text)], env, workspace)[:2] == (0, "[]\n")
