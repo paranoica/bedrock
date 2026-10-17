@@ -30,6 +30,7 @@ class UserConfig:
     language: str = "ru"
     quiet_start: str = "07:00"
     quiet_end: str = "13:00"
+    compact_window: int = 300000
     days_dir: Path = Path("projects-days")
     memory_bank_dir: Path = Path("projects-memory-bank")
     state_dir: Path = Path(".local/state/bedrock")
@@ -85,6 +86,9 @@ def load_user_config(env: Mapping[str, str] | None = None) -> UserConfig:
     rollover = data.get("rollover_hour", defaults.rollover_hour)
     if not isinstance(rollover, int) or not 0 <= rollover <= 23:
         raise ConfigError("rollover_hour must be an integer from 0 to 23")
+    window = data.get("compact_window", defaults.compact_window)
+    if isinstance(window, bool) or not isinstance(window, int) or not 100000 <= window <= 1000000:
+        raise ConfigError("compact_window must be an integer from 100000 to 1000000")
 
     def directory(key: str, env_key: str, default: Path) -> Path:
         value = env.get(env_key) or data.get(key)
@@ -97,6 +101,7 @@ def load_user_config(env: Mapping[str, str] | None = None) -> UserConfig:
         language=data.get("language", defaults.language),
         quiet_start=_check_hhmm(data.get("quiet_start", defaults.quiet_start)),
         quiet_end=_check_hhmm(data.get("quiet_end", defaults.quiet_end)),
+        compact_window=window,
         days_dir=directory("days_dir", "BEDROCK_DAYS_DIR", defaults.days_dir),
         memory_bank_dir=directory(
             "memory_bank_dir", "BEDROCK_MEMORY_BANK", defaults.memory_bank_dir

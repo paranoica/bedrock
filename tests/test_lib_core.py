@@ -176,3 +176,19 @@ def test_good_quiet_hours_load(tmp_path: Path) -> None:
     path.write_text(json.dumps({"quiet_start": "23:00", "quiet_end": "00:00"}))
     loaded = config.load_user_config({"HOME": str(tmp_path), "BEDROCK_CONFIG": str(path)})
     assert (loaded.quiet_start, loaded.quiet_end) == ("23:00", "00:00")
+
+
+@pytest.mark.parametrize("value", [99999, 1000001, "300000", True])
+def test_bad_compact_window_is_rejected(tmp_path: Path, value: object) -> None:
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps({"compact_window": value}))
+    with pytest.raises(config.ConfigError):
+        config.load_user_config({"HOME": str(tmp_path), "BEDROCK_CONFIG": str(path)})
+
+
+def test_compact_window_defaults_to_300k_and_loads(tmp_path: Path) -> None:
+    assert config.load_user_config({"HOME": str(tmp_path)}).compact_window == 300000
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps({"compact_window": 400000}))
+    env = {"HOME": str(tmp_path), "BEDROCK_CONFIG": str(path)}
+    assert config.load_user_config(env).compact_window == 400000
