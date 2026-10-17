@@ -270,6 +270,7 @@ def _critical(ctx: Context, branch: str, base: str | None) -> list[str]:
 
 def _in_zone(path: str, zone: str) -> bool:
     """A glob matches as a glob; a plain folder or file name covers everything under it."""
+    zone = zone.removeprefix("./").lstrip("/")
     if any(ch in zone for ch in "*?["):
         return fnmatch.fnmatch(path, zone)
     zone = zone.rstrip("/")

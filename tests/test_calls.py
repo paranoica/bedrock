@@ -160,3 +160,11 @@ def test_invented_or_misplaced_quotes_never_pass(cfg: UserConfig, tmp_path: Path
 def test_search_keeps_who_said_it(cfg: UserConfig, raw: Path) -> None:
     add(cfg, raw)
     assert calls.search(cfg, "Acme", "column list by Friday")[0].text.startswith("Owner:")
+
+
+def test_a_line_with_a_colon_is_not_a_speaker(cfg: UserConfig, tmp_path: Path) -> None:
+    raw = tmp_path / "t.txt"
+    raw.write_text("[00:02:00] The deadline is: Friday the 20th\n", encoding="utf-8")
+    call_id = add(cfg, raw, "Deadline")
+    debrief = f"## Decided\n- «the deadline is: Friday the 20th» ({call_id} @ 00:02:00)\n"
+    assert calls.check_quotes(cfg, "Acme", call_id, debrief) == []

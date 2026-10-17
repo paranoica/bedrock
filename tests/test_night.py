@@ -118,3 +118,11 @@ def test_until_on_the_night_clocks_go_back() -> None:
     now = datetime(2026, 10, 25, 2, 40, tzinfo=zone)  # first pass, +02:00
     target = night.until("02:20", now, "Europe/Berlin")
     assert target.astimezone(UTC) == datetime(2026, 10, 25, 1, 20, tzinfo=UTC)
+
+
+def test_until_on_the_night_clocks_go_forward() -> None:
+    from datetime import UTC, datetime
+
+    now = datetime(2026, 3, 28, 23, 0, tzinfo=UTC)
+    target = night.until("02:30", now, "Europe/Warsaw")  # 02:30 does not exist that night
+    assert target.astimezone(UTC) == datetime(2026, 3, 29, 1, 0, tzinfo=UTC)  # 03:00 local

@@ -48,8 +48,23 @@ def until(text: str, now: datetime, zone: str) -> datetime:
                 hour=wanted.hour, minute=wanted.minute, second=0, microsecond=0, fold=fold
             )
             moments.append(moment)
-    after = [m for m in moments if m.astimezone(UTC) > now.astimezone(UTC)]
+    real = [_existing(m) for m in moments]
+    after = [m for m in real if m.astimezone(UTC) > now.astimezone(UTC)]
     return min(after, key=lambda m: m.astimezone(UTC))
+
+
+def _existing(moment: datetime) -> datetime:
+    """The moment itself, or the first minute after it when the clocks skipped it."""
+    zone = moment.tzinfo
+    wall = moment.replace(tzinfo=None)
+    if moment.astimezone(UTC).astimezone(zone).replace(tzinfo=None) == wall:
+        return moment
+    start = moment.replace(fold=1).astimezone(UTC)
+    for minutes in range(0, 181):
+        local = (start + timedelta(minutes=minutes)).astimezone(zone)
+        if local.replace(tzinfo=None) >= wall:
+            return local
+    return moment
 
 
 def _kill_group(pid: int, sig: signal.Signals) -> None:

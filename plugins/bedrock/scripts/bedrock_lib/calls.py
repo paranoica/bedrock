@@ -22,7 +22,8 @@ STAMP = re.compile(r"^\[(\d{1,2}:)?(\d{1,2}):(\d{2})\]\s*")
 QUOTE = re.compile(r"«([^»]+)»|“([^”]+)”|\"([^\"]+)\"")
 CITE = re.compile(r"@\s*((?:\d{1,2}:)?\d{1,2}:\d{2})")
 ITEM_SECTIONS = {"decided", "we owe", "they owe", "new facts"}
-SPEAKER = re.compile(r"^[^\W\d][\w .'-]{0,40}:\s+")
+# A speaker is one to three capitalised words ("Alice", "Speaker 2"), never a sentence.
+SPEAKER = re.compile(r"^[^\W\d_a-zа-яё][\w'-]*(?: [^\W_a-zа-яё][\w'-]*){0,2}:\s+")
 ITEM = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+")
 HEADING = re.compile(r"^#{2,3}\s+(.+?):?\s*$")
 NEAR_SECONDS = 60

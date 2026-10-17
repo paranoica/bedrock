@@ -909,3 +909,16 @@ def test_a_bare_folder_is_a_critical_zone_too(
     subprocess.run(["git", "-C", str(workspace), "commit", "-qam", "fix"], check=True)
     argv = ["review", "pass", "fix/x", "--risk", "R2", "--base", "main"]
     assert run(capsys, argv, env_at(home, "2026-10-17T12:00:00Z"), workspace)[0] == 1
+
+
+def test_a_zone_written_with_a_leading_dot_or_slash(
+    capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
+) -> None:
+    _zoned_repo(workspace)
+    for zone in ("./src/ingest", "/src/ingest/"):
+        settings = {"project": "Acme", "critical_zones": [zone]}
+        (workspace / ".claude" / "bedrock.json").write_text(json.dumps(settings))
+        (workspace / "src" / "ingest" / "chunk.py").write_text(f"x = {len(zone)}\n")
+        subprocess.run(["git", "-C", str(workspace), "commit", "-qam", "fix"], check=True)
+        argv = ["review", "pass", "fix/x", "--risk", "R2", "--base", "main"]
+        assert run(capsys, argv, env_at(home, "2026-10-17T12:00:00Z"), workspace)[0] == 1, zone
