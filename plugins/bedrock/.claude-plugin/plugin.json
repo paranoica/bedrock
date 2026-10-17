@@ -1,0 +1,10 @@
+{
+  "name": "bedrock",
+  "displayName": "Bedrock",
+  "version": "0.1.0",
+  "description": "A working system for Claude Code: day loop, root-cause debugging, knowledge base, agents under budget, guard hooks",
+  "author": {
+    "name": "paranoica"
+  },
+  "repository": "https://github.com/paranoica/bedrock"
+}

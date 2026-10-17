@@ -1,0 +1,16 @@
+{
+  "name": "bedrock",
+  "owner": {
+    "name": "paranoica"
+  },
+  "metadata": {
+    "description": "The bedrock plugin for Claude Code"
+  },
+  "plugins": [
+    {
+      "name": "bedrock",
+      "source": "./plugins/bedrock",
+      "description": "A working system for Claude Code: day loop, root-cause debugging, knowledge base, agents under budget, guard hooks"
+    }
+  ]
+}
