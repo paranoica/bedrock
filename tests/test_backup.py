@@ -97,8 +97,11 @@ def test_every_day_stays_restorable(setup, tmp_path: Path) -> None:
             assert member is not None and member.read() == expected
 
 
-def test_recipient_and_repo_are_checked_at_use(setup) -> None:
+def test_recipient_and_repo_are_checked_at_use(
+    setup, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     cfg, home, _, recipient = setup
+    monkeypatch.chdir(tmp_path)
     assert backup.check_recipient(recipient) == recipient
     assert backup.check_recipient("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExample")
     assert backup.check_recipient("ssh-rsa AAAAB3NzaC1yc2EAAAADAQAB Quentin at work")
@@ -107,3 +110,4 @@ def test_recipient_and_repo_are_checked_at_use(setup) -> None:
             backup.check_recipient(bad)
     with pytest.raises(backup.BackupError):
         backup.run(cfg, home, Path("relative/repo"), recipient, day="2026-10-17")
+    assert not (tmp_path / "relative").exists()
