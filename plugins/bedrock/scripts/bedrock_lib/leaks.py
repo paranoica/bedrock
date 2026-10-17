@@ -210,6 +210,9 @@ def report(repo: Path, terms: list[str], settings: dict, message: str | None = N
     Ignore globs cover a checker's own fixtures; a secret found by gitleaks is never ignored.
     """
     allow = list(settings.get("allow", []))
+    # A word allowed here (the owner's public handle in his own plugin) is no leak in this repo.
+    allowed = {word.lower() for word in allow}
+    terms = [term for term in terms if term.lstrip("=").lower() not in allowed]
     found = check_staged(repo, terms, allow=allow, gitleaks=settings.get("gitleaks", True))
     if message:
         found += scan_text(message, terms)

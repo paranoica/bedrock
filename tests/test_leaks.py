@@ -173,3 +173,14 @@ def test_equals_prefix_makes_a_term_case_sensitive(tmp_path: Path) -> None:
     assert leaks.scan_diff(diff("a.py", 'tool = "quentin"'), terms) == []
     assert rules(leaks.scan_diff(diff("a.md", "ask Quentin"), terms)) == ["listed name"]
     assert rules(leaks.scan_diff(diff("a.md", "ZORVATH said"), terms)) == ["listed name"]
+
+
+def test_a_term_allowed_in_this_repo_is_not_flagged_but_others_are(tmp_path: Path) -> None:
+    subprocess.run(["git", "-C", str(tmp_path), "init", "-q"], check=True)
+    (tmp_path / "README.md").write_text(
+        "install: /plugin marketplace add handle/bedrock\nby Quentin\n"
+    )
+    subprocess.run(["git", "-C", str(tmp_path), "add", "."], check=True)
+    settings = {"allow": ["handle"], "gitleaks": False}
+    found = leaks.report(tmp_path, ["handle", "=Quentin"], settings, message="docs: handle readme")
+    assert len(found) == 1 and "Quentin" in found[0]

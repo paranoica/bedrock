@@ -3,7 +3,8 @@
   "leaks": {
     "allow": [
       "claude",
-      "anthropic"
+      "anthropic",
+      "paranoica"
     ],
     "ignore": [
       "tests/test_leaks.py",
