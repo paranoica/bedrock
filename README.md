@@ -73,9 +73,9 @@ packs); `bedrock project check` validates them.
 
 ## Documentation
 
-- `plugins/bedrock/docs/ru-guide.md` — the owner's guide, in Russian: what to say, grants, the
+- `plugins/bedrock/docs/ru-guide.md`: the owner's guide, in Russian: what to say, grants, the
   night mode, folders, what to do when something is off.
-- `plugins/bedrock/docs/cheatsheet.md` — one page; `folio cheatsheet.md` renders it as a PDF.
+- `plugins/bedrock/docs/cheatsheet.md`: one page; `folio cheatsheet.md` renders it as a PDF.
 
 ## Development
 
