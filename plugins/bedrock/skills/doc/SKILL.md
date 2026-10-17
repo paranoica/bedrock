@@ -18,14 +18,18 @@ draft: the owner sends it (D057).
 - Team: to the point, technical.
 Done when: the audience is one line at the top of the draft's front matter.
 
-## 2. Pick the shape
+## 2. Propose the shape, the owner picks
+Style is the owner's call. Propose it in one message and wait for his «ок» or his changes:
+the audience, the theme, the voice and the outline.
 - A call brief: theme `brief`.
 - A report: theme `report`.
 - A technical note: theme `console`.
 - A root-cause report, in this order: the summary, what is lost and how much, the causes
   with k/n, the fixes and their status, the verification evidence, the next steps.
 No charts for their own sake: a chart stays only when a table cannot carry the point.
-Done when: the theme and the outline are chosen.
+Example: «отчёт для клиента, тема report, твой голос по-английски, 5 разделов: итог, что
+потеряно, причины 7/9, что починено, что дальше. Ок?»
+Done when: the owner said ок to the proposal, or changed it.
 
 ## 3. Write it to folio's conventions
 - Front matter with title, date and theme.
@@ -35,11 +39,14 @@ Done when: the theme and the outline are chosen.
 - Run `bedrock text check <file>` for dashes and filler.
 Done when: `bedrock text check` prints `[]`.
 
-## 4. Render
+## 4. Save both, render
+Both files stay, side by side, so the owner can edit the Markdown and render it again:
+`~/projects-days/<project>/docs/<YYYY-MM-DD>-<slug>.md` and the same name with `.pdf`.
+Outside a project: `~/projects-days/global/docs/`.
 `folio <file>.md -t <theme> -o <file>.pdf`. Run `folio doctor` first when a render fails.
-folio must be on PATH (`npm link` in its folder, on the owner's word).
-Done when: the PDF exists and its pages were looked at, or the report says why not.
+Done when: both files exist and the PDF's pages were looked at, or the report says why not.
 
 ## 5. Hand it over
-Give the owner the PDF path and one line on what it says. Nothing is sent by Claude.
-Done when: the path and the line are in the chat.
+Give the owner both paths, the `.md` and the `.pdf`, and one line on what it says. To change
+it himself: edit the `.md`, then run the same `folio` line. Nothing is sent by Claude.
+Done when: both paths and the line are in the chat.
