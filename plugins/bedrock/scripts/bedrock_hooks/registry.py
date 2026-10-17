@@ -5,6 +5,7 @@ from __future__ import annotations
 from bedrock_hooks import (
     rules_after,
     rules_agents,
+    rules_bench,
     rules_control,
     rules_git,
     rules_heavy,
@@ -21,6 +22,7 @@ from bedrock_hooks.core import Rule
 RULES: list[Rule] = [
     *rules_control.RULES,
     *rules_secrets.RULES,
+    *rules_bench.RULES,
     *rules_git.RULES,
     *rules_outward.RULES,
     *rules_installs.RULES,

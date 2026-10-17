@@ -200,6 +200,11 @@ def outside(home: Path, work: Path) -> Path:
         "grep --directories=recurse x ~/share",
         "grep -d recurse x ~/share",
         "rg -e x ~/share",
+        'cat "${HOME}/share/bench-key/bugs.md"',
+        "cat ${HOME}/share/bench-key/bugs.md",
+        "cat {/dev/null,~/share/bench-key/bugs.md}",
+        "grep -r x {.,~/share}",
+        "cat < ~/share/bench-key/bugs.md",
     ],
 )
 def test_key_bypasses_are_refused(home: Path, work: Path, outside: Path, command: str) -> None:
@@ -215,6 +220,16 @@ def test_glob_patterns_that_reach_the_key_are_refused(
 
 
 def test_ordinary_agent_work_is_untouched(home: Path, work: Path, outside: Path) -> None:
-    for command in ("ls src", "cat README.md", "grep -rn todo .", "rg -e fixme src", "git grep x"):
+    ordinary = (
+        "ls src",
+        "cat README.md",
+        "grep -rn todo .",
+        "rg -e fixme src",
+        "git grep x",
+        "ls -lrt ~",
+        "find src -name '*.py' | xargs grep -n todo",
+        "find src | xargs wc -l",
+    )
+    for command in ordinary:
         assert "answer key" not in bash(home, work, command, "a1"), command
     assert call(home, work, "Glob", {"pattern": "src/**/*.py"}, "a1") == ""
