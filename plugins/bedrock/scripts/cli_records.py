@@ -101,14 +101,15 @@ def _when(ctx: Context) -> datetime:
     at = ctx.args.at
     if not at:
         return ctx.now
+    block = ctx.args.block
+    times = [
+        clock.parse(r["ts"])
+        for r in daylog.events(ctx.cfg, ctx.project())
+        if block and r.get("block") == block
+    ]
     if at == "last":
-        times = [
-            clock.parse(r["ts"])
-            for r in daylog.events(ctx.cfg, ctx.project())
-            if r.get("block") == ctx.args.block
-        ]
-        if not ctx.args.block or not times:
-            raise UsageError(f"--at last: block '{ctx.args.block}' has no events")
+        if not times:
+            raise UsageError(f"--at last: block '{block}' has no events")
         return max(times)
     try:
         moment = clock.parse(at)
@@ -116,6 +117,8 @@ def _when(ctx: Context) -> datetime:
         raise UsageError(f"--at '{at}' is not an ISO time") from error
     if moment > ctx.now:
         raise UsageError(f"--at '{at}' is in the future")
+    if times and moment < max(times):
+        raise UsageError(f"--at '{at}' is before the block's last event ({clock.iso(max(times))})")
     return moment
 
 

@@ -784,3 +784,16 @@ def test_log_at_rejects_the_future_and_garbage(
     code, _, err = run(capsys, ["log", "closed", "--block", "T9", "--at", "last"], env, workspace)
     assert code == 1 and "T9" in err
     assert not (home / "projects-days").exists()
+
+
+def test_log_at_before_the_block_s_last_event_is_refused(
+    capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
+) -> None:
+    run(capsys, ["log", "taken", "--block", "T1"], env_at(home, "2026-10-16T09:00:00Z"), workspace)
+    run(capsys, ["log", "paused", "--block", "T1"], env_at(home, "2026-10-16T10:00:00Z"), workspace)
+    later = env_at(home, "2026-10-17T08:00:00Z")
+    for at in ("2026-10-16T08:30:00Z", "2026-10-16T09:30:00Z"):
+        code, _, err = run(capsys, ["log", "closed", "--block", "T1", "--at", at], later, workspace)
+        assert code == 1 and "last event" in err
+    argv = ["log", "closed", "--block", "T1", "--at", "2026-10-16T10:00:00Z"]
+    assert run(capsys, argv, later, workspace)[0] == 0
