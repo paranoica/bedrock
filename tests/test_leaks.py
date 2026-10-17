@@ -183,4 +183,4 @@ def test_a_term_allowed_in_this_repo_is_not_flagged_but_others_are(tmp_path: Pat
     subprocess.run(["git", "-C", str(tmp_path), "add", "."], check=True)
     settings = {"allow": ["handle"], "gitleaks": False}
     found = leaks.report(tmp_path, ["handle", "=Quentin"], settings, message="docs: handle readme")
-    assert len(found) == 1 and "Quentin" in found[0]
+    assert len(found) == 1 and found[0].startswith("README.md:2: listed name")
