@@ -70,12 +70,20 @@ def paint(text: str, severity: int) -> str:
 
 
 def context_percent(data: dict[str, Any], window: int) -> int | None:
-    """Return context use against the compact window, not the model's full window."""
-    usage = (data.get("context_window") or {}).get("current_usage")
+    """Return context use against the compact window, not the model's full window.
+
+    A session already past the compact window evidently compacts later, so it is measured
+    against the window Claude Code reports for it.
+    """
+    context = data.get("context_window") or {}
+    usage = context.get("current_usage")
     if not isinstance(usage, dict):
         return None
     keys = ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens")
     tokens = sum(int(usage.get(key) or 0) for key in keys)
+    size = context.get("context_window_size")
+    if tokens > window and isinstance(size, int) and size > 0:
+        window = size
     return round(tokens * 100 / window)
 
 

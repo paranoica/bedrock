@@ -219,3 +219,13 @@ def test_project_compact_window_overrides_the_owner_default(
     out = io.StringIO()
     statusline.main(io.StringIO(json.dumps(data)), out)
     assert "ctx 38%" in plain(out.getvalue())
+
+
+def test_a_session_past_the_compact_window_is_measured_against_its_real_window(
+    cfg: UserConfig,
+) -> None:
+    # 750k used: this session does not compact at 300k, which would read as 250%.
+    line = plain(statusline.render(cfg, payload(context_tokens=750000), WORK, minutes=0))
+    assert "ctx 75%" in line
+    at_window = plain(statusline.render(cfg, payload(context_tokens=300000), WORK, minutes=0))
+    assert "ctx 100%" in at_window
