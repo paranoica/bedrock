@@ -146,7 +146,7 @@ def test_invented_or_misplaced_quotes_never_pass(cfg: UserConfig, tmp_path: Path
     debrief = (
         "## Decided:\n"
         f"- Shipping «...» ({call_id} @ 00:00:05)\n"
-        f"- «ip the rel» ({call_id} @ 00:00:08)\n"
+        f"- «ill ship on fri» ({call_id} @ 00:00:05)\n"
         f"- «the release notes» ({call_id} @ 00:19:59)\n"
         "1. invented thing with no quote\n"
         "+ another invented thing\n"
