@@ -24,7 +24,9 @@ faster-whisper large-v3 (or large-v3-turbo for speed) with int8 on this machine'
 through the heavy-run lock, in the background. Give it a hint vocabulary from the knowledge
 base: names and terms of the project. Mark low-confidence spans `[?]`. Write the output with
 `[hh:mm:ss]` line stamps, then archive it as above.
-The faster-whisper package is installed only on the owner's word.
+faster-whisper lives in its own environment: run it with
+`~/.local/share/bedrock/whisper-venv/bin/python`. On this machine's GTX 1060 use
+`compute_type="int8"` (no float16); when other programs hold the video memory, run it on the CPU.
 Done when: the transcript is archived, or the missing package is reported.
 
 ## 2. Debrief

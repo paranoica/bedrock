@@ -31,6 +31,7 @@ import { createHash } from "node:crypto";
 import { readFileSync, mkdirSync, writeFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { axeFile, launch, loadPlaywright } from "./deps.mjs";
 
 const THEMES = ["light", "dark"];
 const WIDTHS = [320, 768, 1280];
@@ -69,7 +70,7 @@ mkdirSync(outDir, { recursive: true });
 // ---- honest fallback: no Playwright / no browser -> label, don't fake ----
 let chromium;
 try {
-  ({ chromium } = await import("playwright"));
+  ({ chromium } = await loadPlaywright());
 } catch {
   const report = noBrowserReport("playwright not installed (npm i -D playwright axe-core && npx playwright install chromium)");
   writeFileSync(`${outDir}/verify-report.json`, JSON.stringify(report, null, 2));
@@ -78,11 +79,9 @@ try {
 }
 
 // locate axe-core's bundled source to inject
-let axePath;
-try {
-  axePath = fileURLToPath(await import.meta.resolve("axe-core/axe.min.js"));
-} catch {
-  try { axePath = resolve("node_modules/axe-core/axe.min.js"); } catch { axePath = null; }
+let axePath = axeFile();
+if (!axePath && existsSync(resolve("node_modules/axe-core/axe.min.js"))) {
+  axePath = resolve("node_modules/axe-core/axe.min.js");
 }
 
 function noBrowserReport(reason) {
@@ -102,7 +101,7 @@ function noBrowserReport(reason) {
 
 let browser;
 try {
-  browser = await chromium.launch();
+  browser = await launch(chromium);
 } catch (e) {
   const report = noBrowserReport("chromium failed to launch: " + e.message);
   writeFileSync(`${outDir}/verify-report.json`, JSON.stringify(report, null, 2));

@@ -108,7 +108,10 @@ def _gpu(machine: Machine) -> list[Check]:
 
 def _files(cfg: UserConfig, home: Path, machine: Machine) -> list[Check]:
     found = []
-    if machine.has_module("faster_whisper"):
+    venv = home / ".local" / "share" / "bedrock" / "whisper-venv" / "bin" / "python"
+    if venv.exists():
+        found.append(Check("transcription", "ok", f"faster-whisper in {venv.parent.parent}"))
+    elif machine.has_module("faster_whisper"):
         found.append(Check("transcription", "ok", "faster-whisper imports"))
     else:
         found.append(
@@ -121,6 +124,12 @@ def _files(cfg: UserConfig, home: Path, machine: Machine) -> list[Check]:
         found.append(Check("leak terms", "warn", f"{terms} is readable by others: chmod 600"))
     else:
         found.append(Check("leak terms", "ok", str(terms)))
+    tools = home / ".cache" / "bedrock" / "design-tools"
+    if all((tools / "node_modules" / name).is_dir() for name in ("playwright", "axe-core")):
+        found.append(Check("design tools", "ok", f"playwright and axe-core in {tools}"))
+    else:
+        fix = f"copy design-creator's tools/package*.json to {tools}, then npm ci there"
+        found.append(Check("design tools", "warn", f"design-creator cannot render: {fix}"))
     if cfg.backup_repo and cfg.backup_recipient:
         found.append(Check("backup", "ok", str(cfg.backup_repo)))
     else:

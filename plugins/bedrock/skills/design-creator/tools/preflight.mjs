@@ -13,27 +13,21 @@ const out = {
   node: process.version, playwright_importable: false, browser_installed: false,
   axe_resolvable: false, qa_mode: "requires-render", install_hints: "", note: "",
 };
+const { axeFile, loadPlaywright, systemBrowser, SHARED } = await import("./deps.mjs");
 try {
-  const pw = await import("playwright");
+  const pw = await loadPlaywright();
   out.playwright_importable = true;
   try {
     const p = pw.chromium.executablePath();
     const { existsSync } = await import("node:fs");
-    out.browser_installed = !!p && existsSync(p);
-  } catch { out.browser_installed = false; }
+    out.browser_installed = (!!p && existsSync(p)) || !!systemBrowser();
+  } catch { out.browser_installed = !!systemBrowser(); }
 } catch { out.playwright_importable = false; }
-try { await import.meta.resolve("axe-core/axe.min.js"); out.axe_resolvable = true; }
-catch {
-  try {
-    const { existsSync } = await import("node:fs");
-    const { resolve } = await import("node:path");
-    out.axe_resolvable = existsSync(resolve("node_modules/axe-core/axe.min.js"));
-  } catch { out.axe_resolvable = false; }
-}
+out.axe_resolvable = !!axeFile();
 const hints = [];
-if (!out.playwright_importable) hints.push("playwright: (cd tools && npm i) then `npx playwright install chromium`");
-else if (!out.browser_installed) hints.push("browser: npx playwright install chromium");
-if (!out.axe_resolvable) hints.push("axe-core: (cd tools && npm i)");
+if (!out.playwright_importable) hints.push(`playwright: npm ci in ${SHARED} (copy tools/package.json and package-lock.json there first)`);
+else if (!out.browser_installed) hints.push("browser: install Chrome or Chromium, or run npx playwright install chromium");
+if (!out.axe_resolvable) hints.push(`axe-core: npm ci in ${SHARED}`);
 out.qa_mode = (out.playwright_importable && out.browser_installed && out.axe_resolvable) ? "measured" : "requires-render";
 out.install_hints = hints.length ? hints.join("; ") : "none — verify.mjs can render";
 out.note = out.qa_mode === "measured"

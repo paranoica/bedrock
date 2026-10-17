@@ -43,6 +43,8 @@ def home(tmp_path: Path) -> Path:
     terms.parent.mkdir(parents=True)
     terms.write_text("Name\n")
     terms.chmod(0o600)
+    (tmp_path / ".cache/bedrock/design-tools/node_modules/playwright").mkdir(parents=True)
+    (tmp_path / ".cache/bedrock/design-tools/node_modules/axe-core").mkdir(parents=True)
     return tmp_path
 
 
@@ -85,3 +87,20 @@ def test_a_readable_leak_list_or_missing_backup_warns(home: Path) -> None:
 def test_exit_code_follows_the_worst_level(home: Path) -> None:
     assert doctor.exit_code([doctor.Check("a", "ok", ""), doctor.Check("b", "warn", "")]) == 0
     assert doctor.exit_code([doctor.Check("a", "fail", "")]) == 1
+
+
+def test_missing_design_tools_warn_with_the_fix(home: Path) -> None:
+    import shutil
+
+    shutil.rmtree(home / ".cache/bedrock/design-tools")
+    checks = {c.name: c for c in doctor.run(UserConfig(state_dir=home / "s"), home, Machine(FULL))}
+    assert checks["design tools"].level == "warn"
+    assert "npm ci" in checks["design tools"].detail
+
+
+def test_transcription_in_its_own_venv_counts(home: Path) -> None:
+    venv = home / ".local/share/bedrock/whisper-venv/bin"
+    venv.mkdir(parents=True)
+    (venv / "python").write_text("")
+    checks = {c.name: c for c in doctor.run(UserConfig(state_dir=home / "s"), home, Machine(FULL))}
+    assert checks["transcription"].level == "ok"
