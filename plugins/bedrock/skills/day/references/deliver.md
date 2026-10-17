@@ -14,5 +14,6 @@
 5. **Failure** stops and reports; rollback only under a grant.
 6. CI is read once after a push; red CI goes to the `debug` skill.
 
-Done when: the PR is open with green CI and passed reviews, and the live check is in the
-report with its evidence, or the report says plainly that it was not checked live.
+Done when: the PR is open with green CI and passed reviews and the live check is in the
+report with its evidence. Short of that, the report says plainly what was not checked live,
+or names the outward step that waits for the owner's grant.

@@ -20,7 +20,7 @@ Read, in this order, and stop reading once the answer is clear:
    under `~/projects-days/<project>/<work-date>/log.jsonl`.
 4. `git status` and `git log --oneline -10` in the workspace.
 5. Other sessions in this project: the SessionStart context lists them.
-6. Unclosed days: a `taken` without `closed` in an earlier day's log.
+6. Unclosed blocks: a block with `taken` and no `closed` in any day's log.
 
 Done when: every line of the answer below rests on one of these reads.
 

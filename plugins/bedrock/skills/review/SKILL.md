@@ -18,7 +18,8 @@ raise it to R3 whatever the plan says.
 - R2: steps 1 to 5, one reviewer agent.
 - R3: steps 1 to 5, the reviewer and the `security-reviewer` agent, both at high effort.
 - Every agent here gets its brief from `templates/briefs/brief.md`.
-Done when: the level and its reason are one line in the block's plan.
+Done when: the level and its reason are one line in the block's plan, or in its `taken` log
+line for R1, which has no plan.
 
 ## 1. Deterministic checks first
 Run `bedrock check --base <base>` and `bedrock leaks`, then the project's linters and types

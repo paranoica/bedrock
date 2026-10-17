@@ -1,6 +1,6 @@
 ---
 name: ask
-description: Answer a question about the project — fast from prepared notes and the code map, or thorough; always with source and confidence. Use for "как работает", "где у нас", "быстро скажи", "how does X work".
+description: Use first for any question about this project's code or decisions — "где у нас", "как работает", "быстро скажи", "how does X work". Answers from notes and the code map with source and confidence.
 ---
 
 # Answers about the project

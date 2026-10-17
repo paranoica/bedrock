@@ -1,6 +1,6 @@
 ---
 name: debug
-description: Root-cause debugging — a red loop first, ranked hypotheses, one variable at a time, a cause record, a regression test at the right seam. Use for any bug, failing test, red CI or "почему не работает".
+description: Root-cause debugging — a red loop first, hypotheses, one variable at a time, a cause record, a regression test. Use first for any bug or failing test: "падает", "не работает", "почему", "CI красный".
 ---
 
 # Debugging to the root cause
@@ -72,4 +72,4 @@ Done when: the note exists and `bedrock kb validate` is clean.
 - The same command with the same error three times: stop and re-hypothesise.
 - Hypotheses exhausted: a fresh view, the `escalation` agent, or a fresh session with a
   handoff. The agent's brief comes from `templates/briefs/brief.md`: the task, what was
-  tried and why it failed go into Task and Context.
+  tried and why it failed go into Task and Known.

@@ -4,7 +4,7 @@ The work day rolls over at the configured hour (default 10:00 local): anything b
 belongs to the previous day.
 
 ## Start of day
-1. Close yesterday if it is not closed: `bedrock log closed --block <id>` for each open block,
+1. Close yesterday if it is not closed: `bedrock log closed --block <id> --at last` for each open block,
    and a one-line summary into the status note.
 2. Read the newest handoff in `~/projects-memory-bank/<project>/handoffs/` and the notes it
    links. A handoff older than a later decision is "re-check before use".

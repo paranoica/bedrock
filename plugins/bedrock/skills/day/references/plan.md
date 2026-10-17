@@ -25,6 +25,9 @@ Stands on: <decision links>
 | id | task | files | test | who (model) | estimate |
 |---|---|---|---|---|---|
 
+## Agents
+<role × runs, critic and review rounds included; the total is `agent_budget`>
+
 ## Estimate
 <minutes by steps × the calibration factor for this risk level (D041)>
 

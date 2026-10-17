@@ -41,8 +41,8 @@ Done when: `bedrock kb validate` is clean and the store has no uncommitted chang
 
 ## 2. Tell the owner
 Two lines in Russian: «пора рестартить, хэндофф готов: <task>» and a proposed session name
-(«имя сессии: acme-dedupe-search», D042). The owner runs `/rename`, then `/clear` or a new
-chat, and says «продолжаем».
+(«имя сессии: acme-dedupe-search», D042). The owner runs `/clear` or opens a new chat, says
+«продолжаем», and names the new session with `/rename`.
 Done when: both lines are sent.
 
 ## 3. Resume («продолжаем»)
