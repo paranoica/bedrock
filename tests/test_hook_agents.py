@@ -53,7 +53,12 @@ def limits(home: Path, five: float, week: float = 10) -> None:
     (state / "limits.json").write_text(json.dumps(data))
 
 
-GOOD = "Reason: a — reads 40 files the session will not need\nReport: .bedrock/r1.md"
+GOOD = (
+    "Reason: a — reads 40 files the session will not need\n"
+    "Task: list the ingest entry points\nDone when: every entry point has file:line\n"
+    "Report: .bedrock/r1.md"
+)
+WRITE = "Task: fix the chunk overlap\nDone when: test_overlap passes\nCause: .bedrock/cause.md\n"
 
 
 def test_agent_with_a_reason_passes(home: Path, work: Path) -> None:
@@ -75,7 +80,7 @@ def test_agent_without_a_reason_is_refused(home: Path, work: Path) -> None:
 def test_project_agent_knob(home: Path, work: Path, knob: str, kind: str, refused: bool) -> None:
     settings = {"project": "Acme", "agents": knob}
     (work / ".claude" / "bedrock.json").write_text(json.dumps(settings))
-    assert bool(spawn(home, work, GOOD + "\nFiles: a.py", kind=kind)) is refused
+    assert bool(spawn(home, work, GOOD + "\nFiles: a.py\nCause: feature", kind=kind)) is refused
 
 
 @pytest.mark.parametrize(("five", "week"), [(95, 10), (40, 90)])
@@ -145,7 +150,7 @@ def test_three_readers_at_once_and_one_when_the_window_is_half_used(home: Path, 
 
 
 def test_one_writer_in_the_shared_checkout(home: Path, work: Path) -> None:
-    brief = GOOD + "\nFiles: src/a.py"
+    brief = GOOD + "\nFiles: src/a.py\nCause: feature"
     assert spawn(home, work, brief, kind="implementer") == ""
     start(home, work, "w1", kind="implementer")
     assert "writer" in spawn(home, work, brief, kind="implementer")
@@ -162,7 +167,10 @@ def transcript(path: Path, context: int) -> str:
 def test_fork_rules(home: Path, work: Path, tmp_path: Path) -> None:
     small = transcript(tmp_path / "small.jsonl", 90_000)
     big = transcript(tmp_path / "big.jsonl", 200_000)
-    fork = "Reason: fork\nFork: rests on decisions made in this conversation, context 90k"
+    fork = (
+        "Reason: fork\nFork: rests on decisions made in this conversation, context 90k\n"
+        "Task: try approach B\nDone when: B passes the suite\nReport: .bedrock/fork.md"
+    )
 
     def try_fork(prompt: str, path: str) -> str:
         tool_input = {"description": "d", "prompt": prompt, "subagent_type": "fork"}
@@ -175,7 +183,7 @@ def test_fork_rules(home: Path, work: Path, tmp_path: Path) -> None:
         result = hook(home, "PreToolUse", data)
         return result.get("hookSpecificOutput", {}).get("permissionDecisionReason", "")
 
-    assert "Fork:" in try_fork("Reason: fork", small)
+    assert "Fork:" in try_fork(fork.replace("Fork: rests", "Notes: rests"), small)
     assert "150k" in try_fork(fork, big)
     assert try_fork(fork, small) == ""
     start(home, work, "f1", kind="fork")
@@ -183,7 +191,7 @@ def test_fork_rules(home: Path, work: Path, tmp_path: Path) -> None:
 
 
 def test_agent_edits_only_its_own_files(home: Path, work: Path) -> None:
-    brief = "Reason: a\nFiles: src/a.py, src/b.py\nReport: .bedrock/r.md"
+    brief = WRITE + "Reason: a\nFiles: src/a.py, src/b.py\nReport: .bedrock/r.md"
     spawn(home, work, brief, kind="implementer")
     start(home, work, "w1", kind="implementer")
 
@@ -288,4 +296,53 @@ def test_stale_pending_and_active_agents_do_not_block(home: Path, work: Path) ->
         "started": [],
     }
     session.update(cfg, "s1", {"agents": agents})
-    assert spawn(home, work, GOOD + "\nFiles: a.py", kind="implementer") == ""
+    assert spawn(home, work, GOOD + "\nFiles: a.py\nCause: feature", kind="implementer") == ""
+
+
+@pytest.mark.parametrize("missing", ["Task:", "Done when:", "Report:"])
+def test_brief_needs_task_done_when_and_report(home: Path, work: Path, missing: str) -> None:
+    brief = "\n".join(line for line in GOOD.splitlines() if not line.startswith(missing))
+    assert missing.rstrip(":") in spawn(home, work, brief)
+
+
+@pytest.mark.parametrize("missing", ["Cause:", "Files:"])
+def test_implementer_brief_needs_cause_and_files(home: Path, work: Path, missing: str) -> None:
+    brief = GOOD + "\nFiles: src/a.py\nCause: feature"
+    brief = "\n".join(line for line in brief.splitlines() if not line.startswith(missing))
+    assert missing.rstrip(":") in spawn(home, work, brief, kind="implementer")
+
+
+def test_spend_mode_shifts_the_agent_effort(home: Path, work: Path) -> None:
+    def routed(prompt: str) -> dict:
+        hook(home, "UserPromptSubmit", {"cwd": str(work), "prompt": prompt, "source": "user"})
+        tool_input = {"description": "d", "prompt": GOOD, "subagent_type": "critic"}
+        data = {"cwd": str(work), "tool_name": "Agent", "tool_input": tool_input}
+        return hook(home, "PreToolUse", data).get("hookSpecificOutput", {})
+
+    assert routed("сегодня до талого")["updatedInput"]["effort"] == "xhigh"
+    assert routed("экономим")["updatedInput"]["effort"] == "medium"
+    assert "updatedInput" not in routed("обычный режим")
+
+
+def test_hitting_the_turn_cap_is_recorded(home: Path, work: Path, tmp_path: Path) -> None:
+    spawn(home, work, GOOD, kind="critic")
+    start(home, work, "c1", kind="critic")
+    (work / ".bedrock").mkdir()
+    (work / ".bedrock" / "r1.md").write_text("done")
+    path = tmp_path / "critic.jsonl"
+    usage = {"input_tokens": 10, "output_tokens": 1}
+    lines = [
+        json.dumps({"type": "assistant", "message": {"id": f"m{i}", "usage": usage}})
+        for i in range(10)
+    ]
+    path.write_text("\n".join(lines) + "\n")
+    data = {
+        "cwd": str(work),
+        "agent_id": "c1",
+        "agent_type": "critic",
+        "agent_transcript_path": str(path),
+        "stop_hook_active": False,
+    }
+    hook(home, "SubagentStop", data)
+    record = ledger.records(load_user_config(environ(home)))[-1]
+    assert (record["turns"], record["cap_hit"]) == (10, True)

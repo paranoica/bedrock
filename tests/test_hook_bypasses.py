@@ -278,7 +278,7 @@ def test_negated_or_quoted_grants_grant_nothing(prompt: str) -> None:
 
 
 def test_agent_shell_writes_stay_inside_its_brief(home: Path, work: Path) -> None:
-    brief = "Reason: a\nFiles: src/a.py\nReport: r.md"
+    brief = "Reason: a\nTask: t\nDone when: d\nCause: feature\nFiles: src/a.py\nReport: r.md"
     tool_input = {"description": "d", "prompt": brief, "subagent_type": "implementer"}
     call(home, work, "Agent", tool_input)
     out = io.StringIO()

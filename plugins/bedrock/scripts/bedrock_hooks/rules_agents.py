@@ -28,7 +28,10 @@ DEFAULT_BUDGET = 3
 FORK_CONTEXT_LIMIT = 150_000
 PENDING_LIMIT = timedelta(minutes=10)
 ACTIVE_LIMIT = timedelta(hours=3)
-LINE = re.compile(r"^(reason|files|report|estimate|fork)\s*:\s*(.+)$", re.I | re.M)
+LINE = re.compile(
+    r"^(reason|files|report|estimate|fork|task|done when|cause)\s*:\s*(.+)$", re.I | re.M
+)
+IMPLEMENTERS = {"implementer", "implementer-untested"}
 REASON = re.compile(r"^(a|b|c|fork)\b", re.I)
 FINISHED = {"completed", "failed", "killed", "done", "stopped", "cancelled"}
 EFFORTS = ("low", "medium", "high", "xhigh", "max")
@@ -169,6 +172,17 @@ def _concurrency(env: Env, kind: str, tool_input: dict, agents: dict[str, Any]) 
     return "one writer at a time in the shared checkout (D006)." if shared else None
 
 
+def _missing_fields(kind: str, fields: dict[str, str]) -> str | None:
+    needed = ["task", "done when", "report"]
+    if kind in IMPLEMENTERS:
+        needed += ["cause", "files"]
+    missing = [name for name in needed if not fields.get(name)]
+    if not missing:
+        return None
+    labels = ", ".join(f"'{name.capitalize()}:'" for name in missing)
+    return f"the brief lacks {labels} (D038); templates are in the plugin's templates/briefs."
+
+
 def check_spawn(event: Event, env: Env) -> Verdict | None:
     """Refuse an agent the rules do not allow; remember the brief of one they do."""
     tool_input = event.tool_input
@@ -178,6 +192,7 @@ def check_spawn(event: Event, env: Env) -> Verdict | None:
     problem = _knob(env, kind)
     if problem is None and not REASON.match(fields.get("reason", "")):
         problem = "the brief needs 'Reason: a|b|c|fork — why' (D004)."
+    problem = problem or _missing_fields(kind, fields)
     problem = problem or _brakes(env, kind)
     if problem is None and kind == "fork":
         problem = _fork(event, agents, fields)
