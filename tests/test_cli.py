@@ -884,3 +884,28 @@ def test_project_check_and_night_watch_from_the_cli(
     code, out, _ = run(capsys, argv, env, workspace)
     assert code == 0 and json.loads(out) == {"reason": "finished", "runs": 1}
     assert run(capsys, ["night", "watch", "--until", "23:00"], env, workspace)[0] == 1
+
+
+def test_moving_a_file_out_of_a_critical_zone_still_needs_r3(
+    capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
+) -> None:
+    _zoned_repo(workspace)
+    subprocess.run(
+        ["git", "-C", str(workspace), "mv", "src/ingest/chunk.py", "src/moved.py"], check=True
+    )
+    subprocess.run(["git", "-C", str(workspace), "commit", "-qm", "move"], check=True)
+    argv = ["review", "pass", "fix/x", "--risk", "R1", "--base", "main"]
+    code, _, err = run(capsys, argv, env_at(home, "2026-10-17T12:00:00Z"), workspace)
+    assert code == 1 and "src/ingest/chunk.py" in err
+
+
+def test_a_bare_folder_is_a_critical_zone_too(
+    capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
+) -> None:
+    _zoned_repo(workspace)
+    settings = {"project": "Acme", "critical_zones": ["src/ingest"]}
+    (workspace / ".claude" / "bedrock.json").write_text(json.dumps(settings))
+    (workspace / "src" / "ingest" / "chunk.py").write_text("x = 3\n")
+    subprocess.run(["git", "-C", str(workspace), "commit", "-qam", "fix"], check=True)
+    argv = ["review", "pass", "fix/x", "--risk", "R2", "--base", "main"]
+    assert run(capsys, argv, env_at(home, "2026-10-17T12:00:00Z"), workspace)[0] == 1

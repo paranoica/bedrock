@@ -48,18 +48,21 @@ def _git(repo: Path, *args: str) -> str:
 
 def hotspots(repo: Path, days: int = 90, top: int = 15) -> list[Hotspot]:
     """Files still in HEAD ranked by commits in the window times their line count."""
-    log = _git(repo, "log", f"--since={days}.days", "--format=", "--name-only", "-z")
+    log = _git(repo, "log", f"--since={days}.days", "--format=", "--name-only", "-z", "--", ".")
+    root = Path(_git(repo, "rev-parse", "--show-toplevel").strip())
+    prefix = Path(repo).resolve().relative_to(root.resolve()).as_posix()
+    prefix = "" if prefix == "." else prefix + "/"
     changes = Counter(name.strip("\n") for name in log.split("\0") if name.strip("\n"))
-    tracked = set(_git(repo, "ls-files", "-z").split("\0"))
+    tracked = set(_git(repo, "ls-files", "-z", "--full-name").split("\0"))
     spots = []
     for path, count in changes.items():
-        if path not in tracked:
+        if path not in tracked or not path.startswith(prefix):
             continue
         try:
-            lines = (repo / path).read_bytes().count(b"\n")
+            lines = (root / path).read_bytes().count(b"\n")
         except OSError:
             continue
-        spots.append(Hotspot(path, count, lines, count * lines))
+        spots.append(Hotspot(path[len(prefix) :], count, lines, count * lines))
     return sorted(spots, key=lambda s: (-s.score, s.path))[:top]
 
 

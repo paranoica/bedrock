@@ -13,7 +13,7 @@ import signal
 import subprocess
 import time
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -34,32 +34,55 @@ class Result:
 
 
 def until(text: str, now: datetime, zone: str) -> datetime:
-    """The next local clock time `HH:MM` after `now`, in the owner's zone."""
+    """The first moment after `now` when the local clock shows `HH:MM`.
+
+    Compared in UTC, so the hour the clocks go back is seen twice, as it really happens.
+    """
     wanted = parse_hhmm(text)
     local = now.astimezone(ZoneInfo(zone))
-    target = local.replace(hour=wanted.hour, minute=wanted.minute, second=0, microsecond=0)
-    return target if target > local else target + timedelta(days=1)
+    moments = []
+    for days in (0, 1):
+        day = local + timedelta(days=days)
+        for fold in (0, 1):
+            moment = day.replace(
+                hour=wanted.hour, minute=wanted.minute, second=0, microsecond=0, fold=fold
+            )
+            moments.append(moment)
+    after = [m for m in moments if m.astimezone(UTC) > now.astimezone(UTC)]
+    return min(after, key=lambda m: m.astimezone(UTC))
+
+
+def _kill_group(pid: int, sig: signal.Signals) -> None:
+    with contextlib.suppress(ProcessLookupError, PermissionError):
+        os.killpg(pid, sig)
 
 
 def _stop(process: subprocess.Popen[bytes]) -> None:
-    for sig, wait in ((signal.SIGTERM, GRACE_SECONDS), (signal.SIGKILL, GRACE_SECONDS)):
-        with contextlib.suppress(ProcessLookupError):
-            os.killpg(process.pid, sig)
-        try:
-            process.wait(timeout=wait)
-            return
-        except subprocess.TimeoutExpired:
-            continue
+    """Stop the command's whole process group: SIGTERM, a grace period, then SIGKILL."""
+    _kill_group(process.pid, signal.SIGTERM)
+    with contextlib.suppress(subprocess.TimeoutExpired):
+        process.wait(timeout=GRACE_SECONDS)
+    time.sleep(min(GRACE_SECONDS, 0.2))
+    _kill_group(process.pid, signal.SIGKILL)
+    with contextlib.suppress(subprocess.TimeoutExpired):
+        process.wait(timeout=GRACE_SECONDS)
 
 
 def _run_once(argv: list[str], deadline: float) -> int | None:
-    """Run the command; its exit code, or None when the deadline stopped it."""
+    """Run the command; its exit code, or None when the deadline stopped it.
+
+    Whatever ends the run (an exit, the deadline, an interrupt of the watchdog), nothing the
+    command started is left behind.
+    """
     process = subprocess.Popen(argv, start_new_session=True)
+    code: int | None = None
     try:
-        return process.wait(timeout=max(deadline - time.time(), 0.0))
+        code = process.wait(timeout=max(deadline - time.time(), 0.0))
     except subprocess.TimeoutExpired:
+        code = None
+    finally:
         _stop(process)
-        return None
+    return code
 
 
 def watch(

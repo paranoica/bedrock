@@ -22,6 +22,9 @@ STAMP = re.compile(r"^\[(\d{1,2}:)?(\d{1,2}):(\d{2})\]\s*")
 QUOTE = re.compile(r"«([^»]+)»|“([^”]+)”|\"([^\"]+)\"")
 CITE = re.compile(r"@\s*((?:\d{1,2}:)?\d{1,2}:\d{2})")
 ITEM_SECTIONS = {"decided", "we owe", "they owe", "new facts"}
+SPEAKER = re.compile(r"^[^\W\d][\w .'-]{0,40}:\s+")
+ITEM = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+")
+HEADING = re.compile(r"^#{2,3}\s+(.+?):?\s*$")
 NEAR_SECONDS = 60
 
 
@@ -68,12 +71,20 @@ def _clock(seconds: int) -> str:
     return f"{seconds // 3600:02d}:{seconds % 3600 // 60:02d}:{seconds % 60:02d}"
 
 
-def _lines(text: str) -> list[tuple[int | None, str]]:
-    found = []
+def _lines(text: str, speakers: bool = False) -> list[tuple[int | None, str]]:
+    """Each line with its time: its own stamp, or the last one above it.
+
+    The speaker's name is dropped unless asked for, so a quote can run on across lines.
+    """
+    found: list[tuple[int | None, str]] = []
+    stamp: int | None = None
     for raw in text.splitlines():
         match = STAMP.match(raw)
-        stamp = _seconds(raw[1 : match.end()].strip().rstrip("]")) if match else None
-        found.append((stamp, raw[match.end() :] if match else raw))
+        if match:
+            stamp = _seconds(raw[1 : match.end()].strip().rstrip("]"))
+            raw = raw[match.end() :]
+            raw = raw if speakers else SPEAKER.sub("", raw, count=1)
+        found.append((stamp, raw))
     return found
 
 
@@ -141,8 +152,9 @@ def _locate(lines: list[tuple[int | None, str]], quote: str) -> list[int | None]
     words = [normalise(text) for _, text in lines]
     starts = []
     for index in range(len(lines)):
-        joined = " ".join(w for w in words[index : index + 3] if w)
-        if words[index] and joined.find(quote) != -1 and joined.find(quote) < len(words[index]):
+        joined = " " + " ".join(w for w in words[index : index + 3] if w) + " "
+        at = joined.find(f" {quote} ")
+        if words[index] and at != -1 and at < len(words[index]) + 1:
             starts.append(lines[index][0])
     return starts
 
@@ -154,6 +166,9 @@ def _check_line(lines: list[tuple[int | None, str]], number: int, line: str) -> 
         return [Problem(number, "", "an item needs a verbatim quote and (call-id @ hh:mm:ss)")]
     problems = []
     for quote in quotes:
+        if not normalise(quote):
+            problems.append(Problem(number, quote, "the quote has no words"))
+            continue
         stamps = _locate(lines, normalise(quote))
         if not stamps:
             problems.append(Problem(number, quote, "not in the transcript"))
@@ -173,9 +188,9 @@ def check_quotes(cfg: UserConfig, project: str, call_id: str, debrief: str) -> l
     problems: list[Problem] = []
     section = ""
     for number, line in enumerate(debrief.splitlines(), start=1):
-        if line.startswith("## "):
-            section = line[3:].strip().casefold()
-        elif section in ITEM_SECTIONS and line.lstrip().startswith(("- ", "* ")):
+        if heading := HEADING.match(line):
+            section = heading.group(1).strip().casefold()
+        elif section in ITEM_SECTIONS and ITEM.match(line):
             problems += _check_line(lines, number, line)
     return problems
 
@@ -187,7 +202,7 @@ def search(cfg: UserConfig, project: str, text: str) -> list[Hit]:
     hits = []
     for call in sorted(folder.iterdir()) if folder.is_dir() else []:
         data = (call / "transcript.txt").read_bytes() if (call / "transcript.txt").exists() else b""
-        for stamp, line in _lines(data.decode("utf-8", "replace")):
+        for stamp, line in _lines(data.decode("utf-8", "replace"), speakers=True):
             if wanted and wanted in normalise(line):
                 hits.append(Hit(call.name, _clock(stamp) if stamp is not None else "", line))
     return hits

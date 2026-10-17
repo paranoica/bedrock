@@ -58,3 +58,14 @@ def test_no_commands_is_a_problem(tmp_path: Path) -> None:
 def test_the_shipped_template_passes_the_check() -> None:
     template = projectcheck.PACKS.parent / "templates" / "project" / "bedrock.json"
     assert projectcheck.check(__import__("json").loads(template.read_text())) == []
+
+
+def test_odd_shapes_are_problems_not_crashes(tmp_path: Path) -> None:
+    for bad in ({"agents": []}, {"agents": {"x": 1}}):
+        assert any("agents" in p for p in projectcheck.check({**GOOD, **bad}, tmp_path))
+    found = projectcheck.check(
+        {**GOOD, "kb": {"root": ["src"]}, "leaks": {"alow": []}, "packs": ["../packs/python"]},
+        tmp_path,
+    )
+    text = " | ".join(found)
+    assert "kb.root" in text and "leaks.alow" in text and "../packs/python" in text

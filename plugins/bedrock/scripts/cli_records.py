@@ -259,11 +259,21 @@ def _critical(ctx: Context, branch: str, base: str | None) -> list[str]:
     if base is None:
         head = git("symbolic-ref", "--short", "refs/remotes/origin/HEAD").stdout.strip()
         base = head or "main"
-    changed = git("diff", "--name-only", "-z", "--end-of-options", f"{base}...{branch}")
+    changed = git(
+        "diff", "--name-only", "-z", "--no-renames", "--end-of-options", f"{base}...{branch}"
+    )
     if changed.returncode != 0:
         raise CannotRun(f"cannot compare {branch} with {base}: {changed.stderr.strip()}")
     names = [n for n in changed.stdout.split("\0") if n]
-    return [n for n in names if any(fnmatch.fnmatch(n, str(zone)) for zone in zones)]
+    return [n for n in names if any(_in_zone(n, str(zone)) for zone in zones)]
+
+
+def _in_zone(path: str, zone: str) -> bool:
+    """A glob matches as a glob; a plain folder or file name covers everything under it."""
+    if any(ch in zone for ch in "*?["):
+        return fnmatch.fnmatch(path, zone)
+    zone = zone.rstrip("/")
+    return path == zone or path.startswith(zone + "/")
 
 
 def _review(ctx: Context) -> int:

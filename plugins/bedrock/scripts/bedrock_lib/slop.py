@@ -16,7 +16,7 @@ FILLER = re.compile(
     r"отличный вопрос|безусловно,|в заключение,|"
     r"it'?s worth noting|it is worth noting|i hope this helps|delve|in today'?s fast-paced|"
     r"great question|certainly!|feel free to|let me know if you have any (?:other )?questions|"
-    r"seamless(?:ly)?|game[- ]changer|in conclusion,)",
+    r"seamless(?:ly)?|game[- ]changer|in conclusion,)(?!\w)",
     re.IGNORECASE,
 )
 SLACK_MARKDOWN = (
@@ -25,7 +25,7 @@ SLACK_MARKDOWN = (
     (re.compile(r"^>\s?"), "a > quote renders as a bar and pastes badly: drop it"),
     (re.compile(r"\[[^\]]+\]\([^)]+\)"), "[text](url) shows raw: paste the bare link"),
 )
-FENCE = re.compile(r"^```.*?^```[^\n]*$", re.MULTILINE | re.DOTALL)
+FENCE = re.compile(r"^[ \t]*(```|~~~).*?^[ \t]*\1[^\n]*$", re.MULTILINE | re.DOTALL)
 CODE = re.compile(r"`[^`\n]+`")
 
 
@@ -47,7 +47,8 @@ def _blank_code(text: str) -> str:
 def check(text: str, *, slack: bool = False) -> list[Finding]:
     """Return every tell in the text; code spans and fenced blocks are skipped."""
     found = []
-    for number, line in enumerate(_blank_code(text).splitlines(), start=1):
+    plain = _blank_code(text).replace("\u2019", "'")
+    for number, line in enumerate(plain.splitlines(), start=1):
         if DASH.search(line):
             found.append(Finding(number, "dash", "a dash: split the sentence or use a comma"))
         if match := FILLER.search(line):

@@ -19,6 +19,12 @@ SECTION_LISTS = {
     "leaks": ("allow", "ignore"),
     "checks": ("allow_hosts", "ignore"),
 }
+SECTION_KEYS = {
+    "kb": {"roots"},
+    "leaks": {"allow", "ignore", "gitleaks"},
+    "checks": {"allow_hosts", "ignore", "file_lines", "function_lines", "commit_format"},
+    "bench": {"answer_key"},
+}
 KNOWN = {"project", "commands", "compact_window", "agents", "bench", *LIST_KEYS, *SECTION_LISTS}
 
 
@@ -53,6 +59,11 @@ def _sections(data: dict[str, Any]) -> list[str]:
             for key in keys
             if key in value and not _strings(value[key])
         ]
+        found += [
+            f"{section}.{key}: unknown key, a typo or a setting bedrock does not read"
+            for key in value
+            if key not in SECTION_KEYS[section]
+        ]
     return found
 
 
@@ -70,9 +81,10 @@ def check(data: dict[str, Any], packs: Path = PACKS) -> list[str]:
         found += [
             f"packs: no pack '{p}' (have: {', '.join(sorted(x.stem for x in packs.glob('*.md')))})"
             for p in data["packs"]
-            if not (packs / f"{p}.md").is_file()
+            if not SAFE_NAME.match(p) or not (packs / f"{p}.md").is_file()
         ]
-    if data.get("agents", "full") not in AGENT_MODES:
+    agents = data.get("agents", "full")
+    if not isinstance(agents, str) or agents not in AGENT_MODES:
         found.append(f"agents: one of {', '.join(sorted(AGENT_MODES))}")
     window = data.get("compact_window")
     if window is not None and (

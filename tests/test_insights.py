@@ -80,3 +80,12 @@ def test_retro_calibrates_actual_against_estimate_per_risk(tmp_path: Path) -> No
     assert (t1["risk"], t1["minutes"], t1["estimate"]) == ("R2", 60, 40)
     assert data["calibration"] == {"R2": 1.25}
     assert data["open"] == ["T4"]
+
+
+def test_hotspots_from_a_folder_inside_the_repository(repo: Path) -> None:
+    (repo / "app").mkdir()
+    (repo / "app" / "core.py").write_text("c = 1\n" * 10)
+    sh(repo, "add", ".")
+    sh(repo, "commit", "-qm", "feat: app")
+    spots = insights.hotspots(repo / "app", days=90)
+    assert [(s.path, s.changes, s.lines) for s in spots] == [("core.py", 1, 10)]

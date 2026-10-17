@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import argparse
+import signal
+import sys
 from collections.abc import Callable
 from dataclasses import asdict
+from datetime import UTC, datetime
 
 from bedrock_lib import insights, night, notify, projectcheck
 from bedrock_lib.config import find_project
@@ -44,7 +47,9 @@ def _night(ctx: Context) -> int:
     argv = list(ctx.args.argv)
     if not argv:
         raise UsageError("bedrock night watch --until HH:MM -- <command>")
-    deadline = night.until(ctx.args.until, ctx.now, ctx.cfg.display_tz)
+    # The watchdog runs on the real clock, so the deadline does too.
+    deadline = night.until(ctx.args.until, datetime.now(UTC), ctx.cfg.display_tz)
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
     log = ctx.cfg.state_dir / "night.jsonl"
     result = night.watch(argv, deadline.timestamp(), log)
     if result.reason == "gave-up":

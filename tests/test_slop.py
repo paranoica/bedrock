@@ -33,3 +33,15 @@ def test_code_spans_and_fences_are_not_checked() -> None:
 
 def test_phrases_match_whole_words_only() -> None:
     assert rules("It ended uncertainly!") == []
+
+
+def test_phrases_end_on_a_word_boundary_too() -> None:
+    assert rules("Mr Delvecchio called about the seamlessness, feel free tomorrow.") == []
+
+
+def test_curly_apostrophes_are_the_same_phrase() -> None:
+    assert rules(f"It{chr(0x2019)}s worth noting that it works.") == ["filler"]
+
+
+def test_indented_and_tilde_fences_are_skipped() -> None:
+    assert rules("- step\n  ```\n  a — b\n  ```\n~~~\nc — d\n~~~\n") == []

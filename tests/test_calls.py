@@ -122,3 +122,41 @@ def test_an_id_cannot_reach_outside_the_archive(cfg: UserConfig, raw: Path) -> N
     (outside / "meta.json").write_text(json.dumps({"sha256": hashlib.sha256(b"x").hexdigest()}))
     with pytest.raises(calls.CallError):
         calls.verify(cfg, "Acme", "../x")
+
+
+SPOKEN = """[00:00:05] Alice: we will ship
+[00:00:08] Alice: on friday, then test.
+continued without a stamp, the release notes
+[00:20:00] Bob: fine.
+"""
+
+
+def test_a_quote_may_run_across_speaker_lines(cfg: UserConfig, tmp_path: Path) -> None:
+    raw = tmp_path / "t.txt"
+    raw.write_text(SPOKEN, encoding="utf-8")
+    call_id = add(cfg, raw, "Spoken")
+    debrief = f"## Decided\n- «we will ship on friday» ({call_id} @ 00:00:05)\n"
+    assert calls.check_quotes(cfg, "Acme", call_id, debrief) == []
+
+
+def test_invented_or_misplaced_quotes_never_pass(cfg: UserConfig, tmp_path: Path) -> None:
+    raw = tmp_path / "t.txt"
+    raw.write_text(SPOKEN, encoding="utf-8")
+    call_id = add(cfg, raw, "Spoken")
+    debrief = (
+        "## Decided:\n"
+        f"- Shipping «...» ({call_id} @ 00:00:05)\n"
+        f"- «ip the rel» ({call_id} @ 00:00:08)\n"
+        f"- «the release notes» ({call_id} @ 00:19:59)\n"
+        "1. invented thing with no quote\n"
+        "+ another invented thing\n"
+    )
+    found = calls.check_quotes(cfg, "Acme", call_id, debrief)
+    assert [p.line for p in found] == [2, 3, 4, 5, 6]
+    assert found[0].reason == "the quote has no words"
+    assert found[1].reason == "not in the transcript"
+
+
+def test_search_keeps_who_said_it(cfg: UserConfig, raw: Path) -> None:
+    add(cfg, raw)
+    assert calls.search(cfg, "Acme", "column list by Friday")[0].text.startswith("Owner:")
