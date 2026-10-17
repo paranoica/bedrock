@@ -55,3 +55,13 @@ Done when: the line is sent.
 | Ending a session or a phase | `handoff` | a handoff note in the base |
 | Notes, decisions, failures | `kb` | `bedrock kb validate` clean |
 | Writing skills, agents, briefs | `writing` | `skillcheck.py --strict` clean |
+| Breaking green code on purpose | `hunt` | findings reproduced or cut |
+| Checking flows in a browser | `e2e` | scripted tests for each finding |
+| A call to debrief | `call` | `bedrock call quotes` prints `[]` |
+| A report or PDF for people | `doc` | the PDF, `bedrock text check` clean |
+| A message in the owner's voice | `humanize` | copy-ready text, `bedrock text check` clean |
+| Bug reports to sort | `triage` | one decision per group |
+| The weekly look back | `retro` | small fixes logged, a list for «го» |
+| Architecture review (on request) | `arch` | three designs, a decision note |
+| Work while the owner sleeps | `night` | a morning report |
+| A new or existing project | `start` | `bedrock project check` prints `[]` |

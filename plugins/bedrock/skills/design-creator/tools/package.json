@@ -1,0 +1,16 @@
+{
+  "name": "design-creator-verify",
+  "version": "2.1.1",
+  "private": true,
+  "type": "module",
+  "description": "Headless render + axe + CWV verifier that backs the design-QA gate.",
+  "bin": { "design-verify": "./verify.mjs" },
+  "scripts": {
+    "verify": "node verify.mjs",
+    "postinstall-hint": "echo 'run: npx playwright install chromium'"
+  },
+  "dependencies": {
+    "axe-core": "^4.10.0",
+    "playwright": "^1.48.0"
+  }
+}

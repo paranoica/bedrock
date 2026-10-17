@@ -1,0 +1,15 @@
+{
+  "project": "Acme",
+  "commands": {
+    "setup": {"run": "npm ci"},
+    "test": {"run": "npx vitest run", "heavy": true},
+    "test-related": {"run": "npx vitest related --run {args}"},
+    "lint": {"run": "npx eslint ."},
+    "typecheck": {"run": "npx tsc --noEmit", "heavy": true},
+    "build": {"run": "npm run build", "heavy": true}
+  },
+  "critical_zones": ["src/billing/**", "migrations/**"],
+  "packs": ["typescript", "api-security"],
+  "kb": {"roots": ["src"]},
+  "agents": "full"
+}

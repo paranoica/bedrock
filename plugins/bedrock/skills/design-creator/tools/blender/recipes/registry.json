@@ -1,0 +1,28 @@
+{
+  "_comment": "Recipe manifest for the baked-3D tier. Each recipe is a GENERATIVE SPACE (param ranges), not a preset (principles/3d-baked.md). The spread seam: spread.mjs assigns a best-of-N candidate an {archetype, mechanism} cell; map that cell's character onto recipe + param ranges below, varying `seed` per candidate, so the baked outputs spread instead of repeating. Ranges are guidance for sampling, not hard limits.",
+  "recipes": {
+    "blob": {
+      "file": "recipes/blob.py",
+      "form": "organic noise-displaced sphere (soft hero)",
+      "best_materials": ["glass", "iridescent", "matte", "emissive"],
+      "params": {
+        "subdivisions": { "type": "int", "range": [3, 5], "default": 4, "note": "detail vs poly budget (4 ≈ 1280 faces)" },
+        "amp": { "type": "float", "range": [0.15, 0.55], "default": 0.35, "note": "displacement depth; high = lumpier" },
+        "noise_scale": { "type": "float", "range": [0.7, 2.0], "default": 1.1, "note": "lobe frequency; high = more, smaller lobes" },
+        "seed": { "type": "int", "range": [0, 9999], "note": "vary per best-of-N candidate" }
+      }
+    },
+    "crystal": {
+      "file": "recipes/crystal.py",
+      "form": "faceted irregular gem / shard (hard hero); always flat-shaded",
+      "best_materials": ["glass", "metal", "iridescent"],
+      "params": {
+        "facets": { "type": "int", "range": [0, 2], "default": 1, "note": "0-1 chunky, 2 jewel-like" },
+        "irregularity": { "type": "float", "range": [0.1, 0.45], "default": 0.25, "note": "radial jitter; 0 = regular solid" },
+        "elongation": { "type": "float", "range": [1.0, 2.4], "default": 1.6, "note": "Z stretch; >1 = shard" },
+        "seed": { "type": "int", "range": [0, 9999], "note": "vary per best-of-N candidate" }
+      }
+    }
+  },
+  "shared_params_note": "All recipes also accept the shared render params in stage.DEFAULTS (res, samples, device, material, accent, transparent, glb, smooth, mode [still|loop], frames, fps, view_transform, world_strength, hdri). See tools/blender-render.md."
+}

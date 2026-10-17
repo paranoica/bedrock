@@ -33,6 +33,8 @@ security, correctness and performance, plus the code rules of D022: AI slop, nee
 abstraction, test tampering, duplicates.
 - Each finding carries a code line, a failure scenario and a confidence. No scenario, no
   finding.
+- The reviewer checklists of the project's packs (`packs` in its settings, files in the
+  plugin's `packs/`) are part of the review.
 - HIGH and CRITICAL go through its verifier step before anything is fixed.
 Done when: its report passes `check_report.py` with a receipt.
 
