@@ -392,3 +392,14 @@ def test_the_exact_paths_still_grant(prompt: str, expected: list[str]) -> None:
 )
 def test_everyday_phrases_the_owner_uses(prompt: str, expected: list[str]) -> None:
     assert actions(prompt) == expected
+
+
+def test_a_leftover_read_only_temp_file_does_not_block_grants(cfg: UserConfig) -> None:
+    # Claude Code's sandbox leaves an empty read-only file where a missing path is denied.
+    cfg.state_dir.mkdir(parents=True, exist_ok=True)
+    blocker = cfg.state_dir / "grants.tmp"
+    blocker.write_text("")
+    blocker.chmod(0o444)
+    grants.record(cfg, grants.from_prompt("/bedrock:allow push", "Acme", NOW, cfg))
+    stored = (cfg.state_dir / "grants.json").read_text()
+    assert '"push"' in stored

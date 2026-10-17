@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import fcntl
 import json
+import os
 import re
+import tempfile
 from collections.abc import Iterator
 from dataclasses import asdict, dataclass, replace
 from datetime import datetime, timedelta
@@ -242,9 +244,11 @@ def _edit(cfg: UserConfig, change: Any) -> Any:
             stored = []
         items = [Grant(**item) for item in stored if isinstance(item, dict)]
         items, result = change(items)
-        temporary = _path(cfg).with_suffix(".tmp")
-        temporary.write_text(json.dumps([asdict(g) for g in items], ensure_ascii=False), "utf-8")
-        temporary.replace(_path(cfg))
+        # A unique name: a sandbox may leave a read-only file at any fixed path it was told to deny.
+        handle, name = tempfile.mkstemp(dir=cfg.state_dir, prefix="grants.", suffix=".part")
+        with os.fdopen(handle, "w", encoding="utf-8") as out:
+            out.write(json.dumps([asdict(g) for g in items], ensure_ascii=False))
+        Path(name).replace(_path(cfg))
     return result
 
 
