@@ -19,7 +19,7 @@ SECTION_LISTS = {
     "leaks": ("allow", "ignore"),
     "checks": ("allow_hosts", "ignore"),
 }
-KNOWN = {"project", "commands", "compact_window", "agents", *LIST_KEYS, *SECTION_LISTS}
+KNOWN = {"project", "commands", "compact_window", "agents", "bench", *LIST_KEYS, *SECTION_LISTS}
 
 
 def _strings(value: Any) -> bool:
@@ -80,6 +80,11 @@ def check(data: dict[str, Any], packs: Path = PACKS) -> list[str]:
     ):
         found.append("compact_window: an integer from 100000 to 1000000")
     found += _sections(data)
+    bench = data.get("bench")
+    if bench is not None and not (
+        isinstance(bench, dict) and isinstance(bench.get("answer_key"), str) and bench["answer_key"]
+    ):
+        found.append("bench: an object with answer_key, the path of the folder agents never read")
     found += [
         f"unknown key '{key}': a typo, or a setting bedrock does not read"
         for key in data

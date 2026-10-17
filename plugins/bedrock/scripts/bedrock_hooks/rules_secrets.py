@@ -276,19 +276,49 @@ def _answer_key(env: Env) -> Path | None:
     return Path(os.path.realpath(env.project.root / str(key)))
 
 
+RECURSIVE = {"rg", "ag", "ack", "find", "fd", "tree", "tar", "zip", "rsync", "du"}
+
+
+def _recursive(simple: shell.Simple) -> bool:
+    flags = [a for a in simple.argv[1:] if a.startswith("-")]
+    cluster = any(not f.startswith("--") and ("r" in f or "R" in f) for f in flags)
+    return simple.program in RECURSIVE or cluster or "--recursive" in flags
+
+
+def _key_reads(event: Event) -> tuple[list[str], list[str]]:
+    """Words naming what a tool reads, and those that it reads recursively."""
+    data = event.tool_input
+    if event.tool != "Bash":
+        given = [str(data.get(k)) for k in ("file_path", "path", "notebook_path") if data.get(k)]
+        if event.tool in ("Grep", "Glob"):
+            return [], given or ["."]
+        return given, []
+    try:
+        simples = shell.commands(str(data.get("command", "")))
+    except shell.ParseError:
+        return str(data.get("command", "")).split(), []
+    flat, deep = [], []
+    for simple in simples:
+        words = [w for w in simple.argv[1:] if not w.startswith("-")]
+        flat += [*simple.argv, *simple.redirects]
+        if _recursive(simple):
+            deep += words or ["."]
+    return flat, deep
+
+
 def check_answer_key(event: Event, env: Env) -> Verdict | None:
-    """Agents never read the bench answer key, by any tool (D010)."""
+    """Agents never read the bench answer key, by any tool (D010).
+
+    A recursive read of a folder that holds the key (a search with no path, `grep -r .`)
+    reaches it too, so a folder above the key counts as well as the key itself.
+    """
     key = _answer_key(env)
     if key is None or not event.agent_id:
         return None
-    data = event.tool_input
-    words = [str(data.get(k)) for k in ("file_path", "path", "pattern", "glob") if data.get(k)]
-    if event.tool == "Bash":
-        try:
-            words = [w for s in shell.commands(str(data.get("command", ""))) for w in s.argv]
-        except shell.ParseError:
-            words = str(data.get("command", "")).split()
-    if any(paths.under(paths.expand(env, word, event.cwd), key) for word in words):
+    flat, deep = _key_reads(event)
+    inside = any(paths.under(paths.expand(env, w, event.cwd), key) for w in flat + deep)
+    above = any(paths.touches(paths.expand(env, w, event.cwd), key) for w in deep)
+    if inside or above:
         return Verdict(deny="refused: the bench answer key is closed to agents (D010).")
     return None
 

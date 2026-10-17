@@ -12,6 +12,7 @@ GOOD = {
     "compact_window": 200000,
     "leaks": {"allow": ["claude"], "ignore": ["tests/fixtures/*"]},
     "checks": {"allow_hosts": ["pypi.org"]},
+    "bench": {"answer_key": "../bench-key"},
 }
 
 
@@ -32,6 +33,7 @@ def test_every_bad_section_is_named(tmp_path: Path) -> None:
         "agents": "some",
         "compact_window": 5,
         "leaks": {"allow": "claude"},
+        "bench": {"answer_key": ""},
         "colour": "red",
     }
     found = " | ".join(projectcheck.check(bad, tmp_path))
@@ -51,3 +53,8 @@ def test_every_bad_section_is_named(tmp_path: Path) -> None:
 
 def test_no_commands_is_a_problem(tmp_path: Path) -> None:
     assert any("commands" in p for p in projectcheck.check({"project": "Acme"}, tmp_path))
+
+
+def test_the_shipped_template_passes_the_check() -> None:
+    template = projectcheck.PACKS.parent / "templates" / "project" / "bedrock.json"
+    assert projectcheck.check(__import__("json").loads(template.read_text())) == []

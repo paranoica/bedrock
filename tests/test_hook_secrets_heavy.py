@@ -137,3 +137,25 @@ def test_wrapped_or_narrow_runs_pass(home: Path, work: Path, command: str) -> No
 @pytest.mark.parametrize("command", ["npx jest -t dedupe", "pytest -k dedupe", "vitest -t x run"])
 def test_name_filters_still_load_the_whole_suite(home: Path, work: Path, command: str) -> None:
     assert "bedrock" in bash(home, work, command)
+
+
+def test_agents_never_reach_the_answer_key(home: Path, work: Path) -> None:
+    key = work / "bench" / "answers"
+    agent = "a1"
+    assert "answer key" in call(home, work, "Read", {"file_path": str(key / "bugs.md")}, agent)
+    assert "answer key" in call(home, work, "Grep", {"pattern": "bug", "path": str(work)}, agent)
+    assert "answer key" in call(home, work / "bench", "Grep", {"pattern": "bug"}, agent)
+    assert "answer key" in call(home, work, "Glob", {"pattern": "**/*.md"}, agent)
+    assert "answer key" in bash(home, work, "grep -r bug .", agent)
+    assert "answer key" in bash(home, work, "rg bug", agent)
+    assert "answer key" in bash(home, work, f"cat {key}/bugs.md", agent)
+
+
+def test_the_session_and_unrelated_paths_stay_open(home: Path, work: Path) -> None:
+    key = work / "bench" / "answers"
+    (work / "src").mkdir()
+    assert call(home, work, "Read", {"file_path": str(key / "bugs.md")}) == ""
+    agent = "a1"
+    assert call(home, work, "Grep", {"pattern": "bug", "path": str(work / "src")}, agent) == ""
+    assert call(home, work / "src", "Glob", {"pattern": "*.py"}, agent) == ""
+    assert bash(home, work, "ls src", agent) == ""
