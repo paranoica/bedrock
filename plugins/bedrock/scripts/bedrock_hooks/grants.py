@@ -33,23 +33,55 @@ PHRASES = {
     r"|\byou can deploy\b",
 }
 PROD = re.compile(r"прод\b|\bproduction\b|\bprod\b", re.IGNORECASE)
-NEGATION = re.compile(
-    r"\b(?:не|нет|нельзя|без|никогда|никакого|отбой|отмена|стоп|хотя|never|don't|dont|do not|not"
-    r"|no|nope|nah|cancel|actually|stop)\b|\w+n['\u2019]t\b"
-)
-QUESTION_WORDS = re.compile(
-    r"^(?:why|what|how|when|where|should|почему|зачем|когда|где|что|разве)\b", re.IGNORECASE
-)
-CONDITION = re.compile(
-    r"\b(?:после|когда|если|как только|пока|until|after|once|when|if|wait|unless)\b",
-    re.IGNORECASE,
-)
 UNTIL_PLAN = re.compile(r"до конца (?:плана|блока)|until the end of the plan|end of (?:the )?plan")
 UNTIL_DAY = re.compile(r"на сегодня|на весь день|\btoday\b|for the day")
 UNTIL_TIME = re.compile(r"(?:до|until)\s+(\d{1,2})(?::(\d{2}))?\b")
 UNTIL_MORNING = re.compile(r"до утра|until (?:the )?morning")
 MORNING_HOUR = 12  # the night mode ends at noon local (D046)
-CLAUSE = re.compile(r"[,:;]|\s(?:но|а|but)\s")
+# A phrase grant needs a message made of nothing but the grant: the phrase, its end time, its
+# environment and these few words. Anything else (a take-back, a condition, a joke, a stray
+# letter) and the words grant nothing; `/bedrock:allow` is the exact way.
+FILLER = {
+    "ок",
+    "окей",
+    "ok",
+    "okay",
+    "давай",
+    "да",
+    "yes",
+    "и",
+    "and",
+    "go",
+    "ahead",
+    "please",
+    "пожалуйста",
+    "это",
+    "его",
+    "их",
+    "it",
+    "this",
+    "that",
+    "them",
+    "сейчас",
+    "now",
+    "автономно",
+    "можно",
+    "можешь",
+    "you",
+    "can",
+    "ну",
+    "the",
+    "a",
+    "pr",
+    "пр",
+    "ветку",
+    "branch",
+}
+ENVIRONMENT = re.compile(
+    r"\b(?:на|в|to|on)\s+(?:дев\w*|прод\w*|стейдж\w*|staging|production|prod|dev)\b"
+    r"|\b(?:прод|prod|production)\b"
+)
+LEFTOVER = re.compile(r"[^\w\s.,!:;]|\w+")
 ALLOW = re.compile(r"^/bedrock:allow\s+([\w-]+)(?:\s+(?!(?:until|до)\b)(\S+))?(.*)$", re.MULTILINE)
 COMMAND = re.compile(
     r"<command-name>(/[^<]+)</command-name>(?:\s*<command-args>(.*?)</command-args>)?", re.S
@@ -83,6 +115,7 @@ class Grant:
     all_out: bool = False
     source: str = ""
     transcript: str = ""
+    created: str = ""
 
 
 def _own_words(prompt: str) -> str:
@@ -117,29 +150,30 @@ def _expiry(text: str, cfg: UserConfig, now: datetime) -> tuple[datetime, int | 
     return now + timedelta(hours=SINGLE_USE_HOURS), 1
 
 
-def _sentences(text: str) -> list[str]:
-    return [part for part in re.split(r"(?<=[.!?;\n])", text) if part.strip()]
+def _only_the_grant(text: str) -> bool:
+    """True when the message holds a grant phrase and nothing the owner might mean beside it."""
+    rest = text.lower()
+    patterns = [*PHRASES.values(), UNTIL_TIME.pattern, UNTIL_MORNING.pattern, UNTIL_PLAN.pattern]
+    for pattern in [*patterns, UNTIL_DAY.pattern, ENVIRONMENT.pattern]:
+        rest = re.sub(pattern, " ", rest, flags=re.MULTILINE)
+    return all(token in FILLER for token in LEFTOVER.findall(rest))
 
 
 def _phrase_grants(text: str, project: str, now: datetime, cfg: UserConfig) -> list[Grant]:
-    # A negation or a take-back anywhere in the owner's words, before or after the verb, in the
-    # same clause or the next sentence, voids every phrase grant of the prompt. A lost grant
-    # costs one `/bedrock:allow`; a wrong one cannot be undone.
-    if NEGATION.search(text.lower()):
+    # A lost grant costs one `/bedrock:allow`; a wrong one cannot be undone. So the words grant
+    # only when they hold nothing but the grant: a negation, a question, a condition or an
+    # aside is a word outside the list, and voids them.
+    lowered = text.lower()
+    if not _only_the_grant(text):
         return []
-    expires, uses = _expiry(text.lower(), cfg, now)
+    expires, uses = _expiry(lowered, cfg, now)
     found: dict[str, Grant] = {}
-    for sentence in _sentences(text):
-        lowered = sentence.lower().strip()
-        if lowered.endswith("?") or QUESTION_WORDS.match(lowered) or CONDITION.search(lowered):
-            continue
-        for clause in CLAUSE.split(lowered):
-            for action, pattern in PHRASES.items():
-                if not re.search(pattern, clause.strip(), re.MULTILINE):
-                    continue
-                name = "deploy-prod" if action == "deploy" and PROD.search(lowered) else action
-                stamp = clock.iso(expires)
-                found[name] = Grant(name, project, stamp, uses=uses, source=normal(sentence)[:120])
+    for action, pattern in PHRASES.items():
+        if re.search(pattern, lowered, re.MULTILINE):
+            name = "deploy-prod" if action == "deploy" and PROD.search(lowered) else action
+            found[name] = Grant(
+                name, project, clock.iso(expires), uses=uses, source=normal(text)[:120]
+            )
     return list(found.values())
 
 
@@ -193,7 +227,7 @@ def from_prompt(
     found = _command_grants(text, project, now, cfg)
     if not found and not OVERRIDE.search(text):
         found = _phrase_grants(text, project, now, cfg)
-    return [replace(grant, transcript=transcript) for grant in found]
+    return [replace(g, transcript=transcript, created=clock.iso(now)) for g in found]
 
 
 def _owner_texts(transcript: str) -> Iterator[str]:
@@ -229,20 +263,40 @@ def _owner_texts(transcript: str) -> Iterator[str]:
 
 
 def _typed(content: str) -> str:
-    """A slash command as the owner typed it; Claude Code records it as tags."""
-    if match := COMMAND.search(content):
+    """A slash command as the owner typed it; Claude Code records it as tags.
+
+    Only a record that is the command itself counts, never tags quoted inside other text.
+    """
+    if content.lstrip().startswith(("<command-message>", "<command-name>")) and (
+        match := COMMAND.search(content)
+    ):
         return f"{match.group(1)} {match.group(2) or ''}".strip()
     return content
 
 
-def backed(grant: Grant) -> bool:
-    """True when the session transcript holds the owner's own message the grant came from.
-
-    A grant written into the store by anything but the owner's prompt has no such message.
-    """
-    if not grant.source:
+def _same(stored: Grant, derived: Grant) -> bool:
+    fields = ("action", "project", "target", "expires", "level4", "all_out")
+    if any(getattr(stored, f) != getattr(derived, f) for f in fields):
         return False
-    return any(grant.source in normal(text) for text in _owner_texts(grant.transcript))
+    return derived.uses is None or (stored.uses is not None and stored.uses <= derived.uses)
+
+
+def backed(grant: Grant, cfg: UserConfig) -> bool:
+    """True when the owner's own message gives exactly this grant, or a use-limited part of it.
+
+    The message is read again as of the moment the grant was made.
+
+    A grant written or widened by anything but the owner's prompt has no such message.
+    """
+    if not grant.source or not grant.created:
+        return False
+    created = clock.parse(grant.created)
+    for text in _owner_texts(grant.transcript):
+        if grant.source not in normal(text):
+            continue
+        if any(_same(grant, d) for d in from_prompt(text, grant.project, created, cfg)):
+            return True
+    return False
 
 
 def wants_revoke(prompt: str) -> bool:
@@ -299,7 +353,7 @@ def consume(
     def change(items: list[Grant]) -> tuple[list[Grant], Grant | None]:
         live = [g for g in items if clock.parse(g.expires) > now and g.uses != 0]
         for index, grant in enumerate(live):
-            if _covers(grant, action, project, target, now) and backed(grant):
+            if _covers(grant, action, project, target, now) and backed(grant, cfg):
                 if grant.uses is not None:
                     live[index] = Grant(**{**asdict(grant), "uses": grant.uses - 1})
                 return [g for g in live if g.uses != 0], grant
@@ -318,7 +372,7 @@ def available(
         return None
     for item in stored:
         grant = Grant(**item)
-        if grant.uses != 0 and _covers(grant, action, project, target, now) and backed(grant):
+        if grant.uses != 0 and _covers(grant, action, project, target, now) and backed(grant, cfg):
             return grant
     return None
 

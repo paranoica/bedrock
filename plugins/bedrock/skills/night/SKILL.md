@@ -15,9 +15,9 @@ session is never idle (D046).
 ## 1. The start phrase
 The owner says what is allowed, in his own words, for example «автономно до утра: можно
 пушить». Those words become the grant (D016), «до утра» meaning until 12:00 local. Nothing
-outside them happens. Any negation in the message («деплой нельзя») voids every phrase grant
-in it: then `/bedrock:allow push until 12:00` gives the grant exactly. A grant from words has
-no target: a push grant covers any branch.
+outside them happens. Words grant only when the message holds nothing but the grant: any
+other word («деплой нельзя», «после ревью») voids it, and `/bedrock:allow push until 12:00`
+gives it exactly. A grant from words has no target: a push grant covers any branch.
 Done when: the prompt hook's notice «bedrock: grant from your words: …» names exactly the
 allowed actions and their end. Anything else means rephrase, or use `/bedrock:allow`.
 
