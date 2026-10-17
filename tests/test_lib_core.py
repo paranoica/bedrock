@@ -192,3 +192,15 @@ def test_compact_window_defaults_to_300k_and_loads(tmp_path: Path) -> None:
     path.write_text(json.dumps({"compact_window": 400000}))
     env = {"HOME": str(tmp_path), "BEDROCK_CONFIG": str(path)}
     assert config.load_user_config(env).compact_window == 400000
+
+
+def test_a_bad_backup_setting_does_not_break_loading(tmp_path: Path) -> None:
+    path = tmp_path / "config.json"
+    backup = {"repo": "~/snap~old/mem", "recipient": "not a key"}
+    path.write_text(json.dumps({"backup": backup}))
+    cfg = config.load_user_config({"BEDROCK_CONFIG": str(path), "HOME": "/h"})
+    assert cfg.backup_repo == Path("/h/snap~old/mem")
+    assert cfg.backup_recipient == "not a key"
+    path.write_text(json.dumps({"backup": {"repo": "/srv/snap~old/mem"}}))
+    cfg = config.load_user_config({"BEDROCK_CONFIG": str(path), "HOME": "/h"})
+    assert cfg.backup_repo == Path("/srv/snap~old/mem")

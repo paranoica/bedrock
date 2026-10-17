@@ -14,7 +14,6 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 PROJECT_FILE = Path(".claude") / "bedrock.json"
 SAFE_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\Z")
-AGE_RECIPIENT = re.compile(r"age1[02-9ac-hj-np-z]{58}\Z")
 
 
 class ConfigError(Exception):
@@ -80,15 +79,12 @@ def _check_hhmm(text: str) -> str:
 
 
 def _backup(data: dict[str, Any], home: Path) -> tuple[Path | None, str]:
-    section = data.get("backup", {})
-    if not isinstance(section, dict):
-        raise ConfigError("backup must be an object with repo and recipient")
-    repo, recipient = section.get("repo"), section.get("recipient", "")
-    if not isinstance(recipient, str) or (recipient and not AGE_RECIPIENT.match(recipient)):
-        raise ConfigError("backup.recipient must be an age public key (age1...)")
-    if repo is not None and not isinstance(repo, str):
-        raise ConfigError("backup.repo must be a folder path")
-    return (Path(repo.replace("~", str(home), 1)) if repo else None), recipient
+    """Read the backup settings; they are checked when `bedrock backup` runs, not here."""
+    section = data.get("backup")
+    section = section if isinstance(section, dict) else {}
+    repo, recipient = section.get("repo"), section.get("recipient")
+    path = Path(re.sub(r"^~(?=/|$)", str(home), repo)) if isinstance(repo, str) and repo else None
+    return path, recipient if isinstance(recipient, str) else ""
 
 
 def load_user_config(env: Mapping[str, str] | None = None) -> UserConfig:

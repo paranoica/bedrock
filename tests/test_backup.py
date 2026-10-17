@@ -95,3 +95,14 @@ def test_every_day_stays_restorable(setup, tmp_path: Path) -> None:
         with tarfile.open(plain) as archive:
             member = archive.extractfile("projects-memory-bank/Acme/status.md")
             assert member is not None and member.read() == expected
+
+
+def test_recipient_and_repo_are_checked_at_use(setup) -> None:
+    cfg, home, _, recipient = setup
+    assert backup.check_recipient(recipient) == recipient
+    assert backup.check_recipient("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExample")
+    for bad in ("-o /tmp/x", "age1short", "", "ssh-ed25519"):
+        with pytest.raises(backup.BackupError):
+            backup.check_recipient(bad)
+    with pytest.raises(backup.BackupError):
+        backup.run(cfg, home, Path("relative/repo"), recipient, day="2026-10-17")

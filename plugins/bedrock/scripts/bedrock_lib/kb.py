@@ -87,7 +87,7 @@ def _frontmatter(head: str) -> dict[str, Any]:
     current: str | None = None
     for line in head.splitlines():
         stripped = line.strip()
-        if current and stripped.startswith("- ") and line[:1].isspace():
+        if current and stripped.startswith("- "):
             items = meta[current] if isinstance(meta[current], list) else []
             meta[current] = [*items, stripped[2:].strip().strip("'\"")]
             continue
@@ -135,13 +135,16 @@ def _rel(bank: Path, note: Note) -> str:
     return str(note.path.relative_to(bank)) if note.path else note.name
 
 
-def _empty(value: Any) -> bool:
+def empty(value: Any) -> bool:
+    """True for a missing value: blank, an empty list, or a `{placeholder}` left from a template."""
     if isinstance(value, list):
         return not value or all(PLACEHOLDER.match(str(item)) for item in value)
     return not str(value).strip() or bool(PLACEHOLDER.match(str(value).strip()))
 
 
 def _parse_date(text: str) -> date | None:
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", text):
+        return None
     try:
         return date.fromisoformat(text)
     except ValueError:
@@ -152,10 +155,10 @@ def _shape(note: Note) -> list[str]:
     kind = str(note.meta.get("type", ""))
     base = [f for f in FIELDS if not (kind == "entry" and f == "parent")]
     wanted = (*base, *TYPE_FIELDS.get(kind, ()))
-    found = [f"missing field '{f}'" for f in wanted if _empty(note.meta.get(f, ""))]
+    found = [f"missing field '{f}'" for f in wanted if empty(note.meta.get(f, ""))]
     for key in DATE_FIELDS:
         value = str(note.meta.get(key, "")).strip()
-        if value and not _empty(value) and _parse_date(value) is None:
+        if value and not empty(value) and _parse_date(value) is None:
             found.append(f"field '{key}' is not a date (YYYY-MM-DD): {value!r}")
     headings = set(re.findall(r"^##\s+(.+?)\s*$", note.body, re.MULTILINE))
     found += [f"missing heading '{h}'" for h in HEADINGS.get(kind, ()) if h not in headings]
@@ -232,16 +235,20 @@ def validate(bank: Path, project: str, today: str | None = None) -> list[Problem
 
 
 def fingerprint(text: str) -> str:
-    """A hash of a note that ignores restamping `verified_at` and `updated` alone."""
-    kept = [line for line in text.splitlines() if not re.match(r"(verified_at|updated)\s*:", line)]
-    return hashlib.sha256("\n".join(kept).encode("utf-8")).hexdigest()
+    """A hash of a note that ignores restamping `verified_at` and `updated` in its frontmatter."""
+    head, body = "", text
+    if text.startswith("---\n") and "\n---" in text[4:]:
+        split = text.index("\n---", 4)
+        head, body = text[:split], text[split:]
+    kept = [line for line in head.splitlines() if not re.match(r"(verified_at|updated)\s*:", line)]
+    return hashlib.sha256("\n".join([*kept, body]).encode("utf-8")).hexdigest()
 
 
 def covers(note: Note) -> list[str]:
     """The paths a module note covers (placeholders left from the template are not paths)."""
     value = note.meta.get("covers") or []
     items = value if isinstance(value, list) else [value]
-    return [str(item).rstrip("/") for item in items if str(item).strip() and not _empty(item)]
+    return [str(item).rstrip("/") for item in items if str(item).strip() and not empty(item)]
 
 
 def under(path: str, cover: str) -> bool:

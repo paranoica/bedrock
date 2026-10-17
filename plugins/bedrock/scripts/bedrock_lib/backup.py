@@ -8,6 +8,7 @@ it to publish anything.
 from __future__ import annotations
 
 import io
+import re
 import subprocess
 import tarfile
 from datetime import date
@@ -15,9 +16,20 @@ from pathlib import Path
 
 from .config import UserConfig
 
+RECIPIENT = re.compile(
+    r"age1[02-9ac-hj-np-z]{58,}|ssh-(?:ed25519|rsa) [A-Za-z0-9+/]+={0,2}(?: [^\s]+)?"
+)
+
 
 class BackupError(Exception):
     """The backup could not be made."""
+
+
+def check_recipient(recipient: str) -> str:
+    """Return the recipient when it is an age or SSH public key, else fail."""
+    if not RECIPIENT.fullmatch(recipient):
+        raise BackupError("backup.recipient must be an age public key (age1...) or an SSH key")
+    return recipient
 
 
 def _archive(cfg: UserConfig, home: Path) -> bytes:
@@ -40,6 +52,9 @@ def _git(repo: Path, *args: str) -> None:
 
 def run(cfg: UserConfig, home: Path, repo: Path, recipient: str, day: str | None = None) -> Path:
     """Write today's encrypted snapshot into the backup repository and commit it."""
+    check_recipient(recipient)
+    if not repo.is_absolute():
+        raise BackupError(f"backup.repo must be an absolute path, not {repo}")
     stamp = day or date.today().isoformat()
     target = repo / "snapshots" / f"{stamp}.tar.gz.age"
     target.parent.mkdir(parents=True, exist_ok=True)

@@ -355,3 +355,110 @@ def test_stale_handoff_is_flagged_after_a_newer_decision(bank: Path) -> None:
     )
     write(bank / "Acme" / "handoffs", "h1", handoff)
     assert any("re-check before use" in m for m in problems(bank))
+
+
+def test_drift_sees_a_file_moved_out_of_the_covered_folder(bank: Path, code: Path) -> None:
+    module_note(bank, sh(code, "rev-parse", "HEAD"))
+    sh(code, "mv", "src/ingest/chunk.py", "src/search/chunk.py")
+    sh(code, "commit", "-qm", "refactor: move")
+    found = kbdrift.drift(bank, "Acme", code)
+    assert len(found) == 1 and "src/ingest/chunk.py" in found[0]
+
+
+def test_drift_with_non_ascii_and_spaced_names(bank: Path, code: Path) -> None:
+    source = "def split():\n    return 1\n\n\ndef join():\n    return 2\n"
+    for name in ("файл.py", "my chunk.py"):
+        (code / "src" / "ingest" / name).write_text(source)
+    sh(code, "add", ".")
+    sh(code, "commit", "-qm", "chore: more")
+    module_note(bank, sh(code, "rev-parse", "HEAD"), anchors="[join]")
+    for name in ("файл.py", "my chunk.py"):
+        (code / "src" / "ingest" / name).write_text(source.replace("return 2", "return 9"))
+    sh(code, "commit", "-qam", "fix: join")
+    found = " ".join(kbdrift.drift(bank, "Acme", code))
+    assert "stale" in found and "файл.py" in found and "my chunk.py" in found
+    assert "does not exist" not in found
+
+
+def test_a_single_anchor_without_brackets_still_counts(bank: Path, code: Path) -> None:
+    module_note(bank, sh(code, "rev-parse", "HEAD"), anchors="join")
+    (code / "src" / "ingest" / "chunk.py").write_text(
+        "def split():\n    return 1\n\n\ndef join():\n    return 9\n"
+    )
+    sh(code, "commit", "-qam", "fix: join")
+    assert len(kbdrift.drift(bank, "Acme", code)) == 1
+
+
+def test_code_added_or_removed_next_to_an_anchor_is_not_drift(bank: Path, code: Path) -> None:
+    module_note(bank, sh(code, "rev-parse", "HEAD"), anchors="[join]")
+    chunk = code / "src" / "ingest" / "chunk.py"
+    chunk.write_text(chunk.read_text() + "\n\ndef other():\n    return 3\n")
+    sh(code, "commit", "-qam", "feat: other")
+    assert kbdrift.drift(bank, "Acme", code) == []
+    module_note(bank, sh(code, "rev-parse", "HEAD"), anchors="[split]")
+    chunk.write_text("def split():\n    return 1\n")
+    sh(code, "commit", "-qam", "refactor: drop join and other")
+    assert kbdrift.drift(bank, "Acme", code) == []
+
+
+def test_drift_ignores_forced_colour_in_git_config(bank: Path, code: Path) -> None:
+    sh(code, "config", "color.ui", "always")
+    module_note(bank, sh(code, "rev-parse", "HEAD"), anchors="[join]")
+    (code / "src" / "ingest" / "chunk.py").write_text(
+        "def split():\n    return 1\n\n\ndef join():\n    return 9\n"
+    )
+    sh(code, "commit", "-qam", "fix: join")
+    assert len(kbdrift.drift(bank, "Acme", code)) == 1
+
+
+def test_drift_budget_holds_inside_one_note(
+    bank: Path, code: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module_note(bank, sh(code, "rev-parse", "HEAD"), anchors="[join]")
+    for index in range(3):
+        (code / "src" / "ingest" / f"m{index}.py").write_text("def join():\n    return 1\n")
+    sh(code, "add", ".")
+    sh(code, "commit", "-qm", "feat: more")
+    ticks = iter(range(1000))
+    monkeypatch.setattr(kbdrift.time, "monotonic", lambda: next(ticks))
+    found = kbdrift.drift(bank, "Acme", code, budget=1.5)
+    assert any("truncated" in line for line in found)
+
+
+def test_a_hanging_git_is_reported_not_raised(
+    bank: Path, code: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module_note(bank, sh(code, "rev-parse", "HEAD"))
+    real = kbdrift.subprocess.run
+
+    def slow(argv, *args, **kwargs):
+        if "diff" in argv:
+            raise subprocess.TimeoutExpired(argv, 30)
+        return real(argv, *args, **kwargs)
+
+    monkeypatch.setattr(kbdrift.subprocess, "run", slow)
+    assert "could not compare" in " ".join(kbdrift.drift(bank, "Acme", code))
+
+
+def test_block_lists_without_indent_are_read() -> None:
+    note = kb.parse("n", "---\ntype: module\ncovers:\n- src/a\n- src/b\nupdated: x\n---\n")
+    assert note.meta["covers"] == ["src/a", "src/b"]
+
+
+def test_compact_or_week_dates_are_not_dates(bank: Path) -> None:
+    text = (
+        (bank / "Acme" / "status.md")
+        .read_text()
+        .replace("updated: 2026-10-17", "updated: 20261017")
+    )
+    write(bank / "Acme", "status", text)
+    assert any("is not a date" in m for m in problems(bank))
+
+
+def test_fingerprint_sees_body_lines_that_look_like_stamps() -> None:
+    head = "---\ntype: module\nverified_at: a\nupdated: 2026-10-17\n---\n"
+    assert kb.fingerprint(head + "updated: chunks are 2KB\n") != kb.fingerprint(
+        head + "updated: chunks are 4KB\n"
+    )
+    restamped = head.replace("verified_at: a", "verified_at: b").replace("10-17", "10-18")
+    assert kb.fingerprint(head + "x\n") == kb.fingerprint(restamped + "x\n")
