@@ -7,3 +7,4 @@ __pycache__/
 .review/outcomes.jsonl
 .review/verify-receipt.json
 plugins/bedrock/evals/results/
+plugins/bedrock/evals-bench
