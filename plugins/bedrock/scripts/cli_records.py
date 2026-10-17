@@ -6,6 +6,7 @@ import argparse
 import json
 from collections.abc import Callable, Sequence
 from dataclasses import asdict
+from datetime import datetime
 from pathlib import Path
 
 from bedrock_lib import backlog, clock, daylog, ledger, notify, questions, session
@@ -20,6 +21,11 @@ def register(subcommands: argparse._SubParsersAction) -> list[argparse.ArgumentP
     log.add_argument("--detail", default="")
     log.add_argument("--ref", action="append", default=[])
     log.add_argument("--session", default="")
+    log.add_argument(
+        "--at",
+        default="",
+        help="when it happened: an ISO time in UTC, or 'last' for the block's last event",
+    )
 
     minutes = subcommands.add_parser("minutes", help="working minutes of a block")
     minutes.add_argument("block")
@@ -90,6 +96,29 @@ def _register_backlog(subcommands: argparse._SubParsersAction) -> list:
     return list(tasks.choices.values())
 
 
+def _when(ctx: Context) -> datetime:
+    """The moment an event is logged at: now, an earlier ISO time, or the block's last event."""
+    at = ctx.args.at
+    if not at:
+        return ctx.now
+    if at == "last":
+        times = [
+            clock.parse(r["ts"])
+            for r in daylog.events(ctx.cfg, ctx.project())
+            if r.get("block") == ctx.args.block
+        ]
+        if not ctx.args.block or not times:
+            raise UsageError(f"--at last: block '{ctx.args.block}' has no events")
+        return max(times)
+    try:
+        moment = clock.parse(at)
+    except ValueError as error:
+        raise UsageError(f"--at '{at}' is not an ISO time") from error
+    if moment > ctx.now:
+        raise UsageError(f"--at '{at}' is in the future")
+    return moment
+
+
 def _log(ctx: Context) -> int:
     args = ctx.args
     daylog.append_event(
@@ -100,7 +129,7 @@ def _log(ctx: Context) -> int:
         detail=args.detail,
         refs=args.ref,
         session=args.session,
-        now=ctx.now,
+        now=_when(ctx),
     )
     return 0
 

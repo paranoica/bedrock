@@ -752,3 +752,35 @@ def test_print_json_survives_undecodable_text() -> None:
         print_json(["caf\udce9.py"])
     out.flush()
     assert json.loads(raw.getvalue().decode("utf-8"))[0].startswith("caf")
+
+
+def test_a_late_close_lands_at_the_block_s_last_event(
+    capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
+) -> None:
+    day1 = env_at(home, "2026-10-16T09:00:00Z")
+    run(capsys, ["log", "taken", "--block", "T1"], day1, workspace)
+    run(
+        capsys,
+        ["log", "task-done", "--block", "T1"],
+        env_at(home, "2026-10-16T10:00:00Z"),
+        workspace,
+    )
+    morning = env_at(home, "2026-10-17T08:00:00Z")
+    assert (
+        run(capsys, ["log", "closed", "--block", "T1", "--at", "last"], morning, workspace)[0] == 0
+    )
+    assert run(capsys, ["minutes", "T1"], morning, workspace)[1].strip() == "60"
+    yesterday = home / "projects-days" / "Acme" / "2026-10-16" / "log.jsonl"
+    assert json.loads(yesterday.read_text().splitlines()[-1])["event"] == "closed"
+
+
+def test_log_at_rejects_the_future_and_garbage(
+    capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
+) -> None:
+    env = env_at(home, "2026-10-17T08:00:00Z")
+    for at in ("2026-10-17T09:00:00Z", "yesterday"):
+        code, _, err = run(capsys, ["log", "note", "--at", at], env, workspace)
+        assert code == 1 and "--at" in err
+    code, _, err = run(capsys, ["log", "closed", "--block", "T9", "--at", "last"], env, workspace)
+    assert code == 1 and "T9" in err
+    assert not (home / "projects-days").exists()
