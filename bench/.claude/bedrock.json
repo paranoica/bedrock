@@ -1,0 +1,30 @@
+{
+  "project": "Bench",
+  "commands": {
+    "test": {
+      "run": "cd app && uvx pytest -p no:cacheprovider -q"
+    },
+    "test-related": {
+      "run": "cd app && uvx pytest -p no:cacheprovider -q {args}"
+    },
+    "web-test": {
+      "run": "cd web && node --test"
+    }
+  },
+  "critical_zones": [
+    "app/docsearch/load.py",
+    "app/docsearch/index.py"
+  ],
+  "packs": [
+    "python",
+    "typescript"
+  ],
+  "kb": {
+    "roots": [
+      "app"
+    ]
+  },
+  "bench": {
+    "answer_key": "~/.local/share/bedrock-bench-key"
+  }
+}

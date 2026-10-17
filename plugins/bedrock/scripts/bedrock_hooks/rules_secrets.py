@@ -8,7 +8,6 @@ an interpreter (`python -c "open('.env')"`) cannot be judged statically.
 from __future__ import annotations
 
 import fnmatch
-import os
 import re
 from pathlib import Path, PurePosixPath
 
@@ -273,7 +272,7 @@ def _answer_key(env: Env) -> Path | None:
     key = env.setting("bench").get("answer_key")
     if not key or not env.project:
         return None
-    return Path(os.path.realpath(env.project.root / str(key)))
+    return paths.expand(env, str(key), env.project.root)
 
 
 RECURSIVE = {"rg", "ag", "ack", "find", "fd", "tree", "tar", "zip", "rsync", "du"}

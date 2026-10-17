@@ -159,3 +159,13 @@ def test_the_session_and_unrelated_paths_stay_open(home: Path, work: Path) -> No
     assert call(home, work, "Grep", {"pattern": "bug", "path": str(work / "src")}, agent) == ""
     assert call(home, work / "src", "Glob", {"pattern": "*.py"}, agent) == ""
     assert bash(home, work, "ls src", agent) == ""
+
+
+def test_an_answer_key_under_home_is_closed_too(home: Path, work: Path) -> None:
+    settings = json.loads((work / ".claude" / "bedrock.json").read_text())
+    settings["bench"] = {"answer_key": "~/bench-key"}
+    (work / ".claude" / "bedrock.json").write_text(json.dumps(settings))
+    (home / "bench-key").mkdir(parents=True)
+    path = str(home / "bench-key" / "bugs.md")
+    assert "answer key" in call(home, work, "Read", {"file_path": path}, "a1")
+    assert "answer key" in bash(home, work, "cat ~/bench-key/bugs.md", "a1")
