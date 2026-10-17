@@ -225,17 +225,27 @@ def test_a_human_prompt_backs_a_grant(cfg: UserConfig, tmp_path: Path) -> None:
     ("prompt", "expected"),
     [
         ("деплой нельзя", []),
-        ("пушить можно, мержить нельзя", ["push"]),
-        ("автономно до утра: можно пушить в ветки, деплой нельзя", ["push"]),
+        ("пушить можно, мержить нельзя", []),
+        ("автономно до утра: можно пушить в ветки, деплой нельзя", []),
+        ("автономно до утра: можно пушить в ветки", ["push"]),
         ("можно пушить", ["push"]),
         ("можно мержить", ["merge"]),
         ("можно деплоить на дев", ["deploy"]),
         ("push is not allowed", []),
         ("мерж не надо", []),
-        ("push it, but don't deploy it", ["push"]),
+        ("push it, but don't deploy it", []),
+        ("запушь, не надо", []),
+        ("запушь, нет", []),
+        ("push it, no", []),
+        ("push it, nope", []),
+        ("запушь, отбой", []),
+        ("запушь. хотя нет, не надо", []),
+        ("push it. Actually, don't.", []),
+        ("push it but not to main", []),
+        ("deploy it, prod", ["deploy-prod"]),
     ],
 )
-def test_a_negation_after_the_verb_or_in_another_clause(prompt: str, expected: list[str]) -> None:
+def test_any_negation_in_the_owners_words_grants_nothing(prompt: str, expected: list[str]) -> None:
     assert actions(prompt) == expected
 
 
@@ -243,3 +253,23 @@ def test_until_morning_ends_at_noon_local(cfg: UserConfig) -> None:
     found = grants.from_prompt("пушить можно до утра", "Acme", NOW, cfg)
     # NOW is 15:00 in Europe/Minsk, so the next noon is tomorrow 12:00 local, 09:00 UTC.
     assert found[0].expires == "2026-10-18T09:00:00Z"
+
+
+def test_a_slash_command_as_claude_code_records_it_backs_its_grant(
+    cfg: UserConfig, tmp_path: Path
+) -> None:
+    content = (
+        "<command-message>bedrock:allow</command-message>\n"
+        "<command-name>/bedrock:allow</command-name>\n<command-args>push</command-args>"
+    )
+    transcript = _transcript(
+        tmp_path, [{"type": "user", "message": {"role": "user", "content": content}}]
+    )
+    grants.record(cfg, grants.from_prompt("/bedrock:allow push", "Acme", NOW, cfg, transcript))
+    assert grants.available(cfg, "push", "Acme", None, NOW) is not None
+
+
+def test_a_russian_until_is_a_time_not_a_target(cfg: UserConfig) -> None:
+    found = grants.from_prompt("/bedrock:allow push до 18:00", "Acme", NOW, cfg)
+    assert found[0].target is None
+    assert found[0].expires == "2026-10-17T15:00:00Z"  # 18:00 in the display zone

@@ -34,7 +34,8 @@ PHRASES = {
 }
 PROD = re.compile(r"прод\b|\bproduction\b|\bprod\b", re.IGNORECASE)
 NEGATION = re.compile(
-    r"\b(?:не|нельзя|без|никогда|никакого|never|don't|dont|do not|not|no)\b|\w+n['\u2019]t\b"
+    r"\b(?:не|нет|нельзя|без|никогда|никакого|отбой|отмена|стоп|хотя|never|don't|dont|do not|not"
+    r"|no|nope|nah|cancel|actually|stop)\b|\w+n['\u2019]t\b"
 )
 QUESTION_WORDS = re.compile(
     r"^(?:why|what|how|when|where|should|почему|зачем|когда|где|что|разве)\b", re.IGNORECASE
@@ -49,7 +50,10 @@ UNTIL_TIME = re.compile(r"(?:до|until)\s+(\d{1,2})(?::(\d{2}))?\b")
 UNTIL_MORNING = re.compile(r"до утра|until (?:the )?morning")
 MORNING_HOUR = 12  # the night mode ends at noon local (D046)
 CLAUSE = re.compile(r"[,:;]|\s(?:но|а|but)\s")
-ALLOW = re.compile(r"^/bedrock:allow\s+([\w-]+)(?:\s+(?!until\b)(\S+))?(.*)$", re.MULTILINE)
+ALLOW = re.compile(r"^/bedrock:allow\s+([\w-]+)(?:\s+(?!(?:until|до)\b)(\S+))?(.*)$", re.MULTILINE)
+COMMAND = re.compile(
+    r"<command-name>(/[^<]+)</command-name>(?:\s*<command-args>(.*?)</command-args>)?", re.S
+)
 UNLEASH = re.compile(r"^/bedrock:unleash\b(.*)$", re.MULTILINE)
 REVOKE = re.compile(r"^/bedrock:revoke\b", re.MULTILINE)
 OVERRIDE = re.compile(r"^\s*разрешаю:\s*(.+)$", re.MULTILINE | re.IGNORECASE)
@@ -118,20 +122,22 @@ def _sentences(text: str) -> list[str]:
 
 
 def _phrase_grants(text: str, project: str, now: datetime, cfg: UserConfig) -> list[Grant]:
+    # A negation or a take-back anywhere in the owner's words, before or after the verb, in the
+    # same clause or the next sentence, voids every phrase grant of the prompt. A lost grant
+    # costs one `/bedrock:allow`; a wrong one cannot be undone.
+    if NEGATION.search(text.lower()):
+        return []
     expires, uses = _expiry(text.lower(), cfg, now)
     found: dict[str, Grant] = {}
     for sentence in _sentences(text):
         lowered = sentence.lower().strip()
         if lowered.endswith("?") or QUESTION_WORDS.match(lowered) or CONDITION.search(lowered):
             continue
-        # A negation anywhere in a clause, before or after the verb, cancels that clause.
         for clause in CLAUSE.split(lowered):
-            if NEGATION.search(clause):
-                continue
             for action, pattern in PHRASES.items():
                 if not re.search(pattern, clause.strip(), re.MULTILINE):
                     continue
-                name = "deploy-prod" if action == "deploy" and PROD.search(clause) else action
+                name = "deploy-prod" if action == "deploy" and PROD.search(lowered) else action
                 stamp = clock.iso(expires)
                 found[name] = Grant(name, project, stamp, uses=uses, source=normal(sentence)[:120])
     return list(found.values())
@@ -213,13 +219,20 @@ def _owner_texts(transcript: str) -> Iterator[str]:
                 continue
             content = message.get("content") if message.get("role") == "user" else None
             if isinstance(content, str):
-                yield content
+                yield _typed(content)
             elif (
                 isinstance(content, list)
                 and content
                 and all(isinstance(b, dict) and b.get("type") == "text" for b in content)
             ):
                 yield "\n".join(str(b.get("text", "")) for b in content)
+
+
+def _typed(content: str) -> str:
+    """A slash command as the owner typed it; Claude Code records it as tags."""
+    if match := COMMAND.search(content):
+        return f"{match.group(1)} {match.group(2) or ''}".strip()
+    return content
 
 
 def backed(grant: Grant) -> bool:
