@@ -8,3 +8,4 @@ __pycache__/
 .review/verify-receipt.json
 plugins/bedrock/evals/results/
 plugins/bedrock/evals-bench
+bench/results/

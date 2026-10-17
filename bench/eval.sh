@@ -9,4 +9,9 @@ TARGET="$HERE/plugins/bedrock/evals-bench"
 rm -rf "$TARGET"
 cp -r "$KEY/evals" "$TARGET"
 trap 'rm -rf "$TARGET"' EXIT INT TERM
-claude plugin eval "$HERE/plugins/bedrock" --eval-dir evals-bench --scaffold --no-publish "$@"
+# Results go outside the copy, or the cleanup would delete them.
+OUT="$HERE/bench/results/$(date -u +%Y%m%dT%H%M%SZ)"
+mkdir -p "$OUT"
+claude plugin eval "$HERE/plugins/bedrock" --eval-dir evals-bench --scaffold --no-publish \
+  --output-dir "$OUT" --report "$OUT/report.html" "$@"
+echo "results: $OUT"

@@ -14,8 +14,10 @@ session is never idle (D046).
 
 ## 1. The start phrase
 The owner says what is allowed, in his own words, for example «автономно до утра: можно
-пушить в ветки, деплой нельзя». Those words become the grant (D016), «до утра» meaning until
-12:00 local. Nothing outside them happens. A negation anywhere in a clause cancels it.
+пушить». Those words become the grant (D016), «до утра» meaning until 12:00 local. Nothing
+outside them happens. Any negation in the message («деплой нельзя») voids every phrase grant
+in it: then `/bedrock:allow push until 12:00` gives the grant exactly. A grant from words has
+no target: a push grant covers any branch.
 Done when: the prompt hook's notice «bedrock: grant from your words: …» names exactly the
 allowed actions and their end. Anything else means rephrase, or use `/bedrock:allow`.
 
@@ -44,13 +46,16 @@ Done when: the watchdog is running.
 - Main list done or blocked: the fallback queue inside the grant: refresh stale notes, add
   tests where coverage is thin, R1 and R2 backlog items marked "ok at night".
 - A network or flaky failure is retried with a pause, not treated as a stop.
-- Stop only when nothing is left or a limit is reached. At 80% of the 5-hour window with no
-  answer from the owner, the agent guard saves: no new agents. At 95% the session stops.
+- Stop only when nothing is left or a limit is reached (D056). At 80% of the 5-hour window
+  with no answer from the owner, the agent guard saves: only review agents start. At 95%
+  agents stop, the session finishes its step, writes a handoff and pauses until the window
+  resets. The watchdog brings it back after the reset.
 Done when: every stopped task has its reason and the owner's steps in the status note.
 
 ## 5. Waking the owner
-A phone notification only for P0 or a decision that blocks everything
-(`bedrock notify p0 "<title>" "<what is needed>"`, or `blocked` in place of `p0`). Everything
+A notification only for P0 or a decision that blocks everything. With Remote Control
+connected, a phone push through the PushNotification tool. Otherwise a desktop one:
+`bedrock notify p0 "<title>" "<what is needed>"`, or `blocked` in place of `p0`. Everything
 else waits for the morning.
 Done when: no other notification was sent.
 

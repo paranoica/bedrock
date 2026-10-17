@@ -16,7 +16,8 @@ about that: the owner decides, Claude does the work, and nothing leaves the mach
 /plugin install bedrock@bedrock
 ```
 
-or, from a local checkout, `claude --plugin-dir ./plugins/bedrock`. Then run `bedrock doctor`
+(this works once v2 is the repository's default branch), or, from a local checkout,
+`claude --plugin-dir ./plugins/bedrock`. Then run `bedrock doctor`
 (the plugin puts `bedrock` on the PATH of the session) to see what the machine has and lacks.
 
 Requirements: Claude Code, git, Python 3.12+. Optional: uv (`uvx`), Node 20+, gitleaks, age,
@@ -26,8 +27,8 @@ libnotify, folio, faster-whisper. `bedrock doctor` says what each one is for.
 
 | Part | Where | What it does |
 |---|---|---|
-| Skills | `plugins/bedrock/skills/` | the working loop (`day`), root-cause debugging (`debug`), the review gate (`review`, `code-review`), the knowledge base (`kb`, `handoff`, `ask`), people and texts (`call`, `doc`, `humanize`), the week (`retro`, `arch`, `triage`), autonomy (`night`), project start (`start`), testing (`hunt`, `e2e`), design (`design-creator`), the navigator (`next`) |
-| Agents | `plugins/bedrock/agents/` | twelve roles with a model, an effort and a turn cap: inventory, researcher, analyst, critic, verifier, reviewer, security reviewer, implementer, architect, escalation, bug hunter |
+| Skills | `plugins/bedrock/skills/` | the working loop (`day`), root-cause debugging (`debug`), the review gate (`review`, `code-review`), the knowledge base (`kb`, `handoff`, `ask`), people and texts (`call`, `doc`, `humanize`), the week (`retro`, `arch`, `triage`), autonomy (`night`), project start (`start`), testing (`hunt`, `e2e`), design (`design-creator`), the navigator (`next`), grants (`allow`, `unleash`, `revoke`), writing skills (`writing`) |
+| Agents | `plugins/bedrock/agents/` | twelve roles with a model, an effort and a turn cap: inventory, researcher, analyst, critic, verifier, reviewer, security reviewer, implementer, implementer without tests (prose and config), architect, escalation, bug hunter |
 | Hooks | `plugins/bedrock/hooks/` | guards that refuse (git, outward actions, secrets, installs, heavy runs, agents writing outside their files, the bench answer key) and helpers that inform (grants, drift, auto-continue, notifications) |
 | CLI | `plugins/bedrock/bin/bedrock` | day log and minutes, backlog, test and command wrappers with a machine lock, leak and code checks, knowledge base, call archive, retro numbers, night watchdog, doctor |
 | Packs | `plugins/bedrock/packs/` | domain rule sets switched on per project: python, typescript, db, api-security, frontend, jobs, medical |

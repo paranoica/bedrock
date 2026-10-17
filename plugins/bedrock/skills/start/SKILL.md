@@ -68,4 +68,5 @@ Done when: the entry note names the tracker, and the owner enabled the plugin or
 ## 5. Hand over
 Tell the owner in three lines: what was set up, what is still open (the open-questions
 note), and the first task. Commit the knowledge base.
-Done when: `git -C ~/projects-memory-bank status --short` prints nothing.
+Done when: `git status --short` in the knowledge-base store (`~/projects-memory-bank` unless
+the owner's settings move it) prints nothing.

@@ -13,6 +13,8 @@ The prompt hook has already recorded the mode (D016). Its notice shows until whe
 - EN: "/bedrock:unleash until 18:00"
 
 ## What to do
-Say in one line, in Russian, that all-out mode is on and when it ends, from the hook's notice.
-Name the one thing it never covers: anything the owner forbade in the same message.
+Say in one line, in Russian, that all-out mode is on and when it ends, from the hook's notice,
+and what it never covers: deploys to production and sending messages. Words like «деплой
+нельзя» in the same message are not read by the mode: if the owner wrote any, say so and
+suggest `/bedrock:revoke` and single `/bedrock:allow` grants instead.
 Done when: the line is sent.
