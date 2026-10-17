@@ -17,7 +17,7 @@ from pathlib import Path
 from .config import UserConfig
 
 RECIPIENT = re.compile(
-    r"age1[02-9ac-hj-np-z]{58,}|ssh-(?:ed25519|rsa) [A-Za-z0-9+/]+={0,2}(?: [^\s]+)?"
+    r"age1[02-9ac-hj-np-z]{58,}|ssh-(?:ed25519|rsa) [A-Za-z0-9+/]+={0,2}(?: [^\n]+)?"
 )
 
 

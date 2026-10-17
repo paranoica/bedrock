@@ -20,15 +20,31 @@ DRIFT_BUDGET_SECONDS = 5.0
 
 
 class _OutOfTime(Exception):
-    """The drift budget ran out in the middle of a note."""
+    """The drift budget ran out."""
 
 
-def _git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
-    argv = ["git", "-C", str(repo), *args]
-    try:
-        return subprocess.run(argv, capture_output=True, text=True, check=False, timeout=30)
-    except subprocess.TimeoutExpired:
-        return subprocess.CompletedProcess(argv, 124, "", "git timed out")
+class _Git:
+    """Git in one repository, each call bounded by what is left of the drift budget."""
+
+    def __init__(self, repo: Path, deadline: float) -> None:
+        self.repo, self.deadline = repo, deadline
+
+    def __call__(self, *args: str) -> subprocess.CompletedProcess[str]:
+        left = min(30.0, self.deadline - time.monotonic())
+        if left <= 0:
+            raise _OutOfTime
+        argv = ["git", "--literal-pathspecs", "-C", str(self.repo), *args]
+        try:
+            return subprocess.run(
+                argv,
+                capture_output=True,
+                encoding="utf-8",
+                errors="surrogateescape",
+                check=False,
+                timeout=left,
+            )
+        except subprocess.TimeoutExpired as error:
+            raise _OutOfTime from error
 
 
 def _names(output: str) -> list[str]:
@@ -60,9 +76,9 @@ def _spans(source: str, suffix: str, names: list[str]) -> list[tuple[int, int]]:
     ]
 
 
-def _hunks(repo: Path, commit: str, path: str) -> list[tuple[int, int, int, int]]:
-    patch = _git(
-        repo, "diff", "-U0", "--no-color", "--no-ext-diff", "--no-renames",
+def _hunks(git: _Git, commit: str, path: str) -> list[tuple[int, int, int, int]]:
+    patch = git(
+        "diff", "-U0", "--no-color", "--no-ext-diff", "--no-renames",
         "--end-of-options", commit, "HEAD", "--", path,
     ).stdout  # fmt: skip
     found = []
@@ -72,12 +88,12 @@ def _hunks(repo: Path, commit: str, path: str) -> list[tuple[int, int, int, int]
     return found
 
 
-def _anchored_change(repo: Path, commit: str, path: str, anchors: list[str]) -> bool:
+def _anchored_change(git: _Git, commit: str, path: str, anchors: list[str]) -> bool:
     suffix = PurePosixPath(path).suffix
-    before = _git(repo, "show", f"{commit}:{path}").stdout
-    after = _git(repo, "show", f"HEAD:{path}").stdout
+    before = git("show", f"{commit}:{path}").stdout
+    after = git("show", f"HEAD:{path}").stdout
     old_spans, new_spans = _spans(before, suffix, anchors), _spans(after, suffix, anchors)
-    for old, old_n, new, new_n in _hunks(repo, commit, path):
+    for old, old_n, new, new_n in _hunks(git, commit, path):
         # A side with no lines only marks where the other side's lines go: it touches nothing.
         if old_n and any(a < old + old_n and old <= b for a, b in old_spans):
             return True
@@ -86,8 +102,8 @@ def _anchored_change(repo: Path, commit: str, path: str, anchors: list[str]) -> 
     return False
 
 
-def _tree(repo: Path, commit: str) -> set[str] | None:
-    listed = _git(repo, "ls-tree", "-r", "-z", "--name-only", "--end-of-options", commit)
+def _tree(git: _Git, commit: str) -> set[str] | None:
+    listed = git("ls-tree", "-r", "-z", "--name-only", "--end-of-options", commit)
     return set(_names(listed.stdout)) if listed.returncode == 0 else None
 
 
@@ -97,31 +113,25 @@ def _anchors(note: Note) -> list[str]:
     return [str(item) for item in items if str(item).strip() and not empty(item)]
 
 
-def _note_drift(
-    repo: Path, note: Note, commit: str, cache: dict[str, Any], deadline: float
-) -> str | None:
+def _note_drift(git: _Git, note: Note, commit: str, cache: dict[str, Any]) -> str | None:
     if commit not in cache:
-        changed = _git(
-            repo, "diff", "--name-only", "-z", "--no-renames", "--end-of-options", commit, "HEAD"
+        changed = git(
+            "diff", "--name-only", "-z", "--no-renames", "--end-of-options", commit, "HEAD"
         )
-        cache[commit] = (changed.returncode, _names(changed.stdout), _tree(repo, commit))
+        cache[commit] = (changed.returncode, _names(changed.stdout), _tree(git, commit))
     code, changed, old_tree = cache[commit]
     if code != 0:
         return f"note {note.name}: git could not compare {commit[:10]} with HEAD"
-    head = cache.setdefault("HEAD-tree", _tree(repo, "HEAD")) or set()
+    if "HEAD-tree" not in cache:
+        cache["HEAD-tree"] = _tree(git, "HEAD")
+    head = cache["HEAD-tree"] or set()
     known = head | (old_tree or set())
     missing = [c for c in covers(note) if not any(under(p, c) for p in known)]
     if missing:
         return f"note {note.name}: covered path {', '.join(missing)} does not exist in the code"
     files = [p for p in changed if any(under(p, c) for c in covers(note))]
     if files and (anchors := _anchors(note)):
-        kept = []
-        for path in files:
-            if time.monotonic() > deadline:
-                raise _OutOfTime
-            if _anchored_change(repo, commit, path, anchors):
-                kept.append(path)
-        files = kept
+        files = [p for p in files if _anchored_change(git, commit, p, anchors)]
     if files:
         return (
             f"note {note.name} is stale: {', '.join(files)} changed since {commit[:10]}; "
@@ -132,26 +142,25 @@ def _note_drift(
 
 def drift(bank: Path, project: str, repo: Path, budget: float = DRIFT_BUDGET_SECONDS) -> list[str]:
     """List module notes whose covered code changed since the commit they were verified at."""
-    started = time.monotonic()
-    deadline = started + budget
+    git = _Git(repo, time.monotonic() + budget)
     found: list[str] = []
     cache: dict[str, Any] = {}
     modules = [n for n in all_notes(bank, project) if n.meta.get("type") == "module"]
     for index, note in enumerate(modules):
-        if time.monotonic() > deadline:
-            found.append(f"drift truncated after {index} of {len(modules)} notes (time budget)")
-            break
-        if not covers(note):
-            continue
-        commit = str(note.meta.get("verified_at", ""))
-        if not commit or _git(repo, "cat-file", "-e", f"{commit}^{{commit}}").returncode != 0:
-            found.append(f"note {note.name}: verified_at {commit!r} is an unknown commit")
-            continue
         try:
-            message = _note_drift(repo, note, commit, cache, deadline)
+            message = _check(git, note, cache)
         except _OutOfTime:
-            found.append(f"drift truncated inside note {note.name} (time budget)")
+            found.append(f"drift truncated at note {index + 1} of {len(modules)} (time budget)")
             break
         if message:
             found.append(message)
     return found
+
+
+def _check(git: _Git, note: Note, cache: dict[str, Any]) -> str | None:
+    if not covers(note):
+        return None
+    commit = str(note.meta.get("verified_at", ""))
+    if not commit or git("cat-file", "-e", f"{commit}^{{commit}}").returncode != 0:
+        return f"note {note.name}: verified_at {commit!r} is an unknown commit"
+    return _note_drift(git, note, commit, cache)

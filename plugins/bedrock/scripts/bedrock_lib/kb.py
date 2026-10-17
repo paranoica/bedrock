@@ -52,7 +52,15 @@ EDIT_HISTORY = re.compile(
 )
 MAX_LINES = 300
 RUNBOOK_DAYS = 30
-INDEXES = ("architecture", "decisions", "failures", "runbooks", "handoffs", "open-questions")
+INDEXES = (
+    "architecture",
+    "decisions",
+    "failures",
+    "runbooks",
+    "handoffs",
+    "faq",
+    "open-questions",
+)
 
 
 @dataclass
@@ -183,7 +191,7 @@ def _content(note: Note, code: str, today: date) -> list[str]:
 
 
 def _handoff(note: Note, decisions: list[Note]) -> list[str]:
-    if note.meta.get("type") != "handoff":
+    if note.meta.get("type") != "handoff" or note.meta.get("status") == "done":
         return []
     written = _parse_date(str(note.meta.get("updated", "")))
     newer = [
@@ -192,7 +200,10 @@ def _handoff(note: Note, decisions: list[Note]) -> list[str]:
         if written and (when := _parse_date(str(d.meta.get("date", "")))) and when > written
     ]
     if newer:
-        return [f"re-check before use: decisions newer than this handoff: {', '.join(newer)}"]
+        return [
+            f"re-check before use: decisions newer than this handoff: {', '.join(newer)}; "
+            "read them, then set `updated` to today, or `status: done` once its task is finished"
+        ]
     return []
 
 

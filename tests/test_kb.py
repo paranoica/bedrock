@@ -1,3 +1,4 @@
+import os
 import subprocess
 from pathlib import Path
 
@@ -73,6 +74,7 @@ def test_init_creates_a_valid_minimal_project(bank: Path) -> None:
         "failures",
         "runbooks",
         "handoffs",
+        "faq",
         "open-questions",
     ):
         assert (folder / f"{name}.md").exists(), name
@@ -437,7 +439,7 @@ def test_a_hanging_git_is_reported_not_raised(
         return real(argv, *args, **kwargs)
 
     monkeypatch.setattr(kbdrift.subprocess, "run", slow)
-    assert "could not compare" in " ".join(kbdrift.drift(bank, "Acme", code))
+    assert "truncated" in " ".join(kbdrift.drift(bank, "Acme", code))
 
 
 def test_block_lists_without_indent_are_read() -> None:
@@ -462,3 +464,94 @@ def test_fingerprint_sees_body_lines_that_look_like_stamps() -> None:
     )
     restamped = head.replace("verified_at: a", "verified_at: b").replace("10-17", "10-18")
     assert kb.fingerprint(head + "x\n") == kb.fingerprint(restamped + "x\n")
+
+
+def test_a_rechecked_or_finished_handoff_is_clean(bank: Path) -> None:
+    write(
+        bank / "Acme" / "decisions",
+        "ACME-D2",
+        DECISION.format(status="accepted")
+        .replace("ACME-D1", "ACME-D2")
+        .replace("date: 2026-10-01", "date: 2026-10-10"),
+    )
+    head = '---\ntype: handoff\ntags: [handoff]\nparent: "[[handoffs]]"\n'
+    write(bank / "Acme" / "handoffs", "h1", head + "updated: 2026-10-11\n---\n# H\n")
+    write(bank / "Acme" / "handoffs", "h2", head + "updated: 2026-10-05\nstatus: done\n---\n# H\n")
+    assert not any("re-check before use" in m for m in problems(bank))
+
+
+def test_a_faq_card_from_the_template_validates(bank: Path) -> None:
+    assert (bank / "Acme" / "faq.md").exists()
+    card = (kb.TEMPLATES / "faq.md").read_text().replace("{date}", "2026-10-17")
+    card = card.replace("{commit}", "abc").replace("{the question, as the owner asks it}", "Q")
+    write(bank / "Acme" / "faq", "chunk-size", card)
+    faq = bank / "Acme" / "faq.md"
+    faq.write_text(faq.read_text() + "- [[chunk-size]]\n")
+    found = [p for p in kb.validate(bank, "Acme", today="2026-10-17") if "chunk-size" in p.path]
+    assert found == []
+
+
+def test_a_hanging_git_stops_at_the_budget(
+    bank: Path, code: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module_note(bank, sh(code, "rev-parse", "HEAD"))
+    timeouts: list[float] = []
+
+    def hang(argv, *args, **kwargs):
+        timeouts.append(kwargs["timeout"])
+        raise subprocess.TimeoutExpired(argv, kwargs["timeout"])
+
+    monkeypatch.setattr(kbdrift.subprocess, "run", hang)
+    found = " ".join(kbdrift.drift(bank, "Acme", code, budget=2.0))
+    assert "truncated" in found and "unknown commit" not in found
+    assert timeouts and max(timeouts) <= 2.0
+
+
+def test_drift_survives_undecodable_and_binary_files(bank: Path, code: Path) -> None:
+    odd = code / "src" / "ingest" / os.fsdecode(b"caf\xe9.py")
+    odd.write_text("def join():\n    return 1\n")
+    (code / "src" / "ingest" / "logo.png").write_bytes(b"\x89PNG\r\n\x1a\n\xff\xfe")
+    sh(code, "add", ".")
+    sh(code, "commit", "-qm", "chore: odd")
+    module_note(bank, sh(code, "rev-parse", "HEAD"), anchors="[join]")
+    odd.write_text("def join():\n    return 2\n")
+    (code / "src" / "ingest" / "logo.png").write_bytes(b"\x89PNG\r\n\x1a\n\x00\xfe")
+    sh(code, "commit", "-qam", "fix: odd")
+    found = kbdrift.drift(bank, "Acme", code)
+    assert len(found) == 1 and "stale" in found[0]
+
+
+def test_glob_characters_in_a_name_match_only_that_file(bank: Path, code: Path) -> None:
+    source = "def split():\n    return 1\n\n\ndef join():\n    return 2\n"
+    for name in ("a[1].py", "a1.py"):
+        (code / "src" / "ingest" / name).write_text(source)
+    sh(code, "add", ".")
+    sh(code, "commit", "-qm", "chore: two")
+    module_note(bank, sh(code, "rev-parse", "HEAD"), anchors="[join]")
+    (code / "src" / "ingest" / "a[1].py").write_text(source + "\n\ndef other():\n    return 3\n")
+    (code / "src" / "ingest" / "a1.py").write_text(source.replace("return 2", "return 9"))
+    sh(code, "commit", "-qam", "fix: one")
+    found = " ".join(kbdrift.drift(bank, "Acme", code))
+    assert "a1.py" in found and "a[1].py" not in found
+
+
+def test_the_head_tree_is_listed_once(
+    bank: Path, code: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    commit = sh(code, "rev-parse", "HEAD")
+    for name in ("n1", "n2", "n3"):
+        text = (
+            '---\ntype: module\ntags: [architecture]\nparent: "[[architecture]]"\n'
+            f"updated: 2026-10-17\ncovers: [src/ingest]\nverified_at: {commit}\n---\n# N\n"
+        )
+        write(bank / "Acme" / "architecture", name, text)
+    calls: list[list[str]] = []
+    real = kbdrift.subprocess.run
+
+    def spy(argv, *args, **kwargs):
+        calls.append(list(argv))
+        return real(argv, *args, **kwargs)
+
+    monkeypatch.setattr(kbdrift.subprocess, "run", spy)
+    kbdrift.drift(bank, "Acme", code)
+    assert sum("ls-tree" in argv for argv in calls) == 2

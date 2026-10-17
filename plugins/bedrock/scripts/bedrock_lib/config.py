@@ -83,7 +83,9 @@ def _backup(data: dict[str, Any], home: Path) -> tuple[Path | None, str]:
     section = data.get("backup")
     section = section if isinstance(section, dict) else {}
     repo, recipient = section.get("repo"), section.get("recipient")
-    path = Path(re.sub(r"^~(?=/|$)", str(home), repo)) if isinstance(repo, str) and repo else None
+    path = None
+    if isinstance(repo, str) and repo:
+        path = Path(str(home) + repo[1:]) if repo == "~" or repo.startswith("~/") else Path(repo)
     return path, recipient if isinstance(recipient, str) else ""
 
 

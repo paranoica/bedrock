@@ -21,5 +21,6 @@ updated: {date}
 | Failures | [[failures]] |
 | Handoffs | [[handoffs]] |
 | How to run, deploy, test | [[runbooks]] |
+| Answers to repeated questions | [[faq]] |
 | Open questions | [[open-questions]] |
 | Session summary | [[summary]] |

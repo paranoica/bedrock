@@ -101,6 +101,7 @@ def test_recipient_and_repo_are_checked_at_use(setup) -> None:
     cfg, home, _, recipient = setup
     assert backup.check_recipient(recipient) == recipient
     assert backup.check_recipient("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExample")
+    assert backup.check_recipient("ssh-rsa AAAAB3NzaC1yc2EAAAADAQAB Quentin at work")
     for bad in ("-o /tmp/x", "age1short", "", "ssh-ed25519"):
         with pytest.raises(backup.BackupError):
             backup.check_recipient(bad)

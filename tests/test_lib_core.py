@@ -204,3 +204,10 @@ def test_a_bad_backup_setting_does_not_break_loading(tmp_path: Path) -> None:
     path.write_text(json.dumps({"backup": {"repo": "/srv/snap~old/mem"}}))
     cfg = config.load_user_config({"BEDROCK_CONFIG": str(path), "HOME": "/h"})
     assert cfg.backup_repo == Path("/srv/snap~old/mem")
+
+
+def test_a_backslash_in_home_does_not_break_loading(tmp_path: Path) -> None:
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps({"backup": {"repo": "~/b"}}))
+    cfg = config.load_user_config({"BEDROCK_CONFIG": str(path), "HOME": "/h\\x"})
+    assert cfg.backup_repo == Path("/h\\x/b")
