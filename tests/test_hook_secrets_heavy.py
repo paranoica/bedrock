@@ -233,3 +233,20 @@ def test_ordinary_agent_work_is_untouched(home: Path, work: Path, outside: Path)
     for command in ordinary:
         assert "answer key" not in bash(home, work, command, "a1"), command
     assert call(home, work, "Glob", {"pattern": "src/**/*.py"}, "a1") == ""
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "cat ${HOME%/}/share/bench-key/bugs.md",
+        "cat ${HOME:-x}/share/bench-key/bugs.md",
+        "diff --from-file=${HOME}/share/bench-key/bugs.md /dev/null",
+        "grep -f${HOME}/share/bench-key/bugs.md src/a",
+        "rg -f ~/share/bench-key/bugs.md src",
+        "rg --file=${HOME}/share/bench-key/bugs.md src",
+    ],
+)
+def test_key_paths_hidden_in_options_or_expansions(
+    home: Path, work: Path, outside: Path, command: str
+) -> None:
+    assert "answer key" in bash(home, work / "src", command, "a1")

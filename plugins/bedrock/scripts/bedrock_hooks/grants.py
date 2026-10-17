@@ -11,77 +11,24 @@ import json
 import re
 from collections.abc import Iterator
 from dataclasses import asdict, dataclass, replace
-from datetime import datetime, time, timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 from bedrock_lib import clock
 from bedrock_lib.config import UserConfig
 
-SINGLE_USE_HOURS = 2
+from bedrock_hooks.grant_words import (
+    PHRASES,
+    PROD,
+    SINGLE_USE_HOURS,
+    expiry,
+    nothing_else,
+    only_the_grant,
+)
+
 NOT_UNDER_ALL_OUT = {"deploy-prod", "message"}
 LEVEL4 = {"force-push", "delete-remote-branch", "history-rewrite", "destructive-git", "data-delete"}
-PHRASES = {
-    "push": r"(?:за)?пуш(?:ь|ни|ните|ай)\b|пушить можно|(?:можешь|можно) (?:за)?пушить"
-    r"|\bpush (?:it|this|that|them|the branch)\b|\bgo ahead and push\b|\byou can push\b|^push\b",
-    "merge": r"(?:с|за)?мерж(?:ь|ни|и|ите)\b|(?:можешь|можно) (?:с|за)?мерж\w*|мержить можно"
-    r"|\bmerge (?:it|this|that|the pr)\b|\byou can merge\b|^merge\b",
-    "pr": r"(?:открой|создай|сделай|заведи) (?:pr|пр|пулл? ?реквест)\b"
-    r"|\b(?:open|create) (?:a |the )?(?:pr|pull request)\b",
-    "deploy": r"(?:за)?деплой(?:ни|те)?\b|(?:можешь|можно) (?:за)?деплоить|деплоить можно"
-    r"|\bdeploy (?:it|this|to \w+)\b"
-    r"|\byou can deploy\b",
-}
-PROD = re.compile(r"прод\b|\bproduction\b|\bprod\b", re.IGNORECASE)
-UNTIL_PLAN = re.compile(r"до конца (?:плана|блока)|until the end of the plan|end of (?:the )?plan")
-UNTIL_DAY = re.compile(r"на сегодня|на весь день|\btoday\b|for the day")
-UNTIL_TIME = re.compile(r"(?:до|until)\s+(\d{1,2})(?::(\d{2}))?\b")
-UNTIL_MORNING = re.compile(r"до утра|until (?:the )?morning")
-MORNING_HOUR = 12  # the night mode ends at noon local (D046)
-# A phrase grant needs a message made of nothing but the grant: the phrase, its end time, its
-# environment and these few words. Anything else (a take-back, a condition, a joke, a stray
-# letter) and the words grant nothing; `/bedrock:allow` is the exact way.
-FILLER = {
-    "ок",
-    "окей",
-    "ok",
-    "okay",
-    "давай",
-    "да",
-    "yes",
-    "и",
-    "and",
-    "go",
-    "ahead",
-    "please",
-    "пожалуйста",
-    "это",
-    "его",
-    "их",
-    "it",
-    "this",
-    "that",
-    "them",
-    "сейчас",
-    "now",
-    "автономно",
-    "можно",
-    "можешь",
-    "you",
-    "can",
-    "ну",
-    "the",
-    "a",
-    "pr",
-    "пр",
-    "ветку",
-    "branch",
-}
-ENVIRONMENT = re.compile(
-    r"\b(?:на|в|to|on)\s+(?:дев\w*|прод\w*|стейдж\w*|staging|production|prod|dev)\b"
-    r"|\b(?:прод|prod|production)\b"
-)
-LEFTOVER = re.compile(r"[^\w\s.,!:;]|\w+")
 ALLOW = re.compile(r"^/bedrock:allow\s+([\w-]+)(?:\s+(?!(?:until|до)\b)(\S+))?(.*)$", re.MULTILINE)
 COMMAND = re.compile(
     r"<command-name>(/[^<]+)</command-name>(?:\s*<command-args>(.*?)</command-args>)?", re.S
@@ -94,7 +41,7 @@ OVERRIDE_ACTIONS = (
     (re.compile(r"форс[- ]?пуш|force[- ]?push", re.I), "force-push"),
     (re.compile(REMOTE_BRANCH, re.I), "delete-remote-branch"),
     (re.compile(r"переписать историю|rewrite history", re.I), "history-rewrite"),
-    (re.compile(r"удалить|drop|delete", re.I), "data-delete"),
+    (re.compile(r"\b(?:удалить|drop|delete)\b", re.I), "data-delete"),
 )
 QUOTED = re.compile(
     r"<pasted_content[^>]*>.*?</pasted_content>|```.*?```|^>.*$|«[^»\n]*»|„[^“\n]*“|\"[^\"\n]*\"",
@@ -127,46 +74,14 @@ def normal(text: str) -> str:
     return " ".join(_own_words(text).lower().split())
 
 
-def _clock_time(cfg: UserConfig, now: datetime, hour: int, minute: int) -> datetime:
-    local = clock.in_zone(now, cfg.display_tz)
-    target = datetime.combine(local.date(), time(hour % 24, minute), tzinfo=local.tzinfo)
-    if target <= local:
-        target += timedelta(days=1)
-    return target
-
-
-def _end_of_day(cfg: UserConfig, now: datetime) -> datetime:
-    return _clock_time(cfg, now, cfg.rollover_hour, 0)
-
-
-def _expiry(text: str, cfg: UserConfig, now: datetime) -> tuple[datetime, int | None]:
-    """Return when a grant from this text ends and how many uses it has."""
-    if match := UNTIL_TIME.search(text):
-        return _clock_time(cfg, now, int(match.group(1)), int(match.group(2) or 0)), None
-    if UNTIL_MORNING.search(text):
-        return _clock_time(cfg, now, MORNING_HOUR, 0), None
-    if UNTIL_PLAN.search(text) or UNTIL_DAY.search(text):
-        return _end_of_day(cfg, now), None
-    return now + timedelta(hours=SINGLE_USE_HOURS), 1
-
-
-def _only_the_grant(text: str) -> bool:
-    """True when the message holds a grant phrase and nothing the owner might mean beside it."""
-    rest = text.lower()
-    patterns = [*PHRASES.values(), UNTIL_TIME.pattern, UNTIL_MORNING.pattern, UNTIL_PLAN.pattern]
-    for pattern in [*patterns, UNTIL_DAY.pattern, ENVIRONMENT.pattern]:
-        rest = re.sub(pattern, " ", rest, flags=re.MULTILINE)
-    return all(token in FILLER for token in LEFTOVER.findall(rest))
-
-
 def _phrase_grants(text: str, project: str, now: datetime, cfg: UserConfig) -> list[Grant]:
     # A lost grant costs one `/bedrock:allow`; a wrong one cannot be undone. So the words grant
     # only when they hold nothing but the grant: a negation, a question, a condition or an
     # aside is a word outside the list, and voids them.
     lowered = text.lower()
-    if not _only_the_grant(text):
+    if not only_the_grant(text):
         return []
-    expires, uses = _expiry(lowered, cfg, now)
+    expires, uses = expiry(lowered, cfg, now)
     found: dict[str, Grant] = {}
     for action, pattern in PHRASES.items():
         if re.search(pattern, lowered, re.MULTILINE):
@@ -181,7 +96,9 @@ def _command_grants(text: str, project: str, now: datetime, cfg: UserConfig) -> 
     found = []
     for match in ALLOW.finditer(text):
         action, target, rest = match.group(1), match.group(2), match.group(3)
-        expires, uses = _expiry(rest.lower(), cfg, now)
+        if not nothing_else(rest, []):
+            continue
+        expires, uses = expiry(rest.lower(), cfg, now)
         found.append(
             Grant(
                 action,
@@ -195,7 +112,9 @@ def _command_grants(text: str, project: str, now: datetime, cfg: UserConfig) -> 
             )
         )
     for match in UNLEASH.finditer(text):
-        expires, _ = _expiry(match.group(1).lower(), cfg, now)
+        if not nothing_else(match.group(1), []):
+            continue
+        expires, _ = expiry(match.group(1).lower(), cfg, now)
         found.append(
             Grant(
                 "*",
@@ -209,9 +128,14 @@ def _command_grants(text: str, project: str, now: datetime, cfg: UserConfig) -> 
         )
     for match in OVERRIDE.finditer(text):
         wording = match.group(1).strip()
-        action = next((name for pattern, name in OVERRIDE_ACTIONS if pattern.search(wording)), None)
-        if action:
+        found_action = next(((p, n) for p, n in OVERRIDE_ACTIONS if p.search(wording)), None)
+        if found_action:
+            pattern, action = found_action
             target = wording.split()[-1] if len(wording.split()) > 1 else None
+            rest = pattern.sub(" ", wording)
+            rest = rest.rsplit(target, 1)[0] if target and target in rest else rest
+            if not nothing_else(rest, [r"\b(?:на|в|to|on|into|для|for)\b"]):
+                continue
             expires = clock.iso(now + timedelta(hours=SINGLE_USE_HOURS))
             found.append(
                 Grant(action, project, expires, target, 1, True, False, normal(wording)[:120])

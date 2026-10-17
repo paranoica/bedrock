@@ -28,6 +28,7 @@ PATTERN_FIRST = {"rg", "ag", "ack", "grep", "egrep", "fgrep"}
 PATTERN_OPTIONS = {"-e", "--regexp", "-f", "--file"}
 VALUE_OPTIONS = PATTERN_OPTIONS | {"-d", "--directories", "-C"}
 GLOB = re.compile(r"[*?\[]|(?<!\$)\{")
+HOME_FORMS = re.compile(r"\$\{HOME[^}A-Za-z0-9_][^}]*\}")
 BRACES = re.compile(r"(?<!\$)\{([^{}]*,[^{}]*)\}")
 XARGS_VALUES = {"-a", "-d", "-E", "-I", "-i", "-L", "-l", "-n", "-P", "-s"}
 
@@ -85,8 +86,22 @@ def _xargs_runs_a_recursive(simple: shell.Simple) -> bool:
     return bool(inner) and _recursive(shell.Simple(inner))
 
 
+def _option_values(simple: shell.Simple) -> list[str]:
+    """Paths an option may carry: `--file=X`, `-fX`, and the word after `-f`, `-e`, ..."""
+    args, found = simple.argv[1:], []
+    for index, arg in enumerate(args):
+        if arg.startswith("--") and "=" in arg:
+            found.append(arg.split("=", 1)[1])
+        elif arg.startswith("-") and not arg.startswith("--") and len(arg) > 2:
+            found.append(arg[2:])
+        if arg in VALUE_OPTIONS and index + 1 < len(args):
+            found.append(args[index + 1])
+    return found
+
+
 def _reach(env: Env, word: str, folder: Path) -> tuple[list[Path], list[Path]]:
     """What a word may name: exact paths, and folders under which a glob may reach anything."""
+    word = HOME_FORMS.sub("${HOME}", word)  # ${HOME%/}, ${HOME:-x}: still the home folder
     exact, under = [], []
     for variant in _variants(word):
         if match := GLOB.search(variant):  # a glob: anything under its fixed part
@@ -97,6 +112,27 @@ def _reach(env: Env, word: str, folder: Path) -> tuple[list[Path], list[Path]]:
     return exact, under
 
 
+def _simple_reaches(simple: shell.Simple, folders: list[Path], env: Env, key: Path) -> bool:
+    deep = _recursive(simple)
+    reads = _positionals(simple) if deep else [*simple.argv, *simple.redirects]
+    if deep and not reads:
+        reads = ["."]
+    reads += simple.inputs
+    if simple.program == "git" and "-C" in simple.argv[1:-1]:
+        reads.append(simple.argv[simple.argv.index("-C") + 1])
+    values = _option_values(simple)
+    for folder in folders:
+        if any(paths.under(p, key) for v in values for p in _reach(env, v, folder)[0]):
+            return True
+        for word in reads:
+            exact, under = _reach(env, word, folder)
+            if any(paths.under(p, key) for p in exact):
+                return True
+            if any(paths.touches(p, key) for p in under + (exact if deep else [])):
+                return True
+    return False
+
+
 def _bash_reaches(event: Event, env: Env, key: Path) -> bool:
     try:
         simples = shell.commands(str(event.tool_input.get("command", "")))
@@ -105,23 +141,8 @@ def _bash_reaches(event: Event, env: Env, key: Path) -> bool:
         return any(paths.under(paths.expand(env, w, event.cwd), key) for w in words)
     if any(s.program == "xargs" and _xargs_runs_a_recursive(s) for s in simples):
         return True  # the paths arrive on stdin and cannot be seen
-    for simple, folders in paths.walk(simples, event.cwd, env):
-        deep = _recursive(simple)
-        reads = _positionals(simple) if deep else [*simple.argv, *simple.redirects]
-        reads += simple.inputs
-        if deep and not reads:
-            reads = ["."]
-        if simple.program == "git" and "-C" in simple.argv[1:-1]:
-            reads.append(simple.argv[simple.argv.index("-C") + 1])
-        for folder in folders:
-            for word in reads:
-                exact, under = _reach(env, word, folder)
-                wide = under + (exact if deep else [])
-                if any(paths.under(p, key) for p in exact):
-                    return True
-                if any(paths.touches(p, key) for p in wide):
-                    return True
-    return False
+    walked = paths.walk(simples, event.cwd, env)
+    return any(_simple_reaches(simple, folders, env, key) for simple, folders in walked)
 
 
 def _tool_reaches(event: Event, env: Env, key: Path) -> bool:

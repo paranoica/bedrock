@@ -343,3 +343,32 @@ def test_a_grant_stored_before_creation_times_is_not_backed(
     real = grants.from_prompt("запушь", "Acme", NOW, cfg, transcript)[0]
     assert grants.backed(real, cfg)
     assert not grants.backed(grants.replace(real, created=""), cfg)
+
+
+@pytest.mark.parametrize(
+    "prompt",
+    [
+        "разрешаю: не делай force-push на main",
+        "разрешаю: dropdown в main",
+        "/bedrock:unleash до утра, нет, отмена",
+        "/bedrock:allow push main нет стоп",
+        "пушь до 18:99",
+        "пушь до 25",
+    ],
+)
+def test_refusals_and_bad_times_on_the_exact_paths_grant_nothing(prompt: str) -> None:
+    assert actions(prompt) == []
+
+
+@pytest.mark.parametrize(
+    ("prompt", "expected"),
+    [
+        ("разрешаю: force-push в main", ["force-push"]),
+        ("/bedrock:allow push main до 18:00", ["push"]),
+        ("/bedrock:unleash до утра", ["*"]),
+        ("задеплой на продакшн", ["deploy-prod"]),
+        ("задеплой на продакшен", ["deploy-prod"]),
+    ],
+)
+def test_the_exact_paths_still_grant(prompt: str, expected: list[str]) -> None:
+    assert actions(prompt) == expected
