@@ -9,6 +9,7 @@ from bedrock_hooks import (
     rules_git,
     rules_heavy,
     rules_installs,
+    rules_kb,
     rules_mcp,
     rules_outward,
     rules_prompt,
@@ -29,4 +30,5 @@ RULES: list[Rule] = [
     *rules_agents.RULES,
     *rules_after.RULES,
     *rules_session.RULES,
+    *rules_kb.RULES,
 ]

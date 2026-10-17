@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from bedrock_lib import clock, jsonl, notify, session, spend
+from bedrock_lib import clock, jsonl, kb, notify, session, spend
 from bedrock_lib.config import UserConfig
 
 from bedrock_hooks.core import HELPER, Env, Event, Rule, Verdict
@@ -227,8 +227,9 @@ def on_start(event: Event, env: Env) -> Verdict | None:
     if env.project:
         summary = env.cfg.memory_bank_dir / env.project.name / "summary.md"
         if summary.is_file():
-            lines = summary.read_text(encoding="utf-8").splitlines()[:10]
-            parts.append("Project summary:\n" + "\n".join(lines))
+            body = kb.parse("summary", summary.read_text(encoding="utf-8")).body.strip()
+            if body and not body.startswith("{"):
+                parts.append("Project summary:\n" + "\n".join(body.splitlines()[:10]))
     if event.session:
         parts += _registry(env, event)
         if event.data.get("source") in ("compact", "resume"):

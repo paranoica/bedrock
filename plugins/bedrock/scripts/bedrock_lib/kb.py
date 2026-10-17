@@ -165,7 +165,8 @@ def _git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
     )
 
 
-def _covers(note: Note) -> list[str]:
+def covers(note: Note) -> list[str]:
+    """The paths a module note covers."""
     value = note.meta.get("covers") or []
     return [str(item).rstrip("/") for item in (value if isinstance(value, list) else [value])]
 
@@ -174,17 +175,17 @@ def drift(bank: Path, project: str, repo: Path) -> list[str]:
     """List module notes whose covered code changed since the commit they were verified at."""
     found = []
     for note in notes(bank, project).values():
-        if note.meta.get("type") != "module" or not _covers(note):
+        if note.meta.get("type") != "module" or not covers(note):
             continue
         commit = str(note.meta.get("verified_at", ""))
         if _git(repo, "cat-file", "-e", f"{commit}^{{commit}}").returncode != 0:
             found.append(f"note {note.name}: verified_at {commit!r} is an unknown commit")
             continue
-        changed = _git(repo, "diff", "--name-only", commit, "HEAD", "--", *_covers(note))
+        changed = _git(repo, "diff", "--name-only", commit, "HEAD", "--", *covers(note))
         files = changed.stdout.split()
         anchors = note.meta.get("anchors") or []
         if files and anchors:
-            patch = _git(repo, "diff", "-U0", commit, "HEAD", "--", *_covers(note)).stdout
+            patch = _git(repo, "diff", "-U0", commit, "HEAD", "--", *covers(note)).stdout
             changed_lines = [
                 row
                 for row in patch.splitlines()
@@ -210,20 +211,20 @@ def covering(bank: Path, project: str, paths: list[str]) -> list[Note]:
         note
         for note in notes(bank, project).values()
         if note.meta.get("type") == "module"
-        and any(under(p, c) for p in paths for c in _covers(note))
+        and any(under(p, c) for p in paths for c in covers(note))
     ]
 
 
 def uncovered(bank: Path, project: str, repo: Path, roots: list[str]) -> list[str]:
     """Top-level modules under the given roots that no module note covers (D026.6)."""
-    covers = [c for n in notes(bank, project).values() for c in _covers(n)]
+    covered = [c for n in notes(bank, project).values() for c in covers(n)]
     missing = []
     for root in roots:
         children = (p for p in (repo / root).iterdir() if p.is_dir() and not p.name.startswith("."))
         for child in sorted(children):
             rel = child.relative_to(repo).as_posix()
             if not any(
-                rel == c or rel.startswith(c + "/") or c.startswith(rel + "/") for c in covers
+                rel == c or rel.startswith(c + "/") or c.startswith(rel + "/") for c in covered
             ):
                 missing.append(rel)
     return missing
