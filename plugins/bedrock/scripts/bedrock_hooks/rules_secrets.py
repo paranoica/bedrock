@@ -276,52 +276,108 @@ def _answer_key(env: Env) -> Path | None:
 
 
 RECURSIVE = {"rg", "ag", "ack", "find", "fd", "tree", "tar", "zip", "rsync", "du"}
+RECURSIVE_LONG = ("--recursive", "--dereference-recursive", "--directories=recurse")
 PATTERN_FIRST = {"rg", "ag", "ack", "grep", "egrep", "fgrep"}
+PATTERN_OPTIONS = {"-e", "--regexp", "-f", "--file"}
+VALUE_OPTIONS = PATTERN_OPTIONS | {"-d", "--directories", "-C"}
+GLOB = re.compile(r"[*?\[{]")
+
+
+def _git_grep(simple: shell.Simple) -> bool:
+    return simple.program == "git" and "grep" in simple.argv[1:]
 
 
 def _recursive(simple: shell.Simple) -> bool:
-    flags = [a for a in simple.argv[1:] if a.startswith("-")]
+    args = simple.argv[1:]
+    flags = [a for a in args if a.startswith("-")]
     cluster = any(not f.startswith("--") and ("r" in f or "R" in f) for f in flags)
-    return simple.program in RECURSIVE or cluster or "--recursive" in flags
+    by_value = any(a == "-d" and args[i + 1 : i + 2] == ["recurse"] for i, a in enumerate(args))
+    long = any(f.startswith(RECURSIVE_LONG) for f in flags)
+    return simple.program in RECURSIVE or _git_grep(simple) or cluster or by_value or long
 
 
-def _key_reads(event: Event) -> tuple[list[str], list[str]]:
-    """Words naming what a tool reads, and those that it reads recursively."""
-    data = event.tool_input
-    if event.tool != "Bash":
-        given = [str(data.get(k)) for k in ("file_path", "path", "notebook_path") if data.get(k)]
-        if event.tool in ("Grep", "Glob"):
-            return [], given or ["."]
-        return given, []
+def _positionals(simple: shell.Simple) -> list[str]:
+    """The words naming what a command reads: option values and a search pattern left out."""
+    args = simple.argv[1:]
+    if _git_grep(simple):
+        args = args[args.index("grep") + 1 :]
+    words: list[str] = []
+    skip = given = False
+    for arg in args:
+        if skip:
+            skip = False
+            continue
+        if arg in VALUE_OPTIONS:
+            skip, given = True, given or arg in PATTERN_OPTIONS
+            continue
+        given = given or arg.startswith(("--regexp=", "--file="))
+        if not arg.startswith("-"):
+            words.append(arg)
+    if (simple.program in PATTERN_FIRST or _git_grep(simple)) and words and not given:
+        words = words[1:]
+    return words
+
+
+def _reach(env: Env, word: str, folder: Path) -> tuple[list[Path], list[Path]]:
+    """What a word may name: exact paths, and folders under which a glob may reach anything."""
+    if match := GLOB.search(word):  # a glob or a {a,b} list: anything under its fixed part
+        static = word[: match.start()].rsplit("/", 1)[0] or "."
+        return [], [paths.expand(env, static, folder)]
+    return [paths.expand(env, word, folder)], []
+
+
+def _bash_reaches(event: Event, env: Env, key: Path) -> bool:
     try:
-        simples = shell.commands(str(data.get("command", "")))
+        simples = shell.commands(str(event.tool_input.get("command", "")))
     except shell.ParseError:
-        return str(data.get("command", "")).split(), []
-    flat, deep = [], []
-    for simple in simples:
-        words = [w for w in simple.argv[1:] if not w.startswith("-")]
-        flat += [*simple.argv, *simple.redirects]
-        given = {"-e", "--regexp", "-f", "--file"} & set(simple.argv)
-        if simple.program in PATTERN_FIRST and words and not given:
-            words = words[1:]
-        if _recursive(simple):
-            deep += words or ["."]
-    return flat, deep
+        words = str(event.tool_input.get("command", "")).split()
+        return any(paths.under(paths.expand(env, w, event.cwd), key) for w in words)
+    if any(s.program == "xargs" for s in simples) and any(_recursive(s) for s in simples):
+        return True  # the paths arrive on stdin and cannot be seen
+    for simple, folders in paths.walk(simples, event.cwd, env):
+        deep = _recursive(simple)
+        reads = _positionals(simple) if deep else [*simple.argv, *simple.redirects]
+        if deep and not reads:
+            reads = ["."]
+        if simple.program == "git" and "-C" in simple.argv[1:-1]:
+            reads.append(simple.argv[simple.argv.index("-C") + 1])
+        for folder in folders:
+            for word in reads:
+                exact, under = _reach(env, word, folder)
+                wide = under + (exact if deep else [])
+                if any(paths.under(p, key) for p in exact):
+                    return True
+                if any(paths.touches(p, key) for p in wide):
+                    return True
+    return False
+
+
+def _tool_reaches(event: Event, env: Env, key: Path) -> bool:
+    data = event.tool_input
+    given = [str(data.get(k)) for k in ("file_path", "path", "notebook_path") if data.get(k)]
+    base = paths.expand(env, given[0], event.cwd) if given else event.cwd
+    if any(paths.under(paths.expand(env, w, event.cwd), key) for w in given):
+        return True
+    if event.tool == "Grep" and paths.touches(base, key):
+        return True
+    if event.tool == "Glob":
+        exact, under = _reach(env, str(data.get("pattern", "")), base)
+        return any(paths.touches(p, key) for p in exact + under)
+    return False
 
 
 def check_answer_key(event: Event, env: Env) -> Verdict | None:
     """Agents never read the bench answer key, by any tool (D010).
 
-    A recursive read of a folder that holds the key (a search with no path, `grep -r .`)
-    reaches it too, so a folder above the key counts as well as the key itself.
+    A recursive read or a glob over a folder that holds the key reaches it too, so a folder
+    above the key counts as well as the key itself. Paths that arrive on stdin (`xargs`) cannot
+    be seen, so an agent's `xargs` with a recursive reader is refused outright.
     """
     key = _answer_key(env)
     if key is None or not event.agent_id:
         return None
-    flat, deep = _key_reads(event)
-    inside = any(paths.under(paths.expand(env, w, event.cwd), key) for w in flat + deep)
-    above = any(paths.touches(paths.expand(env, w, event.cwd), key) for w in deep)
-    if inside or above:
+    reaches = _bash_reaches if event.tool == "Bash" else _tool_reaches
+    if reaches(event, env, key):
         return Verdict(deny="refused: the bench answer key is closed to agents (D010).")
     return None
 

@@ -1,5 +1,6 @@
 import io
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -169,3 +170,51 @@ def test_an_answer_key_under_home_is_closed_too(home: Path, work: Path) -> None:
     path = str(home / "bench-key" / "bugs.md")
     assert "answer key" in call(home, work, "Read", {"file_path": path}, "a1")
     assert "answer key" in bash(home, work, "cat ~/bench-key/bugs.md", "a1")
+
+
+@pytest.fixture
+def outside(home: Path, work: Path) -> Path:
+    settings = json.loads((work / ".claude" / "bedrock.json").read_text())
+    settings["bench"] = {"answer_key": "~/share/bench-key"}
+    (work / ".claude" / "bedrock.json").write_text(json.dumps(settings))
+    key = home / "share" / "bench-key"
+    key.mkdir(parents=True)
+    (key / "bugs.md").write_text("B1\n")
+    (work / "src").mkdir(exist_ok=True)
+    return key
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "cd ~/share && cat bench-key/bugs.md",
+        "cd ~/share; grep -r x .",
+        "cd ~ && grep -r x share",
+        "cat ~/share/bench-*/bugs.md",
+        "cat ~/share/bench?key/bugs.md",
+        "cat ~/share/bench-key{,}/bugs.md",
+        "git grep --no-index x ~/share",
+        "git -C ~/share grep --no-index x",
+        "echo ~/share | xargs grep -r x",
+        "grep --dereference-recursive x ~/share",
+        "grep --directories=recurse x ~/share",
+        "grep -d recurse x ~/share",
+        "rg -e x ~/share",
+    ],
+)
+def test_key_bypasses_are_refused(home: Path, work: Path, outside: Path, command: str) -> None:
+    assert "answer key" in bash(home, work / "src", command, "a1")
+
+
+def test_glob_patterns_that_reach_the_key_are_refused(
+    home: Path, work: Path, outside: Path
+) -> None:
+    relative = os.path.relpath(outside, work / "src")
+    for pattern in (f"{outside}/*", f"{outside.parent}/**/*", f"{relative}/*"):
+        assert "answer key" in call(home, work / "src", "Glob", {"pattern": pattern}, "a1"), pattern
+
+
+def test_ordinary_agent_work_is_untouched(home: Path, work: Path, outside: Path) -> None:
+    for command in ("ls src", "cat README.md", "grep -rn todo .", "rg -e fixme src", "git grep x"):
+        assert "answer key" not in bash(home, work, command, "a1"), command
+    assert call(home, work, "Glob", {"pattern": "src/**/*.py"}, "a1") == ""
