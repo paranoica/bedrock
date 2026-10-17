@@ -4,17 +4,19 @@ The work day rolls over at the configured hour (default 10:00 local): anything b
 belongs to the previous day.
 
 ## Start of day
-1. Close yesterday if it is not closed: `bedrock log closed` for open blocks, a one-line
-   summary into the status note.
+1. Close yesterday if it is not closed: `bedrock log closed --block <id>` for each open block,
+   and a one-line summary into the status note.
 2. Read the newest handoff in `~/projects-memory-bank/<project>/handoffs/` and the notes it
    links. A handoff older than a later decision is "re-check before use".
 3. The SessionStart context already lists stale notes and base problems; fix the stale
    ones that touch today's work first.
 4. Environment: `git fetch` and `git status`; `bedrock machine`; the project's quick
-   check (`bedrock cmd test` or its narrowest suite); MCP servers answer.
+   check (`bedrock cmd test-related`, or `bedrock cmd test` when the project has no quick
+   one); MCP servers answer.
 5. Inbox, read only: Slack DMs and mentions, GitHub reviews and failed CI, the project's
    tracker, mail when connected. Every request gets R and P and goes to the backlog with a
-   link to the message (D044). A question that can simply be answered is answered, not filed.
+   link to the message (D044). A question that can simply be answered gets a copy-ready
+   reply drafted in the chat, not a task. Nothing is sent: the owner sends it.
 6. Summary for the owner, three lines: вчера (from commits and closed tasks), входящие (what
    needs the owner), сегодня (the next tasks in order).
 

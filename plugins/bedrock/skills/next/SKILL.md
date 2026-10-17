@@ -14,11 +14,13 @@ Answers the owner's recurring status questions from files, never from memory (D0
 ## 1. Read the state
 Read, in this order, and stop reading once the answer is clear:
 1. `bedrock backlog list` (open tasks, priority, claims) and `bedrock backlog next`.
-2. The project status note: `~/projects-memory-bank/<project>/status.md`.
+2. The project status note: `~/projects-memory-bank/<project>/status.md`, and the plan of the
+   open block (`~/projects-days/<project>/<date>/<block>/plan.md`).
 3. Today's day log: `bedrock minutes <block> --open` for the current block, and the log file
    under `~/projects-days/<project>/<work-date>/log.jsonl`.
 4. `git status` and `git log --oneline -10` in the workspace.
 5. Other sessions in this project: the SessionStart context lists them.
+6. Unclosed days: a `taken` without `closed` in an earlier day's log.
 
 Done when: every line of the answer below rests on one of these reads.
 
@@ -39,6 +41,8 @@ Done when: the four lines are written and each claim has its source in the reads
 - One line: the next task and who does it (session or agent).
 - If the next task needs the owner (a grant, a decision, a login), give the exact step:
   the command, where to click, what to send back.
+
+Done when: the line is sent.
 
 ## Skill map (when the owner asks "что ты умеешь")
 | When | Skill | How to tell it worked |

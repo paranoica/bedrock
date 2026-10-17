@@ -60,6 +60,7 @@ Done when: all three hold.
 ## 8. Clean up
 No `[DEBUG-` left (`git grep -n '\[DEBUG-'` is empty); harnesses kept in the block folder;
 the commit states the confirmed cause. `bedrock log debug-done --block <id>`.
+Done when: the grep is empty and the `debug-done` line exists.
 
 ## 9. Learn
 A failure note (F) in the base with the `kb` skill; "Elsewhere" becomes backlog tasks; a
@@ -69,5 +70,6 @@ Done when: the note exists and `bedrock kb validate` is clean.
 ## Fuses
 - Two failed fixes on one symptom: start this flow from step 0.
 - The same command with the same error three times: stop and re-hypothesise.
-- Hypotheses exhausted: a fresh view, the `escalation` agent (task, what was tried, why it
-  failed) or a fresh session with a handoff.
+- Hypotheses exhausted: a fresh view, the `escalation` agent, or a fresh session with a
+  handoff. The agent's brief comes from `templates/briefs/brief.md`: the task, what was
+  tried and why it failed go into Task and Context.

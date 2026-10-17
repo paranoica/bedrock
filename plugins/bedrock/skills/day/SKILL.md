@@ -19,60 +19,81 @@ Follow `references/start-of-day.md`. Done when the owner has the three-line summ
 ## 1. Intake
 - Size the request: R1 (no logic), R2 (ordinary code), R3 (risky or new), and P0–P3 (D032).
 - P0 goes to the urgent path in `references/urgent.md` and skips the plan.
-- Look facts up instead of asking; ask only what changes the result, in one message, at most
-  five questions, each with a default and the cost of a wrong default (D033).
+- Look facts up instead of asking. Questions depend on the risk (D033):
+  - R1: none.
+  - R2: only when the scope is genuinely unclear. One message, at most five questions, each
+    with a default and the cost of a wrong default.
+  - R3 or a new feature: an interview, one question at a time, each answer saved to the
+    plan file at once.
 - Log it: `bedrock log taken --block <id> --detail "<R/P> <title>"`.
 
-Done when: R, P and the questions (or "no questions") are written in the plan file.
+Done when: the `taken` line carries R and P, and the questions (or "no questions") are in
+the plan file. R1 has no plan file: its `taken` line is the record.
 
 ## 2. Plan
 - R1: no plan. R2: a short plan. R3: a full plan with a design section (D035).
 - Write it from `references/plan.md` to `~/projects-days/<project>/<date>/<block>/plan.md`.
 - Every plan has: done-when (checkable), assumptions, files, tests named with what they
-  assert, tasks with who and model, estimate, out of scope.
+  assert, tasks with who and model, the agents it uses, estimate, out of scope.
+- The agents list is the block's agent budget (D006).
 - Research per `references/research.md` when the plan rests on library behaviour (D034).
 
 Done when: the plan file exists and its done-when is a test, a command or a number.
 
 ## 3. Critic
-- R2: one critic agent; R3: two critics on different models (D036). Brief from the
-  plugin's `templates/briefs/brief.md`; give it the plan, done-when, decisions, code rules.
+- R1: none. R2: one critic agent, one round. R3: two critics on different models, at most
+  two rounds (D036). A second round with no fewer blockers goes to the owner.
+- Brief from the plugin's `templates/briefs/brief.md`; give it the plan, done-when,
+  decisions and code rules.
 - Take each finding with evidence or drop it; a blocker is re-read in the code first.
-- At most two rounds; a second round with no fewer blockers goes to the owner.
 - Tell the owner only the delta: "критик: 5 найдено, 3 принято, +20 мин".
 
 Done when: the plan file has a "Critic" section with taken and dropped findings.
 
 ## 4. Owner's go
-- Show the plan in five lines and wait for «го» (one go covers the whole plan, D016).
+- R1: the request itself is the go.
+- R2, R3: show the plan in five lines and wait for «го» (one go covers the whole plan, D016).
 - Then: `bedrock log plan-approved --block <id>` and
-  `bedrock session set task="<title>" plan='[0,<n>]' estimate_min=<m> state=work`.
+  `bedrock session set task="<title>" plan='[0,<n>]' estimate_min=<m> state=work
+  agent_budget=<agents in the plan>`.
 
 Done when: the log line exists and the status line shows the task.
 
 ## 5. Cut into tasks
 - One task = one commit with its own test, about 30–40 minutes of human work, its own files
   (D037). Add each with `bedrock backlog add '<json>'`.
-- Set auto-continue for the next safe task:
-  `bedrock session set autocontinue='{"next": {"id": "T2", "title": "...", "safe": true}}'`.
+- Set auto-continue for the first safe task:
+  `bedrock session set autocontinue.next='{"id": "T1", "title": "...", "safe": true}'`.
+  A task with an outward or destructive step is never `safe`.
 
 Done when: every task is in the backlog with files, test, who and estimate.
 
 ## 6. Implement each task
-Follow `references/implement.md` (D039): a failing test first, minimal code, verify after
-every few edits, refactor only while green, read the diff yourself, commit.
+1. `bedrock backlog claim <id> --session "$CLAUDE_CODE_SESSION_ID"` and
+   `bedrock backlog status <id> doing`.
+2. Follow `references/implement.md` (D039): a failing test first, minimal code, verify after
+   every few edits, refactor only while green, read the diff yourself, commit.
+3. After the commit: `bedrock backlog status <id> done`,
+   `bedrock log task-done --block <block> --ref <commit>`,
+   `bedrock session set plan='[<k>,<n>]'`, and point `autocontinue.next` at the next safe
+   task (`null` when none is left).
 
-Done when: the task's test failed before and passes now, and the commit exists.
+Done when: the task's test failed before and passes now, the commit exists, and the
+backlog shows the task done.
 
 ## 7. Review
-Use the `review` skill for every R2/R3 block: code review plus plan-compliance review,
-rounds until nothing real is found (D050).
+- Use the `review` skill for every block. It scales itself: R1 gets the checks and a
+  quick read, R2 and R3 get both reviews (D050).
+- The full suite runs once at the end of the block and before a PR: `bedrock cmd test`
+  (D040).
+- `bedrock log review --block <id> --detail "<the summary line>"`.
 
-Done when: the review summary line is written and `bedrock review pass <branch>` is recorded.
+Done when: the review summary line is logged and `bedrock review pass <branch>` is recorded.
 
 ## 8. Deliver
 Follow `references/deliver.md`: branch and PR per the project, live verification, and every
-outward step only under the owner's grant (D052, D053).
+outward step only under the owner's grant (D052, D053). After a merge:
+`bedrock log merged --block <id> --ref <PR>`.
 
 Done when: the change is checked live, or the report says plainly that it was not.
 
@@ -81,7 +102,7 @@ Done when: the change is checked live, or the report says plainly that it was no
 - Update the knowledge base for every module touched (the Stop hook asks once).
 - Report to the owner in plain Russian (D021): what changed for the product, checked live
   or not, what is needed from the owner, what is next.
-- `bedrock session set state=null task=null plan=null autocontinue=null`.
+- `bedrock session set state=null task=null plan=null autocontinue=null agent_budget=null`.
 
 Done when: the log line, the base update and the report are all done.
 

@@ -41,6 +41,7 @@ Done when: `bedrock kb validate` is clean.
 ## 2. Decisions are never edited
 A changed decision is a new note. The old one gets `status: superseded` and a link to its
 successor. A link that treats a superseded decision as current is flagged by the validator.
+Done when: the new note validates and the old one says `status: superseded`.
 
 ## 3. Keep it fresh (D026)
 The hooks do the detection. The session does the fix.
@@ -60,6 +61,7 @@ Done when: `bedrock kb drift` lists nothing for the touched modules.
 `git -C ~/projects-memory-bank add <project> && git -C ~/projects-memory-bank commit -m
 "docs(<project>): <what>"`. Stop treats uncommitted notes as an unclosed phase. The store is
 never pushed. Only the encrypted backup leaves the machine (`bedrock backup`, D030).
+Done when: `git -C ~/projects-memory-bank status --short` prints nothing.
 
 ## Finding things
 - `bedrock kb backlinks <note>`: what links to a note.

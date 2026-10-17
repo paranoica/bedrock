@@ -17,6 +17,7 @@ raise it to R3 whatever the plan says.
 - R1: step 1, then a quick read of the diff by the session. Skip to step 5.
 - R2: steps 1 to 5, one reviewer agent.
 - R3: steps 1 to 5, the reviewer and the `security-reviewer` agent, both at high effort.
+- Every agent here gets its brief from `templates/briefs/brief.md`.
 Done when: the level and its reason are one line in the block's plan.
 
 ## 1. Deterministic checks first
@@ -66,6 +67,7 @@ One line in Russian, nothing more unless asked:
 `ревью: 9 замечаний, 7 исправлено, 2 отклонено (мнимые)`.
 A finding the owner must decide on (a product choice, an accepted risk) is the one question
 of the message, with a default.
+Done when: the line is sent.
 
 ## Guardrails
 - Review records are self-attested (`bedrock review pass`). Record a pass only after the last

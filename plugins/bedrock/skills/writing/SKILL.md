@@ -40,7 +40,8 @@ Done when: every step of the text has its "Done when".
 ## 4. A rewrite carries a rules ledger
 When an existing text is rewritten, list each old rule and where it went: kept, moved (to
 which file), enforced (by which hook or script), or dropped (with the reason). A `critic`
-agent checks the ledger against the old and new texts.
+agent checks the ledger against the old and new texts, with a brief from
+`templates/briefs/brief.md`.
 Done when: the critic finds no rule lost without a reason.
 
 ## 5. Check

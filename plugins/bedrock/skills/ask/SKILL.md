@@ -46,9 +46,10 @@ Then `bedrock question answer <id> "<one line>" --source <file:line or note>`.
 Done when: the answer is logged with its source.
 
 ## 4. After a fast answer
-- Start a `verifier` agent in the background with the question, the answer and its source.
-  It is read-only and cheap. A contradiction is told at once: «поправка: …».
+- Start a `verifier` agent in the background with a brief from `templates/briefs/brief.md`:
+  the question, the answer and its source go into Task. It is read-only and cheap. A
+  contradiction is told at once: «поправка: …».
 - A repeated question becomes a card: copy `templates/kb/faq.md` into the project's `faq/`,
-  fill the answer and source, set `verified_at` to the current commit, link it from
-  `entry.md`. Cards go stale like module notes (D026).
+  fill the answer and source, set `verified_at` to the current commit, and link it from
+  `faq.md`. Cards go stale like module notes (D026).
 Done when: the verifier reported, or the card passes `bedrock kb validate`.

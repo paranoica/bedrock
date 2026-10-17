@@ -40,17 +40,22 @@ Write it early, without being asked, at any of these:
 Done when: `bedrock kb validate` is clean and the store has no uncommitted changes.
 
 ## 2. Tell the owner
-One line in Russian: «пора рестартить, хэндофф готов: <task>». The owner runs `/clear` or
-opens a new chat and says «продолжаем».
+Two lines in Russian: «пора рестартить, хэндофф готов: <task>» and a proposed session name
+(«имя сессии: acme-dedupe-search», D042). The owner runs `/rename`, then `/clear` or a new
+chat, and says «продолжаем».
+Done when: both lines are sent.
 
 ## 3. Resume («продолжаем»)
 1. Find the work: the newest handoff in the project's `handoffs/`, the plan and the status
-   note, `bedrock backlog list` for paused or claimed tasks.
+   note, `bedrock backlog list` for tasks in `doing` or `blocked`.
 2. Read only the handoff and what it links. Never read old chats.
-3. A handoff marked "re-check before use" by the validator: read the newer decisions first.
+3. A handoff marked "re-check before use" by the validator: read the newer decisions,
+   correct the handoff where they change it, and set its `updated` to today.
 4. Baseline before any work: `git log --oneline -10`, `git status`, and the quick test
-   command (`bedrock cmd test`). A red baseline is the first thing reported.
+   command (`bedrock cmd test-related`, or `bedrock cmd test`). A red baseline is the first
+   thing reported.
 5. `bedrock log resumed --block <id>` and continue the task named in the handoff.
+6. When the handoff's task is finished, set its `status: done`.
 Done when: the baseline result and the next step are told to the owner in two lines.
 
 ## Pause and interruptions
