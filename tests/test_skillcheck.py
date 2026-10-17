@@ -290,3 +290,13 @@ def test_a_ported_skill_keeps_its_own_style_but_not_broken_links(tmp_path: Path)
     assert result.returncode == 1
     assert "missing.md" in result.stdout
     assert "length" not in result.stdout and "long-sentence" not in result.stdout
+
+
+def test_a_ported_skill_s_references_keep_their_style(tmp_path: Path) -> None:
+    skill(tmp_path, "code-review", "Audit code. Use for review, проверь.")
+    write(tmp_path / "skills" / "code-review" / "references" / "x.md", words(45) + ".\n" * 1)
+    write(tmp_path / "skills" / "code-review" / "references" / "y.md", "line\n" * 310)
+    assert run(tmp_path, "--strict").returncode == 0
+    skill(tmp_path, "debug", "Diagnose a failure. Triggers debug, разберись.")
+    write(tmp_path / "skills" / "debug" / "references" / "x.md", words(45) + ".\n")
+    assert run(tmp_path, "--strict").returncode == 1
