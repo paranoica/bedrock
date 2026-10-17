@@ -19,7 +19,8 @@
     ],
     "ignore": [
       "tests/test_codecheck.py",
-      "plugins/bedrock/skills/code-review/*"
+      "plugins/bedrock/skills/code-review/*",
+      "plugins/bedrock/skills/design-creator/*"
     ]
   },
   "commands": {
@@ -37,7 +38,7 @@
       "run": "uvx black -q ."
     },
     "skills": {
-      "run": "python3 plugins/bedrock/scripts/skillcheck.py --root . --strict"
+      "run": "python3 plugins/bedrock/scripts/skillcheck.py --root plugins/bedrock --strict"
     }
   }
 }

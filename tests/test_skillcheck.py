@@ -6,6 +6,8 @@ SCRIPT = Path(__file__).resolve().parents[1] / "plugins" / "bedrock" / "scripts"
 
 
 def run(root: Path, *extra: str) -> subprocess.CompletedProcess[str]:
+    if root.is_dir():
+        write(root / ".claude-plugin" / "plugin.json", '{"name": "demo"}')
     return subprocess.run(
         [sys.executable, str(SCRIPT), "--root", str(root), *extra],
         capture_output=True,
@@ -269,3 +271,22 @@ def test_reference_paths_inside_references_resolve_from_the_skill_root(tmp_path:
     assert run(tmp_path).returncode == 0
     write(tmp_path / "skills" / "demo" / "references" / "a.md", "Then read `references/c.md`.\n")
     assert run(tmp_path).returncode == 1
+
+
+def test_a_folder_that_is_not_a_plugin_cannot_run(tmp_path: Path) -> None:
+    skill(tmp_path / "plugins" / "demo", "debug", "Diagnose a failure. Triggers debug, разберись.")
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT), "--root", str(tmp_path)], capture_output=True, text=True
+    )
+    assert result.returncode == 2 and "plugin.json" in result.stderr
+
+
+def test_a_ported_skill_keeps_its_own_style_but_not_broken_links(tmp_path: Path) -> None:
+    long_body = (words(45) + ".\n") + ("line\n" * 260) + "See [x](missing.md).\n"
+    skill(
+        tmp_path, "design-creator", "Web design engine. Use for редизайн, design this.", long_body
+    )
+    result = run(tmp_path, "--strict")
+    assert result.returncode == 1
+    assert "missing.md" in result.stdout
+    assert "length" not in result.stdout and "long-sentence" not in result.stdout

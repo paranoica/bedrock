@@ -45,7 +45,8 @@ agent checks the ledger against the old and new texts, with a brief from
 Done when: the critic finds no rule lost without a reason.
 
 ## 5. Check
-`python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skillcheck.py --root <repo> --strict`.
+`python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skillcheck.py --root ${CLAUDE_PLUGIN_ROOT} --strict`.
+The root is the plugin's own folder, the one holding `.claude-plugin/plugin.json`.
 It checks the frontmatter, the budgets, sentence length, semicolons, links, and the model and
 effort of agents. It does not check "Done when" lines: read for them yourself.
 Done when: it exits 0.

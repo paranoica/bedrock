@@ -13,6 +13,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 SKILL_LINE_LIMIT = 250
+# Skills carried whole from the bedrock main branch keep their own length and sentence style;
+# frontmatter, the description budget and links are still checked.
+PORTED = {"code-review", "design-creator"}
 REFERENCE_LINE_LIMIT = 300
 DESCRIPTION_TOKEN_LIMIT = 60
 MAX_SEMICOLONS = 2
@@ -114,12 +117,12 @@ def body_lines(text: str) -> list[tuple[int, str]]:
     return result
 
 
-def check_prose(path: Path, rel: str, text: str) -> list[Finding]:
+def check_prose(path: Path, rel: str, text: str, style: bool = True) -> list[Finding]:
     """Check semicolons per sentence, sentence length and links that must resolve."""
     findings: list[Finding] = []
     lines = body_lines(text)
     for number, line in lines:
-        if line.lstrip().startswith("|"):
+        if not style or line.lstrip().startswith("|"):
             continue
         for sentence in re.split(r"(?<=[.!?])\s+", INLINE_CODE_RE.sub("", line)):
             if sentence.count(";") > MAX_SEMICOLONS:
@@ -170,21 +173,22 @@ def check_skill(skill_md: Path, root: Path) -> list[Finding]:
             Finding(rel, 1, "ERROR", "description", f"over {DESCRIPTION_TOKEN_LIMIT} tokens")
         )
     findings += check_model_and_effort(rel, front.fields)
+    ported = folder in PORTED
     line_count = len(text.splitlines())
-    if line_count > SKILL_LINE_LIMIT:
+    if line_count > SKILL_LINE_LIMIT and not ported:
         findings.append(
             Finding(rel, line_count, "ERROR", "length", f"over {SKILL_LINE_LIMIT} lines")
         )
-    findings += check_prose(skill_md, rel, text)
+    findings += check_prose(skill_md, rel, text, style=not ported)
     for reference in sorted((skill_md.parent / "references").glob("*.md")):
         ref_rel = reference.relative_to(root).as_posix()
         ref_text = read(reference)
         ref_lines = len(ref_text.splitlines())
-        if ref_lines > REFERENCE_LINE_LIMIT:
+        if ref_lines > REFERENCE_LINE_LIMIT and not ported:
             findings.append(
                 Finding(ref_rel, ref_lines, "ERROR", "length", f"over {REFERENCE_LINE_LIMIT} lines")
             )
-        findings += check_prose(reference, ref_rel, ref_text)
+        findings += check_prose(reference, ref_rel, ref_text, style=not ported)
     return findings
 
 
@@ -241,6 +245,13 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if not args.root.is_dir():
         print(f"skillcheck: plugin root not found: {args.root}", file=sys.stderr)
+        return 2
+    if not (args.root / ".claude-plugin" / "plugin.json").is_file():
+        print(
+            f"skillcheck: {args.root} has no .claude-plugin/plugin.json: pass the plugin's own "
+            "folder, or nothing would be checked",
+            file=sys.stderr,
+        )
         return 2
     try:
         findings = check(args.root)
