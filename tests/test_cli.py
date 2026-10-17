@@ -828,3 +828,59 @@ def test_text_check_from_a_file(
     assert code == 1 and json.loads(out)[0]["rule"] == "dash"
     text.write_text("Готово, проверил.\n", encoding="utf-8")
     assert run(capsys, ["text", "check", str(text)], env, workspace)[:2] == (0, "[]\n")
+
+
+def _zoned_repo(workspace: Path) -> None:
+    settings = {"project": "Acme", "critical_zones": ["src/ingest/**"]}
+    (workspace / ".claude" / "bedrock.json").write_text(json.dumps(settings))
+    for args in (
+        ["init", "-q", "-b", "main"],
+        ["config", "user.email", "t@example.com"],
+        ["config", "user.name", "t"],
+    ):
+        subprocess.run(["git", "-C", str(workspace), *args], check=True, capture_output=True)
+    (workspace / "src" / "ingest").mkdir(parents=True)
+    (workspace / "src" / "ingest" / "chunk.py").write_text("x = 1\n")
+    (workspace / "src" / "ui.py").write_text("y = 1\n")
+    subprocess.run(["git", "-C", str(workspace), "add", "."], check=True)
+    subprocess.run(["git", "-C", str(workspace), "commit", "-qm", "start"], check=True)
+    subprocess.run(["git", "-C", str(workspace), "checkout", "-qb", "fix/x"], check=True)
+
+
+def test_a_critical_zone_needs_a_full_review(
+    capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
+) -> None:
+    _zoned_repo(workspace)
+    env = env_at(home, "2026-10-17T12:00:00Z")
+    (workspace / "src" / "ingest" / "chunk.py").write_text("x = 2\n")
+    subprocess.run(["git", "-C", str(workspace), "commit", "-qam", "fix"], check=True)
+    argv = ["review", "pass", "fix/x", "--risk", "R2", "--base", "main"]
+    code, _, err = run(capsys, argv, env, workspace)
+    assert code == 1 and "src/ingest/chunk.py" in err and "R3" in err
+    record = home / ".local/state/bedrock/reviews/Acme/fix__x.json"
+    assert not record.exists()
+    argv[4] = "R3"
+    assert run(capsys, argv, env, workspace)[0] == 0
+    assert json.loads(record.read_text())["risk"] == "R3"
+
+
+def test_outside_critical_zones_a_lighter_review_passes(
+    capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
+) -> None:
+    _zoned_repo(workspace)
+    (workspace / "src" / "ui.py").write_text("y = 2\n")
+    subprocess.run(["git", "-C", str(workspace), "commit", "-qam", "ui"], check=True)
+    argv = ["review", "pass", "fix/x", "--risk", "R1", "--base", "main"]
+    assert run(capsys, argv, env_at(home, "2026-10-17T12:00:00Z"), workspace)[0] == 0
+
+
+def test_project_check_and_night_watch_from_the_cli(
+    capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
+) -> None:
+    env = env_at(home, "2026-10-17T12:00:00Z")
+    code, out, _ = run(capsys, ["project", "check"], env, workspace)
+    assert code == 1 and "commands" in out
+    argv = ["night", "watch", "--until", "23:00", "--", sys.executable, "-c", "pass"]
+    code, out, _ = run(capsys, argv, env, workspace)
+    assert code == 0 and json.loads(out) == {"reason": "finished", "runs": 1}
+    assert run(capsys, ["night", "watch", "--until", "23:00"], env, workspace)[0] == 1

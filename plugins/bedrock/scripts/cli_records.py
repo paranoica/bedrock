@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import json
+import subprocess
 from collections.abc import Callable, Sequence
 from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 
 from bedrock_lib import backlog, clock, daylog, ledger, notify, questions, session
-from cli_context import Context, UsageError, json_object, print_json
+from bedrock_lib.config import find_project
+from cli_context import CannotRun, Context, UsageError, json_object, print_json
 
 
 def register(subcommands: argparse._SubParsersAction) -> list[argparse.ArgumentParser]:
@@ -53,6 +56,8 @@ def register(subcommands: argparse._SubParsersAction) -> list[argparse.ArgumentP
     verdict.add_argument("outcome", choices=("pass", "fail"))
     verdict.add_argument("branch")
     verdict.add_argument("--notes", default="")
+    verdict.add_argument("--risk", choices=("R1", "R2", "R3"), default=None)
+    verdict.add_argument("--base", default=None, help="where the branch merges; default origin's")
     return [
         log,
         minutes,
@@ -239,11 +244,45 @@ def _session(ctx: Context) -> int:
     return 0
 
 
+def _critical(ctx: Context, branch: str, base: str | None) -> list[str]:
+    """Files of the branch inside the project's critical zones (D032), paths from the repo root."""
+    found = find_project(ctx.cwd)
+    zones = found.data.get("critical_zones") if found else None
+    if not isinstance(zones, list) or not zones:
+        return []
+
+    def git(*args: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            ["git", "-C", str(ctx.cwd), *args], capture_output=True, text=True, check=False
+        )
+
+    if base is None:
+        head = git("symbolic-ref", "--short", "refs/remotes/origin/HEAD").stdout.strip()
+        base = head or "main"
+    changed = git("diff", "--name-only", "-z", "--end-of-options", f"{base}...{branch}")
+    if changed.returncode != 0:
+        raise CannotRun(f"cannot compare {branch} with {base}: {changed.stderr.strip()}")
+    names = [n for n in changed.stdout.split("\0") if n]
+    return [n for n in names if any(fnmatch.fnmatch(n, str(zone)) for zone in zones)]
+
+
 def _review(ctx: Context) -> int:
     args = ctx.args
+    if args.outcome == "pass" and args.risk != "R3":
+        touched = _critical(ctx, args.branch, args.base)
+        if touched:
+            raise UsageError(
+                f"critical zone touched ({', '.join(touched[:5])}): a pass needs the full "
+                "review, record it with --risk R3 (D032)"
+            )
     folder = ctx.cfg.state_dir / "reviews" / ctx.project()
     folder.mkdir(parents=True, exist_ok=True)
-    record = {"passed": args.outcome == "pass", "ts": clock.iso(ctx.now), "notes": args.notes}
+    record = {
+        "passed": args.outcome == "pass",
+        "ts": clock.iso(ctx.now),
+        "notes": args.notes,
+        "risk": args.risk,
+    }
     path = folder / f"{args.branch.replace('/', '__')}.json"
     path.write_text(json.dumps(record, ensure_ascii=False), encoding="utf-8")
     return 0

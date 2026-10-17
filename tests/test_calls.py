@@ -1,3 +1,4 @@
+import hashlib
 import json
 from pathlib import Path
 
@@ -118,8 +119,6 @@ def test_an_id_cannot_reach_outside_the_archive(cfg: UserConfig, raw: Path) -> N
     outside = cfg.days_dir / "Acme" / "x"
     outside.mkdir(parents=True)
     (outside / "transcript.txt").write_text("x")
-    (outside / "meta.json").write_text(
-        '{"sha256": "%s"}' % __import__("hashlib").sha256(b"x").hexdigest()
-    )
+    (outside / "meta.json").write_text(json.dumps({"sha256": hashlib.sha256(b"x").hexdigest()}))
     with pytest.raises(calls.CallError):
         calls.verify(cfg, "Acme", "../x")

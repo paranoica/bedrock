@@ -21,5 +21,23 @@
       "tests/test_codecheck.py",
       "plugins/bedrock/skills/code-review/*"
     ]
+  },
+  "commands": {
+    "test": {
+      "run": "uvx pytest -p no:cacheprovider -q -o addopts=",
+      "heavy": true
+    },
+    "test-related": {
+      "run": "uvx pytest -p no:cacheprovider -q -o addopts= {args}"
+    },
+    "lint": {
+      "run": "uvx ruff check ."
+    },
+    "format": {
+      "run": "uvx black -q ."
+    },
+    "skills": {
+      "run": "python3 plugins/bedrock/scripts/skillcheck.py --root . --strict"
+    }
   }
 }

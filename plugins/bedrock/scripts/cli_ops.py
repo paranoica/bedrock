@@ -1,0 +1,68 @@
+"""Subcommands for looking back and keeping work running: retro, hot spots, night, settings."""
+
+from __future__ import annotations
+
+import argparse
+from collections.abc import Callable
+from dataclasses import asdict
+
+from bedrock_lib import insights, night, notify, projectcheck
+from bedrock_lib.config import find_project
+from cli_context import Context, UsageError, print_json
+
+
+def register(subcommands: argparse._SubParsersAction) -> list[argparse.ArgumentParser]:
+    """Add `retro`, `arch`, `night` and `project`; `retro` takes `--project`."""
+    retro = subcommands.add_parser("retro", help="the week's blocks, minutes and calibration")
+    retro.add_argument("--days", type=int, default=7)
+    arch = subcommands.add_parser("arch", help="files that change often and are large")
+    arch.add_argument("action", choices=("hotspots",))
+    arch.add_argument("--days", type=int, default=90)
+    arch.add_argument("--top", type=int, default=15)
+    watch = subcommands.add_parser("night", help="keep a command alive until a deadline")
+    watch.add_argument("action", choices=("watch",))
+    watch.add_argument("--until", required=True, help="local clock time, HH:MM")
+    settings = subcommands.add_parser("project", help="check the workspace settings")
+    settings.add_argument("action", choices=("check",))
+    return [retro]
+
+
+def _retro(ctx: Context) -> int:
+    print_json(insights.retro(ctx.cfg, ctx.project(), ctx.now, days=ctx.args.days))
+    return 0
+
+
+def _arch(ctx: Context) -> int:
+    found = find_project(ctx.cwd)
+    root = found.root if found else ctx.cwd
+    spots = insights.hotspots(root, days=ctx.args.days, top=ctx.args.top)
+    print_json([asdict(s) for s in spots])
+    return 0
+
+
+def _night(ctx: Context) -> int:
+    argv = list(ctx.args.argv)
+    if not argv:
+        raise UsageError("bedrock night watch --until HH:MM -- <command>")
+    deadline = night.until(ctx.args.until, ctx.now, ctx.cfg.display_tz)
+    log = ctx.cfg.state_dir / "night.jsonl"
+    result = night.watch(argv, deadline.timestamp(), log)
+    if result.reason == "gave-up":
+        notify.send(ctx.cfg, "blocked", "bedrock night", f"stopped after {result.runs} crashes")
+    print_json(asdict(result))
+    return 0 if result.reason != "gave-up" else 1
+
+
+def _project(ctx: Context) -> int:
+    problems = projectcheck.check(ctx.workspace().data)
+    print_json(problems)
+    return 1 if problems else 0
+
+
+HANDLERS: dict[str, Callable[[Context], int]] = {
+    "retro": _retro,
+    "arch": _arch,
+    "night": _night,
+    "project": _project,
+}
+FAILURES: tuple[type[Exception], ...] = (insights.InsightError, notify.NotifyError)
