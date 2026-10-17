@@ -519,6 +519,7 @@ def test_drift_survives_undecodable_and_binary_files(bank: Path, code: Path) -> 
     sh(code, "commit", "-qam", "fix: odd")
     found = kbdrift.drift(bank, "Acme", code)
     assert len(found) == 1 and "stale" in found[0]
+    assert "caf" in found[0].encode("utf-8").decode("utf-8")
 
 
 def test_glob_characters_in_a_name_match_only_that_file(bank: Path, code: Path) -> None:

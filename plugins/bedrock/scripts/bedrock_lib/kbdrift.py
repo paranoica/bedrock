@@ -51,6 +51,11 @@ def _names(output: str) -> list[str]:
     return [name for name in output.split("\0") if name]
 
 
+def _shown(path: str) -> str:
+    """A path as it can be printed: bytes that are not UTF-8 become U+FFFD."""
+    return path.encode("utf-8", "surrogateescape").decode("utf-8", "replace")
+
+
 def _spans(source: str, suffix: str, names: list[str]) -> list[tuple[int, int]]:
     """Line ranges of the named symbols: exact for Python, from one definition to the next else."""
     if suffix == ".py":
@@ -133,8 +138,9 @@ def _note_drift(git: _Git, note: Note, commit: str, cache: dict[str, Any]) -> st
     if files and (anchors := _anchors(note)):
         files = [p for p in files if _anchored_change(git, commit, p, anchors)]
     if files:
+        shown = ", ".join(map(_shown, files))
         return (
-            f"note {note.name} is stale: {', '.join(files)} changed since {commit[:10]}; "
+            f"note {note.name} is stale: {shown} changed since {commit[:10]}; "
             "update § Boundaries/Rules or record that nothing changes and why (D026)"
         )
     return None

@@ -12,6 +12,20 @@ class JsonlError(Exception):
     """A JSON Lines file holds a line that is not valid JSON."""
 
 
+def dumps(value: Any) -> str:
+    """One line of JSON that can always be written as UTF-8.
+
+    Text read with `surrogateescape` (file names that are not UTF-8) cannot be encoded as is;
+    such a value falls back to ASCII escapes, which JSON readers accept.
+    """
+    text = json.dumps(value, ensure_ascii=False)
+    try:
+        text.encode("utf-8")
+    except UnicodeEncodeError:
+        return json.dumps(value)
+    return text
+
+
 def append(path: Path, record: dict[str, Any]) -> None:
     """Append one record as a line, holding an exclusive lock while writing."""
     path.parent.mkdir(parents=True, exist_ok=True)

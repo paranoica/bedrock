@@ -10,6 +10,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from bedrock_lib import jsonl
 from bedrock_lib.config import ProjectConfig, UserConfig, find_project
 
 
@@ -53,7 +54,7 @@ class Context:
 
 def print_json(value: Any) -> None:
     """Print a value as one line of JSON."""
-    print(json.dumps(value, ensure_ascii=False))
+    print(jsonl.dumps(value))
 
 
 def json_object(text: str, what: str) -> dict[str, Any]:

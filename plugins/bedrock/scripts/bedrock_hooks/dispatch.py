@@ -8,7 +8,7 @@ import sys
 from collections.abc import Iterable, Mapping
 from typing import TextIO
 
-from bedrock_lib import clock
+from bedrock_lib import clock, jsonl
 from bedrock_lib.config import ConfigError, load_user_config
 
 from bedrock_hooks.core import Env, Event, Rule, answer, evaluate
@@ -57,7 +57,7 @@ def main(
     env = Env(cfg=cfg, now=clock.now_utc(environ), environ=environ, cwd=event.cwd)
     result = answer(event.name, evaluate(event, rules, env))
     if result:
-        json.dump(result, stdout, ensure_ascii=False)
+        stdout.write(jsonl.dumps(result))
     return 0
 
 

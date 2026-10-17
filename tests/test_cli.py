@@ -738,3 +738,17 @@ def test_backup_rejects_a_recipient_that_is_not_an_age_key(
     code, _, err = run(capsys, ["backup"], env_at(home, "2026-10-17T12:00:00Z"), workspace)
     assert code == 1 and "recipient" in err
     assert not (home / "b").exists()
+
+
+def test_print_json_survives_undecodable_text() -> None:
+    import contextlib
+    import io
+
+    from cli_context import print_json
+
+    raw = io.BytesIO()
+    out = io.TextIOWrapper(raw, encoding="utf-8")
+    with contextlib.redirect_stdout(out):
+        print_json(["caf\udce9.py"])
+    out.flush()
+    assert json.loads(raw.getvalue().decode("utf-8"))[0].startswith("caf")

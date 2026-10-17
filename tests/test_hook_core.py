@@ -169,3 +169,14 @@ def test_every_registered_rule_fails_according_to_its_class(tmp_path: Path) -> N
         outcome = core.evaluate(event, [crashing], env)
         assert bool(outcome.denials) is (rule.kind == core.GUARD), rule.name
         assert outcome.blocks == []
+
+
+def test_undecodable_text_in_a_verdict_still_gives_valid_json(tmp_path: Path) -> None:
+    raw = io.BytesIO()
+    out = io.TextIOWrapper(raw, encoding="utf-8")
+    data = json.dumps({"cwd": str(tmp_path), "session_id": "s1"})
+    odd = rule(core.HELPER, core.Verdict(block="file caf\udce9.py changed"))
+    assert dispatch.main(["Stop"], io.StringIO(data), out, environ(tmp_path), [odd]) == 0
+    out.flush()
+    result = json.loads(raw.getvalue().decode("utf-8"))
+    assert result["decision"] == "block" and "caf" in result["reason"]
