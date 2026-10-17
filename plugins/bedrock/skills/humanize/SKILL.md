@@ -14,7 +14,8 @@ The output is pasted as is. Anything around it is junk the owner has to delete.
 ## 0. The voice
 The owner's voice lives in `~/.config/bedrock/voice.md`: how he writes in Russian and in
 English, words he uses and avoids, how formal he is with whom. It is his file, outside any
-repository. Missing: ask five questions (below), write it, then continue.
+repository, and the guard keeps Claude from writing there. Missing: ask the five questions
+below, then give the owner the file's text to save himself.
 1. How do you greet and sign off with the client, with the team?
 2. Short sentences or long? Emoji, yes or no?
 3. Words you never use?
@@ -25,7 +26,8 @@ Done when: the file exists.
 ## 1. Pick the mode
 - **reply:** a pasted message or thread. Match its language, register and length. Answer
   only what was asked. A fact the thread does not hold is a `[уточнить: …]` gap, never a guess.
-- **document:** a longer piece. A neutral clean voice, not the personal one.
+- **document:** a longer piece. For the client, the owner's voice. For anyone else, a
+  neutral clean voice.
 - **rewrite:** the default. Keep the meaning, change the form.
 Done when: the mode is chosen.
 
@@ -41,8 +43,11 @@ Done when: `bedrock text check <file>` prints `[]` (add `--slack` for Slack).
 - Slack (the default): `*bold*` with single asterisks, `•` bullets, bare links, no `#`
   headings, no `>` quotes, no tables.
 - Plain text: no markup at all.
-Done when: `bedrock text check --slack` is clean for Slack text.
+Done when: `bedrock text check <file> --slack` prints `[]` for Slack text.
 
 ## 4. Hand it over
 Output only the finished text: no preamble, no "вот текст", no blockquote or code fence around
-it. It is a draft. Claude never sends it (D044).
+it. It is a draft. Claude never sends it (D044). Only when the owner asks, the draft goes into
+his own Slack drafts through the connector, and only after a test draft to himself showed no
+"sent with Claude" label.
+Done when: the text is in the chat, or in his drafts on his word.

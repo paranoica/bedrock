@@ -1,5 +1,6 @@
 ---
 type: call
+call_id: {call id from bedrock call add}
 date: {date}
 with: [{who}]
 tags: [call]
@@ -15,4 +16,5 @@ recording: {path in projects-days}
 ## New facts
 ## Contradictions with the base
 ## Floated, not decided
+## Answers to open questions
 ## Questions for the next call

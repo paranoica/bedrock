@@ -42,3 +42,4 @@ Done when: the PDF exists and its pages were looked at, or the report says why n
 
 ## 5. Hand it over
 Give the owner the PDF path and one line on what it says. Nothing is sent by Claude.
+Done when: the path and the line are in the chat.

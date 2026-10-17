@@ -38,6 +38,9 @@ Done when: every small change is logged and the structural list is sent.
 ## 4. Next week
 One line: «реально на неделю: X, Y, Z», from the backlog by priority, sized with this week's
 calibration factor.
+Done when: the line is sent.
 
 ## 5. Every two weeks
-Ask whether to run the architecture review (the `arch` skill). Run it only on yes.
+Ask whether to run the architecture review. On yes, the owner types `/bedrock:arch`: the
+skill runs only by his hand.
+Done when: the question was asked.

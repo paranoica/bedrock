@@ -16,7 +16,8 @@ repository untouched, the project's knowledge base, `.claude/bedrock.json` and `
 ## 0. The workspace
 - The workspace is a folder of the owner's. The client repository sits inside it, untouched
   (D059). Bedrock writes nothing into the client repository.
-- Create the knowledge-base folder: `bedrock kb init --code <PREFIX>`.
+- Create the knowledge-base folder: `bedrock kb init --code <PREFIX> --project <Name>`.
+  The workspace settings come in step 2, so the project is named here.
 Done when: `bedrock kb validate` prints `[]`.
 
 ## 1a. New project: the interview
@@ -27,7 +28,7 @@ Done when: the owner confirmed the interview covers the product.
 
 ## 1b. Existing project: onboarding (D045)
 1. Cheap facts first: `bedrock map build`, then the LSP.
-2. A large unknown area: a `researcher` agent drafts module notes. Every claim cites its code
+2. A large unknown area: an `inventory` agent drafts module notes. Every claim cites its code
    line and is marked hypothesis.
 3. Verify by running: the tests as a behaviour spec; predict an output, run it, and a
    confirmed prediction turns a hypothesis into a fact.
@@ -40,12 +41,17 @@ Done when: entry, status, the module notes and pitfalls exist and validate.
 Copy `templates/project/bedrock.json` to `<workspace>/.claude/bedrock.json` and fill it:
 - `commands`: derived from the project's own files (package.json scripts, Makefile,
   pyproject, CI). Standard names: setup, test (the full suite), test-related (the quick
-  check, takes `{args}`), lint, format, typecheck, build, run. Mark heavy ones `"heavy": true`.
-  Run each once with `bedrock cmd <name>`. A command that fails is fixed or removed, never kept.
+  check, takes `{args}`), lint, format, typecheck, build, run, e2e. Mark heavy ones
+  `"heavy": true`. Run each once with `bedrock cmd <name>`, `test-related` with one test file
+  after `--`. `run` starts a server: start it, check it answers, stop it. A command that fails
+  is fixed or removed, never kept.
 - `critical_zones`: path globs from the repository root (D032).
 - `packs`: the domain rule packs that apply (`packs/` in the plugin).
 - `kb.roots`: the folders that hold modules.
 - `agents`, `compact_window` when the defaults do not fit.
+- For night work, Claude Code's limit on consecutive Stop-hook continuations is raised in the
+  workspace's Claude settings (D046). The setting's name is checked in the Claude Code docs
+  at the time, not guessed.
 Done when: `bedrock project check` prints `[]`.
 
 ## 3. AGENTS.md
@@ -57,7 +63,9 @@ Done when: every command in AGENTS.md is one that `bedrock cmd --list` shows.
 ## 4. The tracker and the plugin
 - The tracker the project really uses (Jira, Linear, or none) goes into the entry note.
 - Enable the plugin for the workspace (`/plugin` in Claude Code), on the owner's word.
+Done when: the entry note names the tracker, and the owner enabled the plugin or said not to.
 
 ## 5. Hand over
 Tell the owner in three lines: what was set up, what is still open (the open-questions
 note), and the first task. Commit the knowledge base.
+Done when: `git -C ~/projects-memory-bank status --short` prints nothing.

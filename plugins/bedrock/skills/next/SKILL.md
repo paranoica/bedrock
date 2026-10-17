@@ -65,3 +65,4 @@ Done when: the line is sent.
 | Architecture review (on request) | `arch` | three designs, a decision note |
 | Work while the owner sleeps | `night` | a morning report |
 | A new or existing project | `start` | `bedrock project check` prints `[]` |
+| Granting an action, all-out, withdrawing | `allow`, `unleash`, `revoke` | the hook's notice |

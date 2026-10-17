@@ -14,8 +14,10 @@ session is never idle (D046).
 
 ## 1. The start phrase
 The owner says what is allowed, in his own words, for example «автономно до утра: можно
-пушить в ветки, нельзя деплой». Those words become the grant (D016). Nothing outside them
-happens. The end defaults to 12:00 local.
+пушить в ветки, деплой нельзя». Those words become the grant (D016), «до утра» meaning until
+12:00 local. Nothing outside them happens. A negation anywhere in a clause cancels it.
+Done when: the prompt hook's notice «bedrock: grant from your words: …» names exactly the
+allowed actions and their end. Anything else means rephrase, or use `/bedrock:allow`.
 
 ## 2. The pre-sleep check (one message, before he leaves)
 1. Sessions that must live until morning (cloud logins, GitHub, VPN) and when each expires:
@@ -29,8 +31,10 @@ Done when: that line is sent.
 ## 3. Set it running
 - `bedrock session set autocontinue.until=<ISO end, UTC>` and the first task in
   `autocontinue.next`, as in the `day` skill.
-- Start Claude under the watchdog, which restarts a crash and stops at the end time:
-  `bedrock night watch --until 12:00 -- claude --continue`.
+- The owner closes this session and, in his terminal, starts Claude under the watchdog,
+  which restarts a crash and stops at the end time:
+  `bedrock night watch --until 12:00 -- claude --continue "продолжай ночной план"`.
+  The prompt makes a restarted session pick the plan up instead of waiting for input.
 - All guards stay on. One commit per task. Progress lives in files.
 Done when: the watchdog is running.
 
@@ -40,12 +44,17 @@ Done when: the watchdog is running.
 - Main list done or blocked: the fallback queue inside the grant: refresh stale notes, add
   tests where coverage is thin, R1 and R2 backlog items marked "ok at night".
 - A network or flaky failure is retried with a pause, not treated as a stop.
-- Stop only when nothing is left or a limit is reached.
+- Stop only when nothing is left or a limit is reached. At 80% of the 5-hour window with no
+  answer from the owner, the agent guard saves: no new agents. At 95% the session stops.
+Done when: every stopped task has its reason and the owner's steps in the status note.
 
 ## 5. Waking the owner
-A phone notification only for P0 or a decision that blocks everything (`bedrock notify p0`
-or `bedrock notify blocked`). Everything else waits for the morning.
+A phone notification only for P0 or a decision that blocks everything
+(`bedrock notify p0 "<title>" "<what is needed>"`, or `blocked` in place of `p0`). Everything
+else waits for the morning.
+Done when: no other notification was sent.
 
 ## 6. The morning report
 Plain text: what got done, what was left and why, the one question for the owner, the limit
 spent. The first night runs a small list; the morning looks at what misbehaved.
+Done when: the report is the first thing the owner sees in the session.

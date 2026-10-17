@@ -39,7 +39,8 @@ the plan file. R1 has no plan file: its `taken` line is the record.
   `bedrock session set agent_budget=<n>`, where n is a whole number: every agent run the
   block needs in this 5-hour window, each critic round and review round counted.
 - Research per `references/research.md` when the plan rests on library behaviour (D034).
-- The test checklists of the project's packs feed the plan's Tests section.
+- The project's packs feed the plan: their test checklists go into Tests, their rules into
+  the implementer brief's "Keep true".
 
 Done when: the plan file exists and its done-when is a test, a command or a number.
 

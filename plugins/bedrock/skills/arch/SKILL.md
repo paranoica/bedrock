@@ -26,8 +26,8 @@ Show the list, ranked, one line each with its cost and its gain. The owner picks
 Done when: the pick is written in the file.
 
 ## 3. Three designs
-For each pick, three ways to do it, from two models (the `architect` agent at high effort,
-and a second opinion from the `escalation` agent when the change is hard to undo). Each
+For each pick, three ways to do it, from two models: the `architect` agent and the
+`escalation` agent, each with a brief from `templates/briefs/brief.md`. Each
 design: the mechanism, the interfaces, what it costs, what breaks, and why the rejected ones
 lose.
 Done when: the designs are in the file and the owner chose one.
@@ -35,3 +35,4 @@ Done when: the designs are in the file and the owner chose one.
 ## 4. Record and cut
 The choice becomes a decision note (the `kb` skill), then backlog tasks at their risk level.
 The results go to the chat. A PDF report only when the owner asks for one (the `doc` skill).
+Done when: the decision note validates and the tasks are in the backlog.

@@ -25,6 +25,7 @@ through the heavy-run lock, in the background. Give it a hint vocabulary from th
 base: names and terms of the project. Mark low-confidence spans `[?]`. Write the output with
 `[hh:mm:ss]` line stamps, then archive it as above.
 The faster-whisper package is installed only on the owner's word.
+Done when: the transcript is archived, or the missing package is reported.
 
 ## 2. Debrief
 Copy `templates/kb/call.md` into the project's `calls/` folder in the knowledge base. The
@@ -36,10 +37,11 @@ and a row for it in the entry's canon table.
   `(<call-id> @ hh:mm:ss)`.
 - Mark "floated" versus "decided". A floated idea is never written as a decision.
 - Label the whole transcript: item, chit-chat or unclear. Nothing is skipped silently.
-Done when: `bedrock call quotes <id> <debrief.md>` prints `[]`.
+Done when: `bedrock call quotes <id> <debrief.md>` prints `[]`, and every item section holds
+items or the word "none". The check proves quotes, not coverage: the labelling does that.
 
 ## 3. A second pair of eyes
-A second agent debriefs the same transcript from scratch, with a brief from
+An `analyst` agent debriefs the same transcript from scratch, with a brief from
 `templates/briefs/brief.md`, without seeing the first debrief. Show the owner the
 differences, every "unclear" span and every `[?]` as one list.
 Done when: the differences are resolved or listed for the owner.

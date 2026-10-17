@@ -14,7 +14,7 @@ Green tests prove the cases someone thought of. A hunt looks for the ones nobody
 ## When it runs
 - Always on R3 blocks and on files inside the project's `critical_zones`.
 - Briefly on R2, after the block's tests are green.
-- Weekly on the hottest modules, with the architecture review (`bedrock arch hotspots`).
+- On the hottest modules (`bedrock arch hotspots`) when the architecture review runs.
 Done when: the block's plan says which of these applies.
 
 ## 1. Brief the hunter
@@ -49,3 +49,4 @@ Done when: each finding is reproduced and routed, or cut with the verifier's rea
 ## 4. Keep what it found
 A confirmed finding leaves a regression test at the right seam (the `debug` skill does this)
 and, when it is a pattern, a line in the domain pack or a failure note in the knowledge base.
+Done when: each confirmed finding has its test or its note.
