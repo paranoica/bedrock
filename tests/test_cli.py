@@ -922,3 +922,16 @@ def test_a_zone_written_with_a_leading_dot_or_slash(
         subprocess.run(["git", "-C", str(workspace), "commit", "-qam", "fix"], check=True)
         argv = ["review", "pass", "fix/x", "--risk", "R2", "--base", "main"]
         assert run(capsys, argv, env_at(home, "2026-10-17T12:00:00Z"), workspace)[0] == 1, zone
+
+
+def test_a_zone_for_the_whole_repository(
+    capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
+) -> None:
+    _zoned_repo(workspace)
+    for zone in (".", "/", "./"):
+        settings = {"project": "Acme", "critical_zones": [zone]}
+        (workspace / ".claude" / "bedrock.json").write_text(json.dumps(settings))
+        (workspace / "src" / "ui.py").write_text(f"y = {len(zone)}\n")
+        subprocess.run(["git", "-C", str(workspace), "commit", "-qam", "ui"], check=True)
+        argv = ["review", "pass", "fix/x", "--risk", "R2", "--base", "main"]
+        assert run(capsys, argv, env_at(home, "2026-10-17T12:00:00Z"), workspace)[0] == 1, zone
