@@ -277,6 +277,7 @@ def _answer_key(env: Env) -> Path | None:
 
 
 RECURSIVE = {"rg", "ag", "ack", "find", "fd", "tree", "tar", "zip", "rsync", "du"}
+PATTERN_FIRST = {"rg", "ag", "ack", "grep", "egrep", "fgrep"}
 
 
 def _recursive(simple: shell.Simple) -> bool:
@@ -301,6 +302,9 @@ def _key_reads(event: Event) -> tuple[list[str], list[str]]:
     for simple in simples:
         words = [w for w in simple.argv[1:] if not w.startswith("-")]
         flat += [*simple.argv, *simple.redirects]
+        given = {"-e", "--regexp", "-f", "--file"} & set(simple.argv)
+        if simple.program in PATTERN_FIRST and words and not given:
+            words = words[1:]
         if _recursive(simple):
             deep += words or ["."]
     return flat, deep
