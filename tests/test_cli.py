@@ -628,3 +628,49 @@ def test_review_record_for_a_branch(
     assert json.loads(record.read_text())["passed"] is True
     run(capsys, ["review", "fail", "fix/x-1"], env, workspace)
     assert json.loads(record.read_text())["passed"] is False
+
+
+def test_kb_init_validate_and_backlinks(
+    capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
+) -> None:
+    env = env_at(home, "2026-10-17T12:00:00Z")
+    assert run(capsys, ["kb", "init", "--code", "ACME"], env, workspace)[0] == 0
+    assert (home / "projects-memory-bank" / "Acme" / "entry.md").exists()
+    code, out, _ = run(capsys, ["kb", "validate"], env, workspace)
+    assert (code, json.loads(out)) == (0, [])
+    code, out, _ = run(capsys, ["kb", "backlinks", "status"], env, workspace)
+    assert "entry" in json.loads(out)
+    (home / "projects-memory-bank" / "Acme" / "orphan.md").write_text("# x\n")
+    code, out, _ = run(capsys, ["kb", "validate"], env, workspace)
+    assert code == 1
+    assert any("orphan" in p["message"] for p in json.loads(out))
+
+
+def test_kb_drift_and_uncovered(
+    capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
+) -> None:
+    repo = git_repo(workspace)
+    subprocess.run(["git", "-C", str(repo), "config", "user.name", "t"], check=True)
+    (workspace / "src" / "a.py").write_text("x = 1\n")
+    subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+    subprocess.run(["git", "-C", str(repo), "commit", "-qm", "chore: x"], check=True)
+    env = env_at(home, "2026-10-17T12:00:00Z")
+    run(capsys, ["kb", "init", "--code", "ACME"], env, workspace)
+    code, out, _ = run(capsys, ["kb", "uncovered", "--root", "."], env, workspace)
+    assert "src" in json.loads(out)
+    code, out, _ = run(capsys, ["kb", "drift"], env, workspace)
+    assert (code, json.loads(out)) == (0, [])
+
+
+def test_map_build_check_and_lookups(
+    capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
+) -> None:
+    (workspace / "src" / "auth.py").write_text("def verify():\n    pass\n")
+    (workspace / "src" / "views.py").write_text("def login():\n    verify()\n")
+    env = env_at(home, "2026-10-17T12:00:00Z")
+    assert run(capsys, ["map", "check"], env, workspace)[1].strip() == "absent"
+    assert run(capsys, ["map", "build"], env, workspace)[0] == 0
+    assert run(capsys, ["map", "check"], env, workspace)[1].strip() == "fresh"
+    assert json.loads(run(capsys, ["map", "defs", "verify"], env, workspace)[1]) == ["src/auth.py"]
+    callers = json.loads(run(capsys, ["map", "callers", "verify"], env, workspace)[1])
+    assert callers == ["src/views.py"]

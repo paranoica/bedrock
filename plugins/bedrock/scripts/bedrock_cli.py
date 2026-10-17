@@ -13,6 +13,7 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 import cli_checks
+import cli_kb
 import cli_records
 import cli_runs
 from bedrock_lib import clock
@@ -20,7 +21,7 @@ from bedrock_lib.config import ConfigError, load_user_config
 from bedrock_lib.jsonl import JsonlError
 from cli_context import CannotRun, Context, UsageError
 
-GROUPS = (cli_records, cli_runs, cli_checks)
+GROUPS = (cli_records, cli_runs, cli_checks, cli_kb)
 TAKES_A_COMMAND = ("test", "cmd")
 FAILURES = (ConfigError, JsonlError, *(error for g in GROUPS for error in g.FAILURES))
 
