@@ -22,13 +22,14 @@ SINGLE_USE_HOURS = 2
 NOT_UNDER_ALL_OUT = {"deploy-prod", "message"}
 LEVEL4 = {"force-push", "delete-remote-branch", "history-rewrite", "destructive-git", "data-delete"}
 PHRASES = {
-    "push": r"(?:за)?пуш(?:ь|ни|ните|ай)\b|пушить можно|можешь (?:за)?пушить"
+    "push": r"(?:за)?пуш(?:ь|ни|ните|ай)\b|пушить можно|(?:можешь|можно) (?:за)?пушить"
     r"|\bpush (?:it|this|that|them|the branch)\b|\bgo ahead and push\b|\byou can push\b|^push\b",
-    "merge": r"(?:с|за)?мерж(?:ь|ни|и|ите)\b|можешь (?:с|за)?мерж\w*"
+    "merge": r"(?:с|за)?мерж(?:ь|ни|и|ите)\b|(?:можешь|можно) (?:с|за)?мерж\w*|мержить можно"
     r"|\bmerge (?:it|this|that|the pr)\b|\byou can merge\b|^merge\b",
     "pr": r"(?:открой|создай|сделай|заведи) (?:pr|пр|пулл? ?реквест)\b"
     r"|\b(?:open|create) (?:a |the )?(?:pr|pull request)\b",
-    "deploy": r"(?:за)?деплой(?:ни|те)?\b|можешь деплоить|\bdeploy (?:it|this|to \w+)\b"
+    "deploy": r"(?:за)?деплой(?:ни|те)?\b|(?:можешь|можно) (?:за)?деплоить|деплоить можно"
+    r"|\bdeploy (?:it|this|to \w+)\b"
     r"|\byou can deploy\b",
 }
 PROD = re.compile(r"прод\b|\bproduction\b|\bprod\b", re.IGNORECASE)
@@ -46,6 +47,8 @@ UNTIL_PLAN = re.compile(r"до конца (?:плана|блока)|until the en
 UNTIL_DAY = re.compile(r"на сегодня|на весь день|\btoday\b|for the day")
 UNTIL_TIME = re.compile(r"(?:до|until)\s+(\d{1,2})(?::(\d{2}))?\b")
 UNTIL_MORNING = re.compile(r"до утра|until (?:the )?morning")
+MORNING_HOUR = 12  # the night mode ends at noon local (D046)
+CLAUSE = re.compile(r"[,:;]|\s(?:но|а|but)\s")
 ALLOW = re.compile(r"^/bedrock:allow\s+([\w-]+)(?:\s+(?!until\b)(\S+))?(.*)$", re.MULTILINE)
 UNLEASH = re.compile(r"^/bedrock:unleash\b(.*)$", re.MULTILINE)
 REVOKE = re.compile(r"^/bedrock:revoke\b", re.MULTILINE)
@@ -104,7 +107,7 @@ def _expiry(text: str, cfg: UserConfig, now: datetime) -> tuple[datetime, int | 
     if match := UNTIL_TIME.search(text):
         return _clock_time(cfg, now, int(match.group(1)), int(match.group(2) or 0)), None
     if UNTIL_MORNING.search(text):
-        return _clock_time(cfg, now, cfg.rollover_hour, 0), None
+        return _clock_time(cfg, now, MORNING_HOUR, 0), None
     if UNTIL_PLAN.search(text) or UNTIL_DAY.search(text):
         return _end_of_day(cfg, now), None
     return now + timedelta(hours=SINGLE_USE_HOURS), 1
@@ -121,13 +124,16 @@ def _phrase_grants(text: str, project: str, now: datetime, cfg: UserConfig) -> l
         lowered = sentence.lower().strip()
         if lowered.endswith("?") or QUESTION_WORDS.match(lowered) or CONDITION.search(lowered):
             continue
-        for action, pattern in PHRASES.items():
-            match = re.search(pattern, lowered, re.MULTILINE)
-            if not match or NEGATION.search(lowered[max(0, match.start() - 25) : match.start()]):
+        # A negation anywhere in a clause, before or after the verb, cancels that clause.
+        for clause in CLAUSE.split(lowered):
+            if NEGATION.search(clause):
                 continue
-            name = "deploy-prod" if action == "deploy" and PROD.search(lowered) else action
-            stamp = clock.iso(expires)
-            found[name] = Grant(name, project, stamp, uses=uses, source=normal(sentence)[:120])
+            for action, pattern in PHRASES.items():
+                if not re.search(pattern, clause.strip(), re.MULTILINE):
+                    continue
+                name = "deploy-prod" if action == "deploy" and PROD.search(clause) else action
+                stamp = clock.iso(expires)
+                found[name] = Grant(name, project, stamp, uses=uses, source=normal(sentence)[:120])
     return list(found.values())
 
 

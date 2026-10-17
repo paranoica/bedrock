@@ -219,3 +219,27 @@ def test_a_human_prompt_backs_a_grant(cfg: UserConfig, tmp_path: Path) -> None:
         cfg, grants.from_prompt("запушь", "Acme", NOW, cfg, _transcript(tmp_path, [record]))
     )
     assert grants.available(cfg, "push", "Acme", None, NOW) is not None
+
+
+@pytest.mark.parametrize(
+    ("prompt", "expected"),
+    [
+        ("деплой нельзя", []),
+        ("пушить можно, мержить нельзя", ["push"]),
+        ("автономно до утра: можно пушить в ветки, деплой нельзя", ["push"]),
+        ("можно пушить", ["push"]),
+        ("можно мержить", ["merge"]),
+        ("можно деплоить на дев", ["deploy"]),
+        ("push is not allowed", []),
+        ("мерж не надо", []),
+        ("push it, but don't deploy it", ["push"]),
+    ],
+)
+def test_a_negation_after_the_verb_or_in_another_clause(prompt: str, expected: list[str]) -> None:
+    assert actions(prompt) == expected
+
+
+def test_until_morning_ends_at_noon_local(cfg: UserConfig) -> None:
+    found = grants.from_prompt("пушить можно до утра", "Acme", NOW, cfg)
+    # NOW is 15:00 in Europe/Minsk, so the next noon is tomorrow 12:00 local, 09:00 UTC.
+    assert found[0].expires == "2026-10-18T09:00:00Z"
