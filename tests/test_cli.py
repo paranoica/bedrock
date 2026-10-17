@@ -9,6 +9,14 @@ import pytest
 BIN = Path(__file__).resolve().parents[1] / "plugins" / "bedrock" / "bin" / "bedrock"
 
 
+@pytest.fixture(autouse=True)
+def no_desktop(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # No notify-send on PATH, so no test can raise a real popup on the owner's screen.
+    empty = tmp_path / "no-bin"
+    empty.mkdir()
+    monkeypatch.setenv("PATH", str(empty))
+
+
 @pytest.fixture
 def home(tmp_path: Path) -> Path:
     return tmp_path
@@ -189,10 +197,9 @@ def test_answer_to_unknown_question_fails(
     assert "no question" in err
 
 
-def test_notify_at_night_prints_the_decision_without_a_popup(
+def test_notify_prints_the_decision(
     capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
 ) -> None:
-    # 05:00 UTC is 08:00 in the display zone: quiet hours, so nothing reaches the desktop.
     env = env_at(home, "2026-10-17T05:00:00Z")
     code, out, _ = run(
         capsys, ["notify", "p0", "down", "api is down", "--action", "ok=OK"], env, workspace
@@ -200,8 +207,9 @@ def test_notify_at_night_prints_the_decision_without_a_popup(
     result = json.loads(out)
     assert code == 0
     assert result["popup"] is False
+    assert result["shown"] is False
     assert result["phone"] is True
-    assert result["reason"] == "night"
+    assert result["reason"] == "no notify-send"
     assert result["action"] is None
 
 
@@ -245,4 +253,4 @@ def test_notify_accepts_a_timeout(
     env = env_at(home, "2026-10-17T05:00:00Z")
     code, out, _ = run(capsys, ["notify", "question", "t", "b", "--timeout", "30"], env, workspace)
     assert code == 0
-    assert json.loads(out)["reason"] == "night"
+    assert json.loads(out)["reason"] == "no notify-send"

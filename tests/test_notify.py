@@ -38,13 +38,15 @@ def test_p0_by_day_also_goes_to_the_phone(cfg: UserConfig) -> None:
     assert decision.popup and decision.phone
 
 
-def test_no_popups_at_night_and_phone_only_for_p0(cfg: UserConfig) -> None:
+def test_night_still_shows_popups_and_phones_only_p0_and_blocked(cfg: UserConfig) -> None:
     night = at(5)  # 08:00 local
     question = notify.decide(cfg, "question", "t", "b", now=night)
-    assert not question.popup and not question.phone
-    assert question.reason == "night"
-    p0 = notify.decide(cfg, "p0", "t2", "b", now=night)
-    assert not p0.popup and p0.phone
+    assert question.popup and question.sound and not question.phone
+    assert notify.decide(cfg, "p0", "t2", "b", now=night).phone
+    blocked = notify.decide(cfg, "blocked", "t3", "b", now=night + timedelta(minutes=3))
+    assert blocked.popup and blocked.phone
+    waiting = notify.decide(cfg, "waiting", "t4", "b", now=night + timedelta(minutes=6))
+    assert waiting.popup and not waiting.phone
 
 
 @pytest.mark.parametrize(
@@ -52,16 +54,17 @@ def test_no_popups_at_night_and_phone_only_for_p0(cfg: UserConfig) -> None:
     [(at(3, 59), False), (at(4, 0), True), (at(9, 59), True), (at(10, 0), False)],
 )
 def test_quiet_window_edges(cfg: UserConfig, moment: datetime, night: bool) -> None:
-    decision = notify.decide(cfg, "waiting", "t", "b", now=moment)
-    assert decision.popup is not night
+    decision = notify.decide(cfg, "blocked", "t", "b", now=moment)
+    assert decision.popup
+    assert decision.phone is night
 
 
 def test_quiet_window_wrapping_midnight(tmp_path: Path) -> None:
     cfg = UserConfig(
         days_dir=tmp_path / "d", state_dir=tmp_path / "s", quiet_start="23:00", quiet_end="07:00"
     )
-    assert not notify.decide(cfg, "waiting", "a", "b", now=at(21)).popup  # 00:00 local
-    assert notify.decide(cfg, "waiting", "c", "b", now=at(12)).popup  # 15:00 local
+    assert notify.decide(cfg, "blocked", "a", "b", now=at(21)).phone  # 00:00 local
+    assert not notify.decide(cfg, "blocked", "c", "b", now=at(12)).phone  # 15:00 local
 
 
 def test_second_popup_within_two_minutes_is_held_back(cfg: UserConfig) -> None:
@@ -135,8 +138,10 @@ def test_send_without_sound_does_not_play_one(cfg: UserConfig) -> None:
 
 
 def test_send_held_back_runs_nothing(cfg: UserConfig) -> None:
+    notify.decide(cfg, "waiting", "first", "b", now=DAY)
     run = FakeRun()
-    notify.send(cfg, "waiting", "t", "b", now=at(5), run=run, which=lambda n: f"/usr/bin/{n}")
+    later = DAY + timedelta(seconds=30)
+    notify.send(cfg, "waiting", "t", "b", now=later, run=run, which=lambda n: f"/usr/bin/{n}")
     assert run.calls == []
 
 
@@ -155,15 +160,14 @@ def test_identical_p0_at_night_reaches_the_phone_once(cfg: UserConfig) -> None:
     assert again.reason == "duplicate"
 
 
-def test_night_hold_does_not_block_the_first_morning_popup(cfg: UserConfig) -> None:
-    notify.decide(cfg, "waiting", "t", "b", now=at(9, 59))
-    assert notify.decide(cfg, "waiting", "t", "b", now=at(10, 0)).popup
+def test_night_popups_count_toward_the_rate_window(cfg: UserConfig) -> None:
+    notify.decide(cfg, "waiting", "one", "b", now=at(9, 59))
+    assert notify.decide(cfg, "waiting", "two", "b", now=at(10, 0)).reason == "rate"
 
 
-def test_blocked_is_a_persistent_popup_but_never_the_phone(cfg: UserConfig) -> None:
+def test_blocked_by_day_is_a_persistent_popup_without_the_phone(cfg: UserConfig) -> None:
     by_day = notify.decide(cfg, "blocked", "t", "b", now=DAY)
     assert by_day.popup and by_day.urgency == "critical" and not by_day.phone
-    assert not notify.decide(cfg, "blocked", "t2", "b", now=at(5)).phone
 
 
 def test_missing_notify_send_keeps_the_phone_for_p0(cfg: UserConfig) -> None:
