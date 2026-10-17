@@ -1,1 +1,8 @@
 .dev/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.venv/
+.review/index.json
+.review/outcomes.jsonl
+.review/verify-receipt.json
