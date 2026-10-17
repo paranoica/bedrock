@@ -83,13 +83,13 @@ def _stop(process: subprocess.Popen[bytes]) -> None:
         process.wait(timeout=GRACE_SECONDS)
 
 
-def _run_once(argv: list[str], deadline: float) -> int | None:
+def _run_once(argv: list[str], deadline: float, env: dict[str, str] | None) -> int | None:
     """Run the command; its exit code, or None when the deadline stopped it.
 
     Whatever ends the run (an exit, the deadline, an interrupt of the watchdog), nothing the
     command started is left behind.
     """
-    process = subprocess.Popen(argv, start_new_session=True)
+    process = subprocess.Popen(argv, start_new_session=True, env=env)
     code: int | None = None
     try:
         code = process.wait(timeout=max(deadline - time.time(), 0.0))
@@ -107,6 +107,7 @@ def watch(
     *,
     backoff: list[float] | tuple[float, ...] = BACKOFF,
     max_restarts: int = MAX_RESTARTS,
+    env: dict[str, str] | None = None,
 ) -> Result:
     """Run `argv` until it exits cleanly, the deadline passes, or restarts run out."""
     runs = 0
@@ -114,7 +115,7 @@ def watch(
         if time.time() >= deadline:
             return Result("deadline", runs)
         started = clock.iso(clock.now_utc())
-        code = _run_once(argv, deadline)
+        code = _run_once(argv, deadline, env)
         runs += 1
         jsonl.append(log, {"started": started, "ended": clock.iso(clock.now_utc()), "exit": code})
         if code is None:

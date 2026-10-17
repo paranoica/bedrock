@@ -935,3 +935,15 @@ def test_a_zone_for_the_whole_repository(
         subprocess.run(["git", "-C", str(workspace), "commit", "-qam", "ui"], check=True)
         argv = ["review", "pass", "fix/x", "--risk", "R2", "--base", "main"]
         assert run(capsys, argv, env_at(home, "2026-10-17T12:00:00Z"), workspace)[0] == 1, zone
+
+
+def test_night_watch_raises_the_stop_hook_cap_for_its_claude(
+    capsys: pytest.CaptureFixture[str], home: Path, workspace: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("CLAUDE_CODE_STOP_HOOK_BLOCK_CAP", raising=False)
+    out = home / "cap.txt"
+    cap = "os.environ.get('CLAUDE_CODE_STOP_HOOK_BLOCK_CAP', '')"
+    script = f"import os; open({str(out)!r}, 'w').write({cap})"
+    argv = ["night", "watch", "--until", "23:00", "--", sys.executable, "-c", script]
+    assert run(capsys, argv, env_at(home, "2026-10-17T12:00:00Z"), workspace)[0] == 0
+    assert out.read_text() == "60"

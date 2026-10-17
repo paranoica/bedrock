@@ -49,9 +49,8 @@ Copy `templates/project/bedrock.json` to `<workspace>/.claude/bedrock.json` and 
 - `packs`: the domain rule packs that apply (`packs/` in the plugin).
 - `kb.roots`: the folders that hold modules.
 - `agents`, `compact_window` when the defaults do not fit.
-- For night work, Claude Code's limit on consecutive Stop-hook continuations is raised in the
-  workspace's Claude settings (D046). The setting's name is checked in the Claude Code docs
-  at the time, not guessed.
+- `autoCompactWindow` in the workspace's `.claude/settings.json` when the project needs a
+  window other than the owner's default (D056).
 Done when: `bedrock project check` prints `[]`.
 
 ## 3. AGENTS.md

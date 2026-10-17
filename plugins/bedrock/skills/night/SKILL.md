@@ -36,7 +36,9 @@ Done when: that line is sent.
 - The owner closes this session and, in his terminal, starts Claude under the watchdog,
   which restarts a crash and stops at the end time:
   `bedrock night watch --until 12:00 -- claude --continue "продолжай ночной план"`.
-  The prompt makes a restarted session pick the plan up instead of waiting for input.
+  The prompt makes a restarted session pick the plan up instead of waiting for input. The
+  watchdog also lifts Claude Code's cap on Stop-hook blocks in a row
+  (`CLAUDE_CODE_STOP_HOOK_BLOCK_CAP`, 8 by default) to 60, so bedrock's own fuses stop first.
 - All guards stay on. One commit per task. Progress lives in files.
 Done when: the watchdog is running.
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import signal
 import sys
 from collections.abc import Callable
@@ -13,6 +14,8 @@ from pathlib import Path
 from bedrock_lib import doctor, insights, night, notify, projectcheck
 from bedrock_lib.config import find_project
 from cli_context import Context, UsageError, print_json
+
+STOP_HOOK_CAP = 60
 
 
 def register(subcommands: argparse._SubParsersAction) -> list[argparse.ArgumentParser]:
@@ -52,8 +55,11 @@ def _night(ctx: Context) -> int:
     # The watchdog runs on the real clock, so the deadline does too.
     deadline = night.until(ctx.args.until, datetime.now(UTC), ctx.cfg.display_tz)
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
+    # Claude Code stops honouring Stop-hook blocks after 8 in a row; the night needs more, and
+    # bedrock's own fuses (two tries per task, 40 steps) stop it first (D046).
+    child = {"CLAUDE_CODE_STOP_HOOK_BLOCK_CAP": str(STOP_HOOK_CAP), **os.environ}
     log = ctx.cfg.state_dir / "night.jsonl"
-    result = night.watch(argv, deadline.timestamp(), log)
+    result = night.watch(argv, deadline.timestamp(), log, env=child)
     if result.reason == "gave-up":
         notify.send(ctx.cfg, "blocked", "bedrock night", f"stopped after {result.runs} crashes")
     print_json(asdict(result))
