@@ -211,3 +211,10 @@ def test_a_backslash_in_home_does_not_break_loading(tmp_path: Path) -> None:
     path.write_text(json.dumps({"backup": {"repo": "~/b"}}))
     cfg = config.load_user_config({"BEDROCK_CONFIG": str(path), "HOME": "/h\\x"})
     assert cfg.backup_repo == Path("/h\\x/b")
+
+
+def test_jsonl_append_keeps_a_record_with_undecodable_text(tmp_path: Path) -> None:
+    path = tmp_path / "log.jsonl"
+    jsonl.append(path, {"path": "src/caf\udce9.py"})
+    jsonl.append(path, {"path": "src/ok.py"})
+    assert [r["path"] for r in jsonl.read(path)] == ["src/caf\udce9.py", "src/ok.py"]
