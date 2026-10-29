@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2
+- Writes on the `telegram` MCP server skip the grant gate and are confirmed by the native
+  `permissions.ask` rule instead; agents are still refused.
+
 ## 0.1.1
 - Grants are written through a unique temp file, so a read-only stub the sandbox leaves at a
   denied path cannot block them.
