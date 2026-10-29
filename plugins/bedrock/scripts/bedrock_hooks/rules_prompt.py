@@ -11,7 +11,13 @@ from bedrock_hooks.core import HELPER, Env, Event, Rule, Verdict
 
 OWNER_SOURCES = {"user", ""}
 SPEND = (
-    ("max", re.compile(r"до талого|не экономь|тратим|spend (?:on|max)|no limits today", re.I)),
+    (
+        "max",
+        re.compile(
+            r"до талого|не экономь|(?<!не )(?<!\w)тратим(?!\w)|spend (?:on|max)|no limits today",
+            re.I,
+        ),
+    ),
     ("save", re.compile(r"\bэкономим\b|\bэкономь\b|save mode|save tokens", re.I)),
     ("normal", re.compile(r"обычный режим|normal mode", re.I)),
 )
@@ -20,6 +26,7 @@ QUESTION_START = re.compile(
     r"|how|what|where|why|when|which|who|can|does|do|is|are)\b",
     re.I,
 )
+SENTENCE = re.compile(r"[^.!?\n]+[.!?]*")
 SPEND_QUESTION_AT = 80.0
 
 
@@ -55,12 +62,14 @@ def switch_spend(event: Event, env: Env) -> Verdict | None:
     """Set the spend mode when the owner names one."""
     if not _owner(event):
         return None
-    text = _text(event)
-    for mode, pattern in SPEND:
-        if pattern.search(text):
-            until = spend.choose(env.cfg, mode, env.now)
-            local = clock.in_zone(clock.parse(until), env.cfg.display_tz).strftime("%H:%M")
-            return Verdict(notice=f"bedrock: spend mode {mode} until {local}.")
+    # A mode named inside a question ("не потратим?") is not an order to switch.
+    statements = [s for s in SENTENCE.findall(_text(event)) if not _is_question(s)]
+    for statement in statements:
+        for mode, pattern in SPEND:
+            if pattern.search(statement):
+                until = spend.choose(env.cfg, mode, env.now)
+                local = clock.in_zone(clock.parse(until), env.cfg.display_tz).strftime("%H:%M")
+                return Verdict(notice=f"bedrock: spend mode {mode} until {local}.")
     return None
 
 

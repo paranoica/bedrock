@@ -76,6 +76,41 @@ def test_spend_mode_switch(home: Path, work: Path, text: str, mode: str) -> None
     assert mode in result["systemMessage"]
 
 
+@pytest.mark.parametrize(
+    ("text", "mode"),
+    [
+        ("тратим", "max"),
+        ("ок, тратим сегодня", "max"),
+        ("тратим. сколько там осталось?", "max"),
+        ("не экономь", "max"),
+        ("экономим. а что дальше?", "save"),
+    ],
+)
+def test_spend_mode_switch_from_a_command(home: Path, work: Path, text: str, mode: str) -> None:
+    result = prompt(home, work, text)
+    stored = json.loads((home / ".local/state/bedrock/spend.json").read_text())
+    assert stored["mode"] == mode
+    assert mode in result["systemMessage"]
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "десятки миллионов токенов мы не потратим?",
+        "сколько потратим на это",
+        "мы не тратим лишнего",
+        "тратим?",
+        "сколько тратим на агентов?",
+        "экономим?",
+        "растратим всё",
+    ],
+)
+def test_spend_mode_stays_on_questions_and_other_words(home: Path, work: Path, text: str) -> None:
+    result = prompt(home, work, text)
+    assert not (home / ".local/state/bedrock/spend.json").exists()
+    assert "spend mode" not in result.get("systemMessage", "")
+
+
 def test_question_is_logged(home: Path, work: Path) -> None:
     prompt(home, work, "Как режутся документы на куски?")
     assert questions.history(cfg(home), "Acme")[0]["question"] == "Как режутся документы на куски?"
