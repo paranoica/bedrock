@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3
+- The spend mode switches only on a command: a question ("не потратим?"), a negation
+  ("не тратим") or a longer word ("потратим") no longer turns on max spending.
+
 ## 0.1.2
 - Writes on the `telegram` MCP server skip the grant gate and are confirmed by the native
   `permissions.ask` rule instead; agents are still refused.
