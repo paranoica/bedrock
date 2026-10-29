@@ -12,6 +12,8 @@ SLACK_NEVER = {"slack_send_message", "slack_schedule_message"}
 MCP_READ_VERBS = {"read", "get", "list", "search", "query", "fetch", "resolve", "lookup", "find"}
 MCP_READ_VERBS |= {"view", "describe", "guide", "authenticate", "complete"}
 MCP_ALLOWED = ("mcp__claude_ai_Claude_Docs__",)
+# Writes on these servers are confirmed by a permissions.ask rule in settings.json instead.
+MCP_NATIVE_ASK = ("mcp__telegram__",)
 
 
 def _mcp_action(tool: str) -> Action | None:
@@ -44,6 +46,8 @@ def check_mcp(event: Event, env: Env) -> Verdict | None:
         return None
     if event.agent_id:
         return Verdict(deny=f"refused for an agent: {action.why}; agents never act outward (D005).")
+    if event.tool.startswith(MCP_NATIVE_ASK):
+        return None
     return gate.decide(env, event, [action])
 
 

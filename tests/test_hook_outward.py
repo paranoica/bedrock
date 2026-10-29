@@ -184,6 +184,31 @@ def test_mcp_writes_need_a_grant(home: Path, work: Path, tool: str, refused: boo
 
 
 @pytest.mark.parametrize(
+    "tool",
+    [
+        "mcp__telegram__send_message",
+        "mcp__telegram__reply_to_message",
+        "mcp__telegram__forward_message",
+        "mcp__telegram__edit_message",
+        "mcp__telegram__download_media",
+    ],
+)
+def test_telegram_writes_are_left_to_the_native_ask_rule(home: Path, work: Path, tool: str) -> None:
+    assert call(home, work, tool, {"chat_id": "me", "message": "hi"}) == ""
+
+
+@pytest.mark.parametrize("tool", ["mcp__telegramx__send_message", "mcp__my_telegram__send_message"])
+def test_lookalike_telegram_servers_still_need_a_grant(home: Path, work: Path, tool: str) -> None:
+    assert NEEDS in call(home, work, tool, {})
+
+
+def test_agents_never_write_to_telegram(home: Path, work: Path) -> None:
+    reason = call(home, work, "mcp__telegram__send_message", {"chat_id": "me"}, agent="a1")
+    assert "agents never act outward" in reason
+    assert call(home, work, "mcp__telegram__get_history", {"chat_id": "me"}, agent="a1") == ""
+
+
+@pytest.mark.parametrize(
     "command",
     [
         "DATABASE_URL=postgres://u:p@localhost:5432/app npx prisma migrate deploy",
