@@ -23,7 +23,10 @@ REGISTRY_TTL = timedelta(hours=12)
 # Skills do not switch themselves on in the middle of a conversation, so the session is told once.
 ROUTE = (
     "bedrock: take a new task through the bedrock:day skill; record each decision and failure "
-    "with bedrock:kb."
+    "with bedrock:kb. For an agent, take the bedrock role that fits: bedrock:inventory to read "
+    "many files, bedrock:researcher for the web, bedrock:implementer for code with a ready test, "
+    "bedrock:reviewer for a review. general-purpose runs on the session's own model: keep it "
+    "for work no role fits."
 )
 
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1
+- The session start names the bedrock agent roles to use (inventory, researcher, implementer,
+  reviewer) and keeps general-purpose, which runs on the session's own model, for work no role
+  fits; the `day` skill says the same for the plan's agents list.
+
 ## 0.2.0
 - Hooks refuse one thing only: `gh pr create` and `gh pr merge` without a review of the head
   commit. Every other guard is gone: git, push, secrets and `.env`, outward actions, installs,

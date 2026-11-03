@@ -204,6 +204,7 @@ def test_session_start_names_the_working_loop(home: Path, work: Path, popups: li
     start = hook(home, "SessionStart", {"cwd": str(work), "source": "startup"})
     text = start["hookSpecificOutput"]["additionalContext"]
     assert "bedrock:day" in text and "bedrock:kb" in text
+    assert "bedrock:inventory" in text and "general-purpose" in text
 
 
 def test_outside_a_workspace_the_loop_is_not_named(

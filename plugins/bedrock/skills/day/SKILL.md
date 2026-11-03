@@ -37,7 +37,9 @@ the plan file. R1 has no plan file: its `taken` line is the record.
 - Every plan has: done-when (checkable), assumptions, files, tests named with what they
   assert, tasks with who and model, the agents it uses, estimate, out of scope.
 - The agents list says which roles run and how often, so `bedrock agents` can be read
-  against it afterwards.
+  against it afterwards. Each agent is the bedrock role that fits (inventory, researcher,
+  implementer, reviewer, critic); general-purpose only where no role fits, since it runs on
+  the session's own model.
 - Research per `references/research.md` when the plan rests on library behaviour (D034).
 - The project's packs feed the plan: their test checklists go into Tests, their rules into
   the implementer brief's "Keep true".
