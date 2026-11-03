@@ -1,5 +1,5 @@
 {
-  "description": "bedrock: one dispatcher per event; guards fail closed, helpers fail open",
+  "description": "bedrock: one dispatcher per event; only the pull-request review gate refuses",
   "hooks": {
     "SessionStart": [
       {
@@ -33,6 +33,7 @@
     ],
     "PreToolUse": [
       {
+        "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
@@ -48,6 +49,7 @@
     ],
     "PostToolUse": [
       {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit|WebFetch|WebSearch|Read|mcp__.*",
         "hooks": [
           {
             "type": "command",
@@ -57,36 +59,6 @@
               "PostToolUse"
             ],
             "timeout": 30
-          }
-        ]
-      }
-    ],
-    "SubagentStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3",
-            "args": [
-              "${CLAUDE_PLUGIN_ROOT}/hooks/dispatch.py",
-              "SubagentStart"
-            ],
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "SubagentStop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3",
-            "args": [
-              "${CLAUDE_PLUGIN_ROOT}/hooks/dispatch.py",
-              "SubagentStop"
-            ],
-            "timeout": 20
           }
         ]
       }
@@ -115,21 +87,6 @@
             "args": [
               "${CLAUDE_PLUGIN_ROOT}/hooks/dispatch.py",
               "PreCompact"
-            ],
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "Notification": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3",
-            "args": [
-              "${CLAUDE_PLUGIN_ROOT}/hooks/dispatch.py",
-              "Notification"
             ],
             "timeout": 10
           }

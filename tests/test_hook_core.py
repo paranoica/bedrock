@@ -33,6 +33,7 @@ def rule(kind: str, verdict: core.Verdict | None = None, crash: bool = False) ->
 
 
 TOOL = {"tool_name": "Bash", "tool_input": {"command": "ls"}}
+PR = {"tool_name": "Bash", "tool_input": {"command": "gh pr create --fill"}}
 
 
 def test_denial_becomes_a_pretooluse_deny(tmp_path: Path) -> None:
@@ -87,9 +88,16 @@ def test_rules_for_other_events_do_not_run(tmp_path: Path) -> None:
     assert call(tmp_path, "PreToolUse", TOOL, [only_stop]) == {}
 
 
-def test_broken_input_refuses_tools(tmp_path: Path) -> None:
+def test_broken_input_lets_ordinary_tools_through(tmp_path: Path) -> None:
     out = io.StringIO()
     dispatch.main(["PreToolUse"], io.StringIO("not json"), out, environ(tmp_path), [])
+    assert out.getvalue() in ("", "{}")
+
+
+def test_broken_input_still_refuses_a_gated_pull_request(tmp_path: Path) -> None:
+    out = io.StringIO()
+    broken = '{"tool_input": {"command": "gh pr merge 12"'
+    dispatch.main(["PreToolUse"], io.StringIO(broken), out, environ(tmp_path), [])
     assert json.loads(out.getvalue())["hookSpecificOutput"]["permissionDecision"] == "deny"
 
 
@@ -109,14 +117,18 @@ def test_off_switch_disables_everything(tmp_path: Path) -> None:
     assert out.getvalue() == ""
 
 
-def test_broken_owner_config_refuses_tools(tmp_path: Path) -> None:
+@pytest.mark.parametrize(("tool", "refused"), [(TOOL, False), (PR, True)])
+def test_broken_owner_config_refuses_only_the_gate(
+    tmp_path: Path, tool: dict, refused: bool
+) -> None:
     config = tmp_path / "bad.json"
     config.write_text('{"rollover_hour": 99}')
     out = io.StringIO()
     env = {**environ(tmp_path), "BEDROCK_CONFIG": str(config)}
-    data = json.dumps({"cwd": str(tmp_path), **TOOL})
+    data = json.dumps({"cwd": str(tmp_path), **tool})
     dispatch.main(["PreToolUse"], io.StringIO(data), out, env, [])
-    assert json.loads(out.getvalue())["hookSpecificOutput"]["permissionDecision"] == "deny"
+    result = json.loads(out.getvalue() or "{}")
+    assert (result.get("hookSpecificOutput", {}).get("permissionDecision") == "deny") is refused
 
 
 @pytest.mark.parametrize("event", ["PreToolUse", "Stop"])
@@ -134,7 +146,10 @@ def test_entry_script_runs_end_to_end(tmp_path: Path, event: str) -> None:
     assert completed.stderr == ""
 
 
-def test_entry_script_refuses_when_bedrock_cannot_load(tmp_path: Path) -> None:
+@pytest.mark.parametrize(("tool", "refused"), [(TOOL, False), (PR, True)])
+def test_entry_script_that_cannot_load_refuses_only_the_gate(
+    tmp_path: Path, tool: dict, refused: bool
+) -> None:
     broken = tmp_path / "plugin"
     (broken / "hooks").mkdir(parents=True)
     (broken / "scripts" / "bedrock_hooks").mkdir(parents=True)
@@ -142,13 +157,20 @@ def test_entry_script_refuses_when_bedrock_cannot_load(tmp_path: Path) -> None:
     (broken / "hooks" / "dispatch.py").write_text(ENTRY.read_text())
     completed = subprocess.run(
         [sys.executable, str(broken / "hooks" / "dispatch.py"), "PreToolUse"],
-        input="{}",
+        input=json.dumps(tool),
         capture_output=True,
         text=True,
         check=False,
     )
     assert completed.returncode == 0
-    assert json.loads(completed.stdout)["hookSpecificOutput"]["permissionDecision"] == "deny"
+    result = json.loads(completed.stdout or "{}")
+    assert (result.get("hookSpecificOutput", {}).get("permissionDecision") == "deny") is refused
+
+
+def test_only_the_review_gate_can_refuse() -> None:
+    from bedrock_hooks.registry import RULES
+
+    assert [r.name for r in RULES if r.kind == core.GUARD] == ["review-gate"]
 
 
 def test_every_registered_rule_fails_according_to_its_class(tmp_path: Path) -> None:

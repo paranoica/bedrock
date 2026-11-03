@@ -44,15 +44,15 @@ successor. A link that treats a superseded decision as current is flagged by the
 Done when: the new note validates and the old one says `status: superseded`.
 
 ## 3. Keep it fresh (D026)
-The hooks do the detection. The session does the fix.
+The session start hook does the detection. The session does the fix.
 - Session start lists stale module notes (`bedrock kb drift`) and modules without a note
   (`bedrock kb uncovered`, when the project sets `kb.roots`).
-- Stop blocks once when code under a module note changed and the note did not. Fix it in
-  one of two ways:
+- Before closing a block, run `bedrock kb drift` for the touched modules. Fix a stale note
+  in one of two ways:
   - update the note's Boundaries, Rules or Pitfalls;
   - add one line: "verified, nothing to change, because …".
   Then set `verified_at` to the new commit. A new `verified_at` alone is never a
-  verification. The hook compares the note's content, not its stamp.
+  verification: drift compares the note's content, not its stamp.
 - Every two weeks, with the architecture review: delete dead notes, re-check orphans and
   notes long untouched.
 Done when: `bedrock kb drift` lists nothing for the touched modules.

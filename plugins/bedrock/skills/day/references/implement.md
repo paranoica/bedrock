@@ -8,7 +8,7 @@
    (D051): needed at all → reuse → standard library → native feature → installed dependency
    → minimum code.
 4. **Automatic checks** run on every edit (format and lint hook) and before the commit
-   (`bedrock check`, `bedrock leaks`, enforced by the git guard).
+   (`bedrock check`, `bedrock leaks`; run them yourself, nothing runs them for you).
 5. **Read the diff yourself** against the plan; run the task's tests yourself. An agent's
    "done" is never taken on its word.
 6. **Commit** the task: one line `type(scope): description`. The commit is the rollback point.
@@ -20,7 +20,7 @@
   stays untouched.
 
 ## Agents for implementation
-- Only with a brief from `templates/briefs/implementer.md` (the hook requires Task, Done when,
-  Cause, Files, Report).
-- Heavy tests through `bedrock test` or `bedrock cmd` (the heavy-run guard refuses others).
+- With a brief from `templates/briefs/implementer.md` (Task, Done when, Cause, Files,
+  Report): the brief is what makes the run checkable.
+- Heavy tests through `bedrock test` or `bedrock cmd`, so two sessions do not run them at once.
 - At most two runs per task; after that the session takes it (D007).

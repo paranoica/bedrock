@@ -32,7 +32,7 @@ The checker enforces all of these.
 4. State the target behaviour. A prohibition stays only as a hard guardrail, next to its
    positive line.
 5. One rule lives in one place. A rule a hook or a script enforces names its enforcer
-   instead of restating it ("the git guard refuses …").
+   instead of restating it ("the review gate refuses …").
 6. One Russian and one English trigger for each branch of the skill.
 7. Paths that the text names must exist: links and backticked `references/…` paths resolve.
 Done when: every step of the text has its "Done when".

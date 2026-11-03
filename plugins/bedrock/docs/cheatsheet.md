@@ -31,9 +31,6 @@ theme: brief:tight
 |---|---|
 | `/bedrock:start` | подключить или начать проект |
 | `/bedrock:arch` | архитектурное ревью |
-| `/bedrock:allow push` | разрешить одно действие |
-| `/bedrock:unleash до утра` | разрешить всё до срока |
-| `/bedrock:revoke` | забрать все разрешения |
 
 ## Команды в терминале
 
@@ -46,6 +43,7 @@ theme: brief:tight
 | `bedrock kb validate` | ошибки в базе знаний |
 | `bedrock kb drift` | заметки, отставшие от кода |
 | `bedrock retro` | неделя в цифрах |
+| `bedrock agents` | агенты: роли, токены, время |
 | `bedrock backup` | шифрованный снимок базы, без push |
 
 ## Риск и приоритет

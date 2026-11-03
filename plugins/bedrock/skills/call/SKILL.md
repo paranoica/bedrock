@@ -50,7 +50,7 @@ Done when: the differences are resolved or listed for the owner.
 
 ## 4. Into the base and the backlog
 - Decisions become decision notes (the `kb` skill). New facts update their notes.
-- Our debts become backlog tasks. Tracker tickets only under the owner's grant.
+- Our debts become backlog tasks. Tracker tickets only on the owner's word.
 - Questions for the next call go to the owner as a list.
 Done when: `bedrock kb validate` is clean and the tasks are in the backlog.
 

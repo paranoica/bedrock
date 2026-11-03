@@ -1,33 +1,30 @@
-"""The session's edges: start, compaction, the end of a turn, questions and notifications.
+"""The session's edges: start, compaction and the end of a turn.
 
-Auto-continue (D014, D046), the knowledge-base check (D023), notifications (D055), the session
-registry and restored state (D042, D056), and failing helpers made visible (D054).
+Auto-continue (D014, D046), the session registry and restored state (D042, D056), uncommitted
+knowledge-base changes and failing helpers made visible (D023, D054). Nothing here refuses,
+pops up on the desktop, or holds the session back except an auto-continue the owner switched on.
 """
 
 from __future__ import annotations
 
-import contextlib
 import json
 import subprocess
-from datetime import datetime, timedelta
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
-from bedrock_lib import clock, jsonl, kb, notify, session, spend
-from bedrock_lib.config import UserConfig
+from bedrock_lib import clock, jsonl, kb, session, spend
 
 from bedrock_hooks.core import HELPER, Env, Event, Rule, Verdict
 
 ATTEMPTS_PER_TASK = 2
 STEP_CEILING = 40
-LONG_TURN = timedelta(minutes=10)
 REGISTRY_TTL = timedelta(hours=12)
-
-
-def send_notification(cfg: UserConfig, kind: str, title: str, body: str, now: datetime) -> None:
-    """Show a desktop notification; never fails the hook."""
-    with contextlib.suppress(OSError, notify.NotifyError):
-        notify.send(cfg, kind, title, body, now=now)
+# Skills do not switch themselves on in the middle of a conversation, so the session is told once.
+ROUTE = (
+    "bedrock: take a new task through the bedrock:day skill; record each decision and failure "
+    "with bedrock:kb."
+)
 
 
 def _auto_continue(env: Env, event: Event) -> str | None:
@@ -55,8 +52,8 @@ def _auto_continue(env: Env, event: Event) -> str | None:
     )
 
 
-def _knowledge_base(env: Env, event: Event) -> str | None:
-    if event.data.get("stop_hook_active") or env.project is None:
+def _knowledge_base(env: Env) -> str | None:
+    if env.project is None:
         return None
     root = env.cfg.memory_bank_dir
     folder = root / env.project.name
@@ -73,46 +70,15 @@ def _knowledge_base(env: Env, event: Event) -> str | None:
     if done.returncode != 0 or not done.stdout.strip():
         return None
     return (
-        f"The knowledge base has uncommitted changes in {env.project.name}: commit them before "
-        f"stopping (git -C {root} add {env.project.name} && git -C {root} commit) (D023)."
+        f"The knowledge base has uncommitted changes in {env.project.name}: commit them "
+        f"(git -C {root} add {env.project.name} && git -C {root} commit) (D023)."
     )
-
-
-def _notify_end(env: Env, event: Event) -> None:
-    message = str(event.data.get("last_assistant_message") or "").strip()
-    if message.endswith("?") or message[-300:].rstrip().endswith("?"):
-        send_notification(env.cfg, "question", "Claude asks", message[-200:], env.now)
-        return
-    started = session.load(env.cfg, event.session).get("turn_started")
-    if started and env.now - clock.parse(started) >= LONG_TURN:
-        send_notification(env.cfg, "waiting", "Claude finished", message[:200] or "Done.", env.now)
 
 
 def on_stop(event: Event, env: Env) -> Verdict | None:
-    """Continue an approved plan, insist on a committed knowledge base, or notify the owner."""
-    if reason := _auto_continue(env, event) or _knowledge_base(env, event):
+    """Continue an approved plan the owner switched auto-continue on for."""
+    if reason := _auto_continue(env, event):
         return Verdict(block=reason)
-    _notify_end(env, event)
-    return None
-
-
-def on_question(event: Event, env: Env) -> Verdict | None:
-    """Every question with buttons also raises a notification, so it is never missed (D055)."""
-    asked = event.tool_input.get("questions") or []
-    first = asked[0].get("question", "") if asked and isinstance(asked[0], dict) else ""
-    send_notification(env.cfg, "question", "Claude asks", str(first)[:200], env.now)
-    return None
-
-
-def on_notification(event: Event, env: Env) -> Verdict | None:
-    """Forward Claude Code's own prompts (permission, waiting for input) to the desktop."""
-    message = str(event.data.get("message") or "")
-    kind = (
-        "question"
-        if any(w in message.lower() for w in ("permission", "input", "waiting"))
-        else "waiting"
-    )
-    send_notification(env.cfg, kind, "Claude Code", message[:200], env.now)
     return None
 
 
@@ -230,6 +196,8 @@ def on_start(event: Event, env: Env) -> Verdict | None:
             body = kb.parse("summary", summary.read_text(encoding="utf-8")).body.strip()
             if body and not body.startswith("{"):
                 parts.append("Project summary:\n" + "\n".join(body.splitlines()[:10]))
+        parts.append(ROUTE)
+        parts.append(_knowledge_base(env) or "")
     if event.session:
         parts += _registry(env, event)
         if event.data.get("source") in ("compact", "resume"):
@@ -241,14 +209,6 @@ def on_start(event: Event, env: Env) -> Verdict | None:
 
 RULES = [
     Rule("stop", frozenset({"Stop"}), HELPER, on_stop),
-    Rule(
-        "ask-notify",
-        frozenset({"PreToolUse"}),
-        HELPER,
-        on_question,
-        lambda e: e.tool == "AskUserQuestion",
-    ),
-    Rule("notification", frozenset({"Notification"}), HELPER, on_notification),
     Rule("precompact", frozenset({"PreCompact"}), HELPER, on_precompact),
     Rule("session-start", frozenset({"SessionStart"}), HELPER, on_start),
 ]

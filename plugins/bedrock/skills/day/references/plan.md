@@ -26,7 +26,7 @@ Stands on: <decision links>
 |---|---|---|---|---|---|
 
 ## Agents
-<role × runs, critic and review rounds included; the total is `agent_budget`>
+<role × runs, critic and review rounds included>
 
 ## Estimate
 <minutes by steps × the calibration factor for this risk level (D041)>

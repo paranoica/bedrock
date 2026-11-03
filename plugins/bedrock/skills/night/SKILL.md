@@ -14,12 +14,10 @@ session is never idle (D046).
 
 ## 1. The start phrase
 The owner says what is allowed, in his own words, for example «автономно до утра: можно
-пушить». Those words become the grant (D016), «до утра» meaning until 12:00 local. Nothing
-outside them happens. Words grant only when the message holds nothing but the grant: any
-other word («деплой нельзя», «после ревью») voids it, and `/bedrock:allow push until 12:00`
-gives it exactly. A grant from words has no target: a push grant covers any branch.
-Done when: the prompt hook's notice «bedrock: grant from your words: …» names exactly the
-allowed actions and their end. Anything else means rephrase, or use `/bedrock:allow`.
+пушить». That is the night's allowed list (D016), «до утра» meaning until 12:00 local. Nothing
+outside it happens; no command is needed.
+Done when: the allowed list and its end are written in the status note and repeated to the
+owner in one line.
 
 ## 2. The pre-sleep check (one message, before he leaves)
 1. Sessions that must live until morning (cloud logins, GitHub, VPN) and when each expires:
@@ -39,19 +37,18 @@ Done when: that line is sent.
   The prompt makes a restarted session pick the plan up instead of waiting for input. The
   watchdog also lifts Claude Code's cap on Stop-hook blocks in a row
   (`CLAUDE_CODE_STOP_HOOK_BLOCK_CAP`, 8 by default) to 60, so bedrock's own fuses stop first.
-- All guards stay on. One commit per task. Progress lives in files.
+- One commit per task. Progress lives in files.
 Done when: the watchdog is running.
 
 ## 4. Never idle
 - A blocked task: mark it with the reason and a step-by-step instruction for the owner
   (D021), then start the next independent task.
-- Main list done or blocked: the fallback queue inside the grant: refresh stale notes, add
+- Main list done or blocked: the fallback queue inside the allowed list: refresh stale notes, add
   tests where coverage is thin, R1 and R2 backlog items marked "ok at night".
 - A network or flaky failure is retried with a pause, not treated as a stop.
-- Stop only when nothing is left or a limit is reached (D056). At 80% of the 5-hour window
-  with no answer from the owner, the agent guard saves: only review agents start. At 95%
-  agents stop, the session finishes its step, writes a handoff and pauses until the window
-  resets. The watchdog brings it back after the reset.
+- Stop only when nothing is left or a limit is reached (D056). At 95% of the 5-hour window
+  auto-continue stops by itself: the session finishes its step, writes a handoff and pauses
+  until the window resets. The watchdog brings it back after the reset.
 Done when: every stopped task has its reason and the owner's steps in the status note.
 
 ## 5. Waking the owner

@@ -1,4 +1,4 @@
-"""Subcommands that write records: day log, minutes, ledger, questions, backlog, notify."""
+"""Subcommands that keep records: day log, minutes, agent runs, questions, backlog, notify."""
 
 from __future__ import annotations
 
@@ -6,13 +6,14 @@ import argparse
 import fnmatch
 import json
 import subprocess
+import sys
 from collections.abc import Callable, Sequence
 from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 
-from bedrock_lib import backlog, clock, daylog, ledger, notify, questions, session
-from bedrock_lib.config import find_project
+from bedrock_lib import agents, backlog, clock, daylog, notify, questions, session
+from bedrock_lib.config import ConfigError, find_project
 from cli_context import CannotRun, Context, UsageError, json_object, print_json
 
 
@@ -34,12 +35,10 @@ def register(subcommands: argparse._SubParsersAction) -> list[argparse.ArgumentP
     minutes.add_argument("block")
     minutes.add_argument("--open", action="store_true", help="count an open span up to now")
 
-    book = subcommands.add_parser("ledger", help="agent ledger").add_subparsers(
-        dest="action", required=True
-    )
-    book.add_parser("add").add_argument("entry", help="the entry as a JSON object")
-    book.add_parser("summary").add_argument("--since", default=None)
-    book.add_parser("spend").add_argument("transcript", type=Path)
+    runs = subcommands.add_parser("agents", help="agent runs, read from Claude Code transcripts")
+    runs.add_argument("--since", default=None, help="an ISO date or time, UTC")
+    runs.add_argument("--by", choices=("role", "model", "day", "project"), default="role")
+    runs.add_argument("--json", action="store_true", help="one object per run")
 
     note = subcommands.add_parser("notify", help="desktop notification")
     note.add_argument("kind", choices=sorted(notify.KINDS))
@@ -58,6 +57,8 @@ def register(subcommands: argparse._SubParsersAction) -> list[argparse.ArgumentP
     verdict.add_argument("--notes", default="")
     verdict.add_argument("--risk", choices=("R1", "R2", "R3"), default=None)
     verdict.add_argument("--base", default=None, help="where the branch merges; default origin's")
+    verdict.add_argument("--agent", default=None, help="the reviewer agent's id (required to pass)")
+    verdict.add_argument("--session", default=None, help="defaults to CLAUDE_CODE_SESSION_ID")
     return [
         log,
         minutes,
@@ -148,14 +149,46 @@ def _minutes(ctx: Context) -> int:
     return 0
 
 
-def _ledger(ctx: Context) -> int:
+def _project_of(cwd: str, names: dict[str, str]) -> str:
+    if cwd not in names:
+        try:
+            found = find_project(Path(cwd)) if cwd else None
+        except (ConfigError, OSError):
+            found = None
+        names[cwd] = found.name if found else (Path(cwd).name or "unknown")
+    return names[cwd]
+
+
+def _agents(ctx: Context) -> int:
     args = ctx.args
-    if args.action == "add":
-        ledger.add(ctx.cfg, json_object(args.entry, "the ledger entry"), now=ctx.now)
-    elif args.action == "summary":
-        print_json(ledger.summary(ctx.cfg, since=clock.parse(args.since) if args.since else None))
+    try:
+        since = clock.parse(args.since) if args.since else None
+    except ValueError as error:
+        raise UsageError(f"--since '{args.since}' is not an ISO date") from error
+    found = agents.scan(agents.claude_dir(ctx.env), since=since)
+    names: dict[str, str] = {}
+    if args.json:
+        print_json(
+            [
+                {
+                    "agent": run.agent_id,
+                    "session": run.session,
+                    "project": _project_of(run.cwd, names),
+                    "role": run.kind,
+                    "model": run.model,
+                    "started": clock.iso(run.started) if run.started else None,
+                    "minutes": round(run.minutes, 1),
+                    "turns": run.turns,
+                    "tokens": run.tokens,
+                    "weighted": round(run.weighted),
+                    "finished": run.finished,
+                }
+                for run in found.runs
+            ]
+        )
     else:
-        print_json(asdict(ledger.transcript_spend(args.transcript)))
+        print(agents.report(found, args.by, lambda run: _project_of(run.cwd, names)))
+    sys.stderr.write(agents.coverage(found) + "\n")
     return 0
 
 
@@ -279,6 +312,40 @@ def _in_zone(path: str, zone: str) -> bool:
     return path == zone or path.startswith(zone + "/")
 
 
+def _git_out(ctx: Context, *args: str) -> str:
+    done = subprocess.run(
+        ["git", "-C", str(ctx.cwd), *args], capture_output=True, text=True, check=False
+    )
+    if done.returncode != 0:
+        raise CannotRun(f"git {args[0]} failed: {done.stderr.strip()}")
+    return done.stdout.strip()
+
+
+def _reviewer(ctx: Context, branch: str) -> dict[str, str]:
+    """The reviewer run that backs a pass: a finished reviewer agent, after the last commit."""
+    args = ctx.args
+    if not args.agent:
+        raise UsageError("a pass names the reviewer agent that ran: --agent <id> (D053)")
+    sid = args.session or ctx.env.get("CLAUDE_CODE_SESSION_ID") or ""
+    if not sid:
+        raise UsageError("no session id: pass --session or run inside Claude Code")
+    run = agents.find(agents.claude_dir(ctx.env), sid, args.agent)
+    if run is None:
+        raise UsageError(f"no agent {args.agent} in session {sid}")
+    if not agents.is_reviewer(run):
+        raise UsageError(f"agent {args.agent} is a {run.kind}, not a reviewer")
+    if run.finished is not True or run.ended is None:
+        raise UsageError(f"agent {args.agent} has not finished")
+    sha = _git_out(ctx, "rev-parse", "--verify", "--end-of-options", branch)
+    committed = clock.parse(_git_out(ctx, "log", "-1", "--format=%cI", sha))
+    if run.ended < committed:
+        raise UsageError(
+            f"agent {args.agent} finished at {clock.iso(run.ended)}, before the last commit of "
+            f"{branch} ({clock.iso(committed)}): review again"
+        )
+    return {"sha": sha, "agent": run.agent_id, "agent_type": run.kind}
+
+
 def _review(ctx: Context) -> int:
     args = ctx.args
     if args.outcome == "pass" and args.risk != "R3":
@@ -288,14 +355,16 @@ def _review(ctx: Context) -> int:
                 f"critical zone touched ({', '.join(touched[:5])}): a pass needs the full "
                 "review, record it with --risk R3 (D032)"
             )
-    folder = ctx.cfg.state_dir / "reviews" / ctx.project()
-    folder.mkdir(parents=True, exist_ok=True)
     record = {
         "passed": args.outcome == "pass",
         "ts": clock.iso(ctx.now),
         "notes": args.notes,
         "risk": args.risk,
     }
+    if args.outcome == "pass":
+        record.update(_reviewer(ctx, args.branch))
+    folder = ctx.cfg.state_dir / "reviews" / ctx.project()
+    folder.mkdir(parents=True, exist_ok=True)
     path = folder / f"{args.branch.replace('/', '__')}.json"
     path.write_text(json.dumps(record, ensure_ascii=False), encoding="utf-8")
     return 0
@@ -306,14 +375,13 @@ HANDLERS: dict[str, Callable[[Context], int]] = {
     "review": _review,
     "log": _log,
     "minutes": _minutes,
-    "ledger": _ledger,
+    "agents": _agents,
     "question": _question,
     "backlog": _backlog,
     "notify": _notify,
 }
 FAILURES = (
     daylog.LogError,
-    ledger.LedgerError,
     questions.QuestionError,
     notify.NotifyError,
     backlog.BacklogError,

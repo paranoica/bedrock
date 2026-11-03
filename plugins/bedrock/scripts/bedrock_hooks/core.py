@@ -1,7 +1,7 @@
 """Rules, their two classes, and how their verdicts become one Claude Code hook answer.
 
-A guard that crashes refuses ("could not verify"), because a crashed hook would let the action
-through. A helper that crashes is logged and skipped, because it must never block the work.
+The one guard (the pull-request review gate) refuses when it crashes, because a crashed hook would
+let the pull request through. A helper that crashes is logged and skipped: it never blocks work.
 """
 
 from __future__ import annotations
@@ -183,7 +183,7 @@ def answer(event_name: str, outcome: Outcome) -> dict[str, Any]:
         if len(specific) > 1:
             result["hookSpecificOutput"] = specific
         return result
-    if outcome.blocks and event_name in ("Stop", "SubagentStop", "UserPromptSubmit"):
+    if outcome.blocks and event_name in ("Stop", "UserPromptSubmit"):
         result["decision"] = "block"
         result["reason"] = "\n".join(outcome.blocks)
     if context and event_name in CONTEXT_EVENTS:
@@ -195,8 +195,6 @@ CONTEXT_EVENTS = {
     "UserPromptSubmit",
     "SessionStart",
     "PostToolUse",
-    "SubagentStart",
     "Notification",
     "Stop",
-    "SubagentStop",
 }

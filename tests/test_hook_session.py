@@ -4,9 +4,9 @@ import subprocess
 from pathlib import Path
 
 import pytest
-from bedrock_hooks import dispatch, rules_session
+from bedrock_hooks import dispatch
 from bedrock_hooks.registry import RULES
-from bedrock_lib import session
+from bedrock_lib import notify, session
 from bedrock_lib.config import load_user_config
 
 NOW = "2026-10-17T12:00:00Z"
@@ -35,9 +35,7 @@ def work(tmp_path: Path) -> Path:
 def popups(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, str, str]]:
     sent: list[tuple[str, str, str]] = []
     monkeypatch.setattr(
-        rules_session,
-        "send_notification",
-        lambda cfg, kind, title, body, now: sent.append((kind, title, body)),
+        notify, "send", lambda cfg, kind, title, body, **kw: sent.append((kind, title, body))
     )
     return sent
 
@@ -190,65 +188,54 @@ def test_auto_continue_respects_its_end_time(home: Path, work: Path, popups: lis
     assert hook(home, "Stop", {"cwd": str(work), "stop_hook_active": False}) == {}
 
 
-def test_uncommitted_knowledge_base_blocks_the_stop_once(
+def test_uncommitted_knowledge_base_is_told_at_start_not_at_stop(
     home: Path, work: Path, popups: list
 ) -> None:
     kb = home / "projects-memory-bank"
     (kb / "Acme").mkdir(parents=True)
     subprocess.run(["git", "-C", str(kb), "init", "-q"], check=True)
     (kb / "Acme" / "status.md").write_text("changed\n")
-    result = hook(home, "Stop", {"cwd": str(work), "stop_hook_active": False})
-    assert result["decision"] == "block"
-    assert "knowledge base" in result["reason"]
-    assert hook(home, "Stop", {"cwd": str(work), "stop_hook_active": True}) == {}
+    assert "decision" not in hook(home, "Stop", {"cwd": str(work), "stop_hook_active": False})
+    start = hook(home, "SessionStart", {"cwd": str(work), "source": "startup"})
+    assert "uncommitted changes in Acme" in start["hookSpecificOutput"]["additionalContext"]
 
 
-def test_a_question_at_the_end_notifies(home: Path, work: Path, popups: list) -> None:
-    hook(
-        home,
-        "Stop",
-        {"cwd": str(work), "stop_hook_active": False, "last_assistant_message": "Готово. Пушим?"},
-    )
-    assert popups and popups[0][0] == "question"
+def test_session_start_names_the_working_loop(home: Path, work: Path, popups: list) -> None:
+    start = hook(home, "SessionStart", {"cwd": str(work), "source": "startup"})
+    text = start["hookSpecificOutput"]["additionalContext"]
+    assert "bedrock:day" in text and "bedrock:kb" in text
 
 
-def test_a_long_task_finishing_notifies_quietly(home: Path, work: Path, popups: list) -> None:
-    session.update(cfg(home), "s1", {"turn_started": "2026-10-17T11:40:00Z"})
-    hook(
-        home,
-        "Stop",
-        {"cwd": str(work), "stop_hook_active": False, "last_assistant_message": "Done."},
-    )
-    assert popups and popups[0][0] == "waiting"
+def test_outside_a_workspace_the_loop_is_not_named(
+    home: Path, tmp_path: Path, popups: list
+) -> None:
+    bare = tmp_path / "bare"
+    bare.mkdir()
+    start = hook(home, "SessionStart", {"cwd": str(bare), "source": "startup"})
+    assert "bedrock:day" not in json.dumps(start)
 
 
-def test_a_short_answer_does_not_notify(home: Path, work: Path, popups: list) -> None:
-    session.update(cfg(home), "s1", {"turn_started": "2026-10-17T11:59:00Z"})
-    hook(
-        home,
-        "Stop",
-        {"cwd": str(work), "stop_hook_active": False, "last_assistant_message": "Done."},
-    )
+@pytest.mark.parametrize(
+    ("event", "data"),
+    [
+        ("Stop", {"stop_hook_active": False, "last_assistant_message": "Готово. Пушим?"}),
+        ("Stop", {"stop_hook_active": False, "last_assistant_message": "Done."}),
+        (
+            "PreToolUse",
+            {
+                "tool_name": "AskUserQuestion",
+                "tool_input": {"questions": [{"question": "Spend or save?", "options": []}]},
+            },
+        ),
+        ("Notification", {"message": "Claude needs your permission to use Bash"}),
+    ],
+)
+def test_nothing_pops_up_on_the_desktop(
+    home: Path, work: Path, popups: list, event: str, data: dict
+) -> None:
+    session.update(cfg(home), "s1", {"turn_started": "2026-10-17T11:00:00Z"})
+    hook(home, event, {"cwd": str(work), **data})
     assert popups == []
-
-
-def test_question_buttons_notify(home: Path, work: Path, popups: list) -> None:
-    question = {"questions": [{"question": "Spend or save?", "header": "Limit", "options": []}]}
-    hook(
-        home,
-        "PreToolUse",
-        {"cwd": str(work), "tool_name": "AskUserQuestion", "tool_input": question},
-    )
-    assert popups == [("question", "Claude asks", "Spend or save?")]
-
-
-def test_claude_code_notification_is_forwarded(home: Path, work: Path, popups: list) -> None:
-    hook(
-        home,
-        "Notification",
-        {"cwd": str(work), "message": "Claude needs your permission to use Bash"},
-    )
-    assert popups and popups[0][0] == "question"
 
 
 # PreCompact and SessionStart

@@ -29,6 +29,6 @@ Done when: the summary is sent and the backlog holds the inbox items.
 4. A short summary for the owner: what got done, what is left and why, the one thing
    needed from the owner, the limit spent.
 5. Where the project enables it: client update draft, hours from `bedrock minutes`,
-   tracker statuses (outward, so under a grant).
+   tracker statuses (outward, so on the owner's word).
 
 Done when: the summary is sent and nothing is left running.

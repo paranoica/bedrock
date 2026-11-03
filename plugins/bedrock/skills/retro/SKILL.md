@@ -14,7 +14,8 @@ The retro changes the system, not just describes the week (D061).
 ## 1. Gather the numbers
 - `bedrock retro --days 7`: closed blocks with minutes and estimates, open blocks, and the
   calibration factor per risk level.
-- `bedrock ledger summary`: agent runs, spend, accepted results by role.
+- `bedrock agents --since <a week ago>`: agent runs and spend by role (also `--by day`,
+  `--by project`); its last line says how many transcripts it could read.
 - Review records and the review noise: findings accepted or rejected by type.
 - The week's failure notes and stale notes (`bedrock kb drift`, `bedrock kb validate`).
 - The owner's corrections in his prompts: «не понял», «не так», «я же говорил».

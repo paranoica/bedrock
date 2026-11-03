@@ -2,8 +2,8 @@
 
 Plan, critic and cut are skipped. Secret checks, tests and linters always run.
 
-1. **Mitigate first:** roll back to the last good version when the cause is unclear (under a
-   grant), or a minimal hotfix from the production tag with a failing case and a rollback
+1. **Mitigate first:** roll back to the last good version when the cause is unclear (on the
+   owner's word), or a minimal hotfix from the production tag with a failing case and a rollback
    command.
 2. **Notify the owner** if away: "P0: X down, rolled back to Y, working, cause under
    investigation" (`bedrock notify p0 ...`).

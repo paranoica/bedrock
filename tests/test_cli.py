@@ -112,60 +112,6 @@ def test_bad_event_is_an_error_not_a_traceback(
     assert "Traceback" not in err
 
 
-def test_ledger_add_and_summary(
-    capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
-) -> None:
-    entry = {
-        "project": "Acme",
-        "role": "critic",
-        "model": "opus",
-        "reason": "b",
-        "estimate": 500000,
-        "actual": 420000,
-        "turns": 12,
-        "cap_hit": False,
-        "accepted": True,
-    }
-    env = env_at(home, "2026-10-17T12:00:00Z")
-    assert run(capsys, ["ledger", "add", json.dumps(entry)], env, workspace)[0] == 0
-    code, out, _ = run(capsys, ["ledger", "summary"], env, workspace)
-    assert code == 0
-    assert json.loads(out)["critic"]["actual"] == 420000.0
-
-
-def test_ledger_add_rejects_broken_json(
-    capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
-) -> None:
-    code, _, err = run(
-        capsys, ["ledger", "add", "{nope"], env_at(home, "2026-10-17T12:00:00Z"), workspace
-    )
-    assert code == 1
-    assert err.startswith("bedrock: ")
-
-
-def test_ledger_spend_reads_a_transcript(
-    capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
-) -> None:
-    transcript = home / "t.jsonl"
-    usage = {"input_tokens": 10, "cache_read_input_tokens": 1000, "output_tokens": 2}
-    transcript.write_text(
-        json.dumps({"type": "assistant", "message": {"id": "m1", "usage": usage}}) + "\n"
-    )
-    code, out, _ = run(
-        capsys,
-        ["ledger", "spend", str(transcript)],
-        env_at(home, "2026-10-17T12:00:00Z"),
-        workspace,
-    )
-    assert code == 0
-    assert json.loads(out) == {
-        "weighted": 120.0,
-        "turns": 1,
-        "start_context": 1010,
-        "peak_context": 1010,
-    }
-
-
 def test_question_log_answer_similar(
     capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
 ) -> None:
@@ -245,15 +191,6 @@ def test_bin_entry_point_runs(home: Path) -> None:
     )
     assert completed.returncode == 0, completed.stderr
     assert completed.stdout.strip() == "0"
-
-
-def test_ledger_summary_with_a_bad_since_is_an_error(
-    capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
-) -> None:
-    env = env_at(home, "2026-10-17T12:00:00Z")
-    code, _, err = run(capsys, ["ledger", "summary", "--since", "yesterday"], env, workspace)
-    assert code == 1
-    assert err.startswith("bedrock: ")
 
 
 def test_notify_accepts_a_timeout(
@@ -641,15 +578,107 @@ def test_session_needs_an_id(
     assert "session" in err
 
 
-def test_review_record_for_a_branch(
+def reviewer_run(
+    home: Path,
+    agent_id: str = "a1b2c3d4e5",
+    session: str = "s1",
+    kind: str = "bedrock:reviewer",
+    ended: str = "2099-01-01T00:00:00Z",
+    finished: bool | None = True,
+) -> None:
+    folder = home / ".claude" / "projects" / "-work-app" / session / "subagents"
+    folder.mkdir(parents=True, exist_ok=True)
+    line = {"type": "assistant", "timestamp": ended, "message": {"id": "m1", "usage": {}}}
+    (folder / f"agent-{agent_id}.jsonl").write_text(json.dumps(line) + "\n")
+    meta = {"agentType": kind, **({} if finished is None else {"finished": finished})}
+    (folder / f"agent-{agent_id}.meta.json").write_text(json.dumps(meta))
+
+
+def review_env(home: Path) -> dict[str, str]:
+    return {**env_at(home, "2026-10-17T12:00:00Z"), "CLAUDE_CODE_SESSION_ID": "s1"}
+
+
+def test_review_pass_records_the_reviewer_and_the_commit(
     capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
 ) -> None:
-    env = env_at(home, "2026-10-17T12:00:00Z")
-    assert run(capsys, ["review", "pass", "fix/x-1"], env, workspace)[0] == 0
-    record = home / ".local/state/bedrock/reviews/Acme/fix__x-1.json"
-    assert json.loads(record.read_text())["passed"] is True
-    run(capsys, ["review", "fail", "fix/x-1"], env, workspace)
-    assert json.loads(record.read_text())["passed"] is False
+    _zoned_repo(workspace)
+    reviewer_run(home)
+    env = review_env(home)
+    argv = ["review", "pass", "fix/x", "--risk", "R3", "--agent", "a1b2c3d4e5"]
+    assert run(capsys, argv, env, workspace)[0] == 0
+    record = json.loads((home / ".local/state/bedrock/reviews/Acme/fix__x.json").read_text())
+    head = subprocess.run(
+        ["git", "-C", str(workspace), "rev-parse", "fix/x"], capture_output=True, text=True
+    ).stdout.strip()
+    assert record["passed"] is True
+    assert record["sha"] == head
+    assert (record["agent"], record["agent_type"]) == ("a1b2c3d4e5", "bedrock:reviewer")
+    assert run(capsys, ["review", "fail", "fix/x"], env, workspace)[0] == 0
+    record = json.loads((home / ".local/state/bedrock/reviews/Acme/fix__x.json").read_text())
+    assert record["passed"] is False and "sha" not in record
+
+
+@pytest.mark.parametrize(
+    ("setup", "extra", "message"),
+    [
+        ({}, [], "--agent"),
+        ({"kind": "general-purpose"}, ["--agent", "a1b2c3d4e5"], "not a reviewer"),
+        ({"session": "s2"}, ["--agent", "a1b2c3d4e5"], "no agent a1b2c3d4e5 in session s1"),
+        ({"ended": "2001-01-01T00:00:00Z"}, ["--agent", "a1b2c3d4e5"], "before the last commit"),
+        ({"finished": False}, ["--agent", "a1b2c3d4e5"], "has not finished"),
+        ({"finished": None}, ["--agent", "a1b2c3d4e5"], "has not finished"),
+        ({}, ["--agent", "../../x"], "no agent"),
+    ],
+)
+def test_review_pass_needs_a_real_reviewer_run(
+    capsys: pytest.CaptureFixture[str],
+    home: Path,
+    workspace: Path,
+    setup: dict,
+    extra: list[str],
+    message: str,
+) -> None:
+    _zoned_repo(workspace)
+    reviewer_run(home, **setup)
+    argv = ["review", "pass", "fix/x", "--risk", "R3", *extra]
+    code, _, err = run(capsys, argv, review_env(home), workspace)
+    assert code == 1 and message in err
+    assert not (home / ".local/state/bedrock/reviews/Acme/fix__x.json").exists()
+
+
+def test_review_pass_outside_a_session_says_so(
+    capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
+) -> None:
+    _zoned_repo(workspace)
+    argv = ["review", "pass", "fix/x", "--risk", "R3", "--agent", "a1b2c3d4e5"]
+    code, _, err = run(capsys, argv, env_at(home, "2026-10-17T12:00:00Z"), workspace)
+    assert code == 1 and "session" in err
+
+
+def test_agents_report_reads_transcripts(
+    capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
+) -> None:
+    reviewer_run(home, ended="2026-11-01T10:00:00Z")
+    reviewer_run(home, agent_id="b1b2c3d4e5", kind="bedrock:critic", ended="2026-10-01T10:00:00Z")
+    env = env_at(home, "2026-11-03T12:00:00Z")
+    code, out, err = run(capsys, ["agents"], env, workspace)
+    assert code == 0
+    assert "bedrock:reviewer" in out and "bedrock:critic" in out
+    assert "read 2 agent transcripts, 2 runs in range" in err
+    code, out, err = run(capsys, ["agents", "--since", "2026-10-17", "--json"], env, workspace)
+    runs = json.loads(out)
+    assert [r["role"] for r in runs] == ["bedrock:reviewer"]
+    assert "2 agent transcripts, 1 runs in range" in err
+
+
+def test_agents_with_a_bad_since_is_an_error(
+    capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
+) -> None:
+    code, _, err = run(
+        capsys, ["agents", "--since", "yesterday"], env_at(home, "2026-11-03T12:00:00Z"), workspace
+    )
+    assert code == 1
+    assert err.startswith("bedrock: ")
 
 
 def test_kb_init_validate_and_backlinks(
@@ -851,10 +880,11 @@ def test_a_critical_zone_needs_a_full_review(
     capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
 ) -> None:
     _zoned_repo(workspace)
-    env = env_at(home, "2026-10-17T12:00:00Z")
+    reviewer_run(home)
+    env = review_env(home)
     (workspace / "src" / "ingest" / "chunk.py").write_text("x = 2\n")
     subprocess.run(["git", "-C", str(workspace), "commit", "-qam", "fix"], check=True)
-    argv = ["review", "pass", "fix/x", "--risk", "R2", "--base", "main"]
+    argv = ["review", "pass", "fix/x", "--risk", "R2", "--base", "main", "--agent", "a1b2c3d4e5"]
     code, _, err = run(capsys, argv, env, workspace)
     assert code == 1 and "src/ingest/chunk.py" in err and "R3" in err
     record = home / ".local/state/bedrock/reviews/Acme/fix__x.json"
@@ -868,10 +898,11 @@ def test_outside_critical_zones_a_lighter_review_passes(
     capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
 ) -> None:
     _zoned_repo(workspace)
+    reviewer_run(home)
     (workspace / "src" / "ui.py").write_text("y = 2\n")
     subprocess.run(["git", "-C", str(workspace), "commit", "-qam", "ui"], check=True)
-    argv = ["review", "pass", "fix/x", "--risk", "R1", "--base", "main"]
-    assert run(capsys, argv, env_at(home, "2026-10-17T12:00:00Z"), workspace)[0] == 0
+    argv = ["review", "pass", "fix/x", "--risk", "R1", "--base", "main", "--agent", "a1b2c3d4e5"]
+    assert run(capsys, argv, review_env(home), workspace)[0] == 0
 
 
 def test_project_check_and_night_watch_from_the_cli(
@@ -890,12 +921,13 @@ def test_moving_a_file_out_of_a_critical_zone_still_needs_r3(
     capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
 ) -> None:
     _zoned_repo(workspace)
+    reviewer_run(home)
     subprocess.run(
         ["git", "-C", str(workspace), "mv", "src/ingest/chunk.py", "src/moved.py"], check=True
     )
     subprocess.run(["git", "-C", str(workspace), "commit", "-qm", "move"], check=True)
-    argv = ["review", "pass", "fix/x", "--risk", "R1", "--base", "main"]
-    code, _, err = run(capsys, argv, env_at(home, "2026-10-17T12:00:00Z"), workspace)
+    argv = ["review", "pass", "fix/x", "--risk", "R1", "--base", "main", "--agent", "a1b2c3d4e5"]
+    code, _, err = run(capsys, argv, review_env(home), workspace)
     assert code == 1 and "src/ingest/chunk.py" in err
 
 
@@ -903,38 +935,61 @@ def test_a_bare_folder_is_a_critical_zone_too(
     capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
 ) -> None:
     _zoned_repo(workspace)
+    reviewer_run(home)
     settings = {"project": "Acme", "critical_zones": ["src/ingest"]}
     (workspace / ".claude" / "bedrock.json").write_text(json.dumps(settings))
     (workspace / "src" / "ingest" / "chunk.py").write_text("x = 3\n")
     subprocess.run(["git", "-C", str(workspace), "commit", "-qam", "fix"], check=True)
-    argv = ["review", "pass", "fix/x", "--risk", "R2", "--base", "main"]
-    assert run(capsys, argv, env_at(home, "2026-10-17T12:00:00Z"), workspace)[0] == 1
+    argv = ["review", "pass", "fix/x", "--risk", "R2", "--base", "main", "--agent", "a1b2c3d4e5"]
+    assert run(capsys, argv, review_env(home), workspace)[0] == 1
 
 
 def test_a_zone_written_with_a_leading_dot_or_slash(
     capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
 ) -> None:
     _zoned_repo(workspace)
+    reviewer_run(home)
     for zone in ("./src/ingest", "/src/ingest/"):
         settings = {"project": "Acme", "critical_zones": [zone]}
         (workspace / ".claude" / "bedrock.json").write_text(json.dumps(settings))
         (workspace / "src" / "ingest" / "chunk.py").write_text(f"x = {len(zone)}\n")
         subprocess.run(["git", "-C", str(workspace), "commit", "-qam", "fix"], check=True)
-        argv = ["review", "pass", "fix/x", "--risk", "R2", "--base", "main"]
-        assert run(capsys, argv, env_at(home, "2026-10-17T12:00:00Z"), workspace)[0] == 1, zone
+        argv = [
+            "review",
+            "pass",
+            "fix/x",
+            "--risk",
+            "R2",
+            "--base",
+            "main",
+            "--agent",
+            "a1b2c3d4e5",
+        ]
+        assert run(capsys, argv, review_env(home), workspace)[0] == 1, zone
 
 
 def test_a_zone_for_the_whole_repository(
     capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
 ) -> None:
     _zoned_repo(workspace)
+    reviewer_run(home)
     for zone in (".", "/", "./"):
         settings = {"project": "Acme", "critical_zones": [zone]}
         (workspace / ".claude" / "bedrock.json").write_text(json.dumps(settings))
         (workspace / "src" / "ui.py").write_text(f"y = {len(zone)}\n")
         subprocess.run(["git", "-C", str(workspace), "commit", "-qam", "ui"], check=True)
-        argv = ["review", "pass", "fix/x", "--risk", "R2", "--base", "main"]
-        assert run(capsys, argv, env_at(home, "2026-10-17T12:00:00Z"), workspace)[0] == 1, zone
+        argv = [
+            "review",
+            "pass",
+            "fix/x",
+            "--risk",
+            "R2",
+            "--base",
+            "main",
+            "--agent",
+            "a1b2c3d4e5",
+        ]
+        assert run(capsys, argv, review_env(home), workspace)[0] == 1, zone
 
 
 def test_night_watch_raises_the_stop_hook_cap_for_its_claude(
@@ -947,3 +1002,18 @@ def test_night_watch_raises_the_stop_hook_cap_for_its_claude(
     argv = ["night", "watch", "--until", "23:00", "--", sys.executable, "-c", script]
     assert run(capsys, argv, env_at(home, "2026-10-17T12:00:00Z"), workspace)[0] == 0
     assert out.read_text() == "60"
+
+
+def test_agents_report_survives_a_broken_workspace(
+    capsys: pytest.CaptureFixture[str], home: Path, workspace: Path
+) -> None:
+    broken = home / "elsewhere"
+    (broken / ".claude").mkdir(parents=True)
+    (broken / ".claude" / "bedrock.json").write_text('{"project": "../x"}')
+    folder = home / ".claude" / "projects" / "-elsewhere" / "s9" / "subagents"
+    folder.mkdir(parents=True)
+    line = {"type": "assistant", "timestamp": "2026-11-01T10:00:00Z", "cwd": str(broken)}
+    (folder / "agent-c1c2c3c4c5.jsonl").write_text(json.dumps(line) + "\n")
+    env = env_at(home, "2026-11-03T12:00:00Z")
+    code, out, _ = run(capsys, ["agents", "--by", "project"], env, workspace)
+    assert code == 0 and "elsewhere" in out

@@ -2,7 +2,7 @@
 
 ## Rules
 - Every schema change is a migration with a tested down path, or a written reason it has none.
-- Migrations on shared environments are outward actions: the owner's grant (D016).
+- Migrations on shared environments are outward actions: on the owner's word (D016).
 - Long migrations run in batches; no full-table lock on a hot table.
 - Queries use parameters; no string-built SQL.
 

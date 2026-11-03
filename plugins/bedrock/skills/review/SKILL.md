@@ -67,8 +67,9 @@ Done when: every finding is fixed or rejected with a reason in the report.
 - Real findings not falling between rounds mean the design is wrong: back to the plan or the
   `debug` skill, a fresh view if needed.
 - Fuse: five rounds, then stop and tell the owner what keeps coming back.
-Done when: the last round is clean, then `bedrock review pass <branch> --notes "<summary>"`.
-The git guard refuses a PR without this record.
+Done when: the last round is clean, then
+`bedrock review pass <branch> --agent <reviewer agent id> --notes "<summary>"`. The review
+gate refuses `gh pr create` and `gh pr merge` without it, and after any later commit.
 
 ## 6. Tell the owner
 One line in Russian, nothing more unless asked:

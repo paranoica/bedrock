@@ -1,10 +1,9 @@
 # bedrock
 
 A working system for [Claude Code](https://code.claude.com), packaged as a plugin and a
-marketplace. It turns a coding session into a loop with guard rails: a plan before code, a test
-that fails before the fix, two kinds of review before a pull request, a knowledge base that
-stays in step with the code, agents that run under a budget, and hooks that refuse what should
-not happen without the owner's word.
+marketplace. It turns a coding session into a loop: a plan before code, a test that fails
+before the fix, a review by a separate agent before a pull request, and a knowledge base that
+stays in step with the code.
 
 It is built for one developer who works across several client projects, and it is opinionated
 about that: the owner decides, Claude does the work, and nothing leaves the machine unasked.
@@ -26,9 +25,9 @@ libnotify, folio, faster-whisper. `bedrock doctor` says what each one is for.
 
 | Part | Where | What it does |
 |---|---|---|
-| Skills | `plugins/bedrock/skills/` | the working loop (`day`), root-cause debugging (`debug`), the review gate (`review`, `code-review`), the knowledge base (`kb`, `handoff`, `ask`), people and texts (`call`, `doc`, `humanize`), the week (`retro`, `arch`, `triage`), autonomy (`night`), project start (`start`), testing (`hunt`, `e2e`), design (`design-creator`), the navigator (`next`), grants (`allow`, `unleash`, `revoke`), writing skills (`writing`) |
+| Skills | `plugins/bedrock/skills/` | the working loop (`day`), root-cause debugging (`debug`), the review gate (`review`, `code-review`), the knowledge base (`kb`, `handoff`, `ask`), people and texts (`call`, `doc`, `humanize`), the week (`retro`, `arch`, `triage`), autonomy (`night`), project start (`start`), testing (`hunt`, `e2e`), design (`design-creator`), the navigator (`next`), writing skills (`writing`) |
 | Agents | `plugins/bedrock/agents/` | twelve roles with a model, an effort and a turn cap: inventory, researcher, analyst, critic, verifier, reviewer, security reviewer, implementer, implementer without tests (prose and config), architect, escalation, bug hunter |
-| Hooks | `plugins/bedrock/hooks/` | guards that refuse (git, outward actions, secrets, installs, heavy runs, agents writing outside their files, the bench answer key) and helpers that inform (grants, drift, auto-continue, notifications) |
+| Hooks | `plugins/bedrock/hooks/` | one gate (no pull request without a recorded review of its head commit) and helpers that inform (the working loop and stale notes at start, format and lint after an edit, earlier answers to repeated questions, auto-continue when switched on) |
 | CLI | `plugins/bedrock/bin/bedrock` | day log and minutes, backlog, test and command wrappers with a machine lock, leak and code checks, knowledge base, call archive, retro numbers, night watchdog, doctor |
 | Packs | `plugins/bedrock/packs/` | domain rule sets switched on per project: python, typescript, db, api-security, frontend, jobs, medical |
 | Bench | `bench/` | a small app with seeded defects that measures the system; its answer key lives outside the repository |
@@ -43,21 +42,24 @@ libnotify, folio, faster-whisper. `bedrock doctor` says what each one is for.
 4. **Tasks.** One task is one commit with its own test, red before the change.
 5. **Review.** Deterministic checks first, then a code review and a plan-compliance review;
    every real finding is fixed, imaginary ones are rejected with evidence; rounds until clean.
-6. **Deliver.** Branch, PR, merge and deploy each need the owner's grant. A user-visible change
+6. **Deliver.** Branch, PR, merge and deploy go on the owner's word. A user-visible change
    is checked live before it is called done.
 7. **Close.** Minutes from the day log, the knowledge base updated, a plain report.
 
-## Guards and grants
+## Hooks
 
-The hooks refuse, they do not ask: push, merge, deploy, sending messages, installing packages,
-reading `.env` values, writing into `~/.claude`, and a long list of destructive git forms. A
-grant comes only from the owner's own typed words in the session (quoted or pasted text never
-counts, nor does a negation or a question), from `/bedrock:allow`, or from the all-out mode
-`/bedrock:unleash`. Every grant is checked against the session transcript, so the model cannot
-grant itself anything. `BEDROCK_HOOKS=off` turns the hooks off.
+The hooks refuse one thing: `gh pr create` and `gh pr merge` without a review record for the
+head commit. `bedrock review pass <branch> --agent <id>` writes that record only when a reviewer
+agent of the same session finished after the branch's last commit; a later commit voids it.
+Everything else is the session's own discipline and the owner's word in the conversation.
+If bedrock itself cannot load, work goes on and only that gate refuses. The gate is a check
+against forgetting, not against a session set on getting round it: it reads `gh pr create` and
+`gh pr merge` as written (a `gh api` call or a gh alias passes), and it checks that a reviewer
+finished after the last commit, not what that reviewer read. `BEDROCK_HOOKS=off` turns the
+hooks off.
 
-Static inspection of shell commands cannot see what an interpreter runs (`python -c`, a script):
-for that, enable Claude Code's own Bash sandbox in your settings.
+Agent runs are read from Claude Code's own transcripts: `bedrock agents` shows them by role,
+model, day or project, and says how many transcripts it could not read.
 
 ## Folders
 
@@ -65,7 +67,7 @@ for that, enable Claude Code's own Bash sandbox in your settings.
 |---|---|
 | `~/projects-memory-bank/<project>/` | the knowledge base: decisions, architecture, failures, runbooks, handoffs, FAQ; a local git repository |
 | `~/projects-days/<project>/` | day logs, block folders with plans and agent reports, the question log, the call archive |
-| `~/.local/state/bedrock/` | session state, grants, review records, code maps, the agent ledger |
+| `~/.local/state/bedrock/` | session state, review records, code maps |
 | `~/.config/bedrock/` | the owner's settings (`config.json`), the private leak-term list, the voice profile |
 
 A project's own settings live in `<workspace>/.claude/bedrock.json` (commands, critical zones,
@@ -73,7 +75,7 @@ packs); `bedrock project check` validates them.
 
 ## Documentation
 
-- `plugins/bedrock/docs/ru-guide.md`: the owner's guide, in Russian: what to say, grants, the
+- `plugins/bedrock/docs/ru-guide.md`: the owner's guide, in Russian: what to say, the hooks, the
   night mode, folders, what to do when something is off.
 - `plugins/bedrock/docs/cheatsheet.md`: one page; `folio cheatsheet.md` renders it as a PDF.
 

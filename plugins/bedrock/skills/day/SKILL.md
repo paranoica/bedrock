@@ -6,7 +6,8 @@ description: The working loop for any task — intake, plan, critic, cut, implem
 # The working loop
 
 One block = one task from "taken" to "done and merged" (D031). Each step ends on a check.
-Guards (git, grants, secrets, agents, heavy runs) are hooks; this skill never restates them.
+The only hook that refuses is the pull-request review gate; everything else here is the
+session's own discipline.
 
 ## Triggers
 - RU: «сделай X», «новая задача», «начинаем день», «закрываем день»
@@ -35,9 +36,8 @@ the plan file. R1 has no plan file: its `taken` line is the record.
 - Write it from `references/plan.md` to `~/projects-days/<project>/<date>/<block>/plan.md`.
 - Every plan has: done-when (checkable), assumptions, files, tests named with what they
   assert, tasks with who and model, the agents it uses, estimate, out of scope.
-- The agents list is the block's agent budget (D006). Set it before the critic runs:
-  `bedrock session set agent_budget=<n>`, where n is a whole number: every agent run the
-  block needs in this 5-hour window, each critic round and review round counted.
+- The agents list says which roles run and how often, so `bedrock agents` can be read
+  against it afterwards.
 - Research per `references/research.md` when the plan rests on library behaviour (D034).
 - The project's packs feed the plan: their test checklists go into Tests, their rules into
   the implementer brief's "Keep true".
@@ -94,22 +94,23 @@ backlog shows the task done.
   (D040).
 - `bedrock log review --block <id> --detail "<the summary line>"`.
 
-Done when: the review summary line is logged and `bedrock review pass <branch>` is recorded.
+Done when: the review summary line is logged and `bedrock review pass <branch> --agent <id>`
+is recorded with the reviewer agent that ran.
 
 ## 8. Deliver
 Follow `references/deliver.md`: branch and PR per the project, live verification, and every
-outward step only under the owner's grant (D052, D053). After a merge:
+outward step only on the owner's word in the conversation (D052, D053). After a merge:
 `bedrock log merged --block <id> --ref <PR>`.
 
 Done when: the change is checked live, or the report says plainly that it was not, or it
-names the outward step that waits for the owner's grant.
+names the outward step that waits for the owner's word.
 
 ## 9. Close the block
 - `bedrock log closed --block <id>` and `bedrock minutes <id>` into the report.
-- Update the knowledge base for every module touched (the Stop hook asks once).
+- Update the knowledge base for every module touched; `bedrock kb drift` shows what is left.
 - Report to the owner in plain Russian (D021): what changed for the product, checked live
   or not, what is needed from the owner, what is next.
-- `bedrock session set state=null task=null plan=null autocontinue=null agent_budget=null`.
+- `bedrock session set state=null task=null plan=null autocontinue=null`.
 
 Done when: the log line, the base update and the report are all done.
 

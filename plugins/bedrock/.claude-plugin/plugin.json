@@ -1,8 +1,8 @@
 {
   "name": "bedrock",
   "displayName": "Bedrock",
-  "version": "0.1.3",
-  "description": "A working system for Claude Code: day loop, root-cause debugging, knowledge base, agents under budget, guard hooks",
+  "version": "0.2.0",
+  "description": "A working system for Claude Code: day loop, root-cause debugging, knowledge base, agent statistics from transcripts, one pull-request review gate",
   "author": {
     "name": "paranoica"
   },

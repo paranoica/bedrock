@@ -14,7 +14,7 @@ No report waits more than a day or two without a decision (D060).
 ## 0. Sources
 The project's tracker where the team logs bugs, or whatever arrives: Slack, QA reports,
 sheets. The project's settings name them. Reading is free. Writing to a tracker is an
-outward action under the owner's grant (D016).
+outward action on the owner's word (D016).
 Done when: every source was read, or the one that could not be read is named.
 
 ## 1. Reproduce on the current version
