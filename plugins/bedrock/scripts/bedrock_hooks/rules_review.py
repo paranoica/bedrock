@@ -1,5 +1,7 @@
 """The one refusal bedrock keeps: a pull request opens or merges only after a recorded review.
 
+A draft pull request opens freely (it cannot be merged as a draft, and merging is gated).
+
 The record (`bedrock review pass --agent <id>`) names a reviewer agent that really ran and the
 commit it reviewed; a new commit after the review voids it (D053).
 """
@@ -141,13 +143,17 @@ def check(event: Event, env: Env) -> Verdict | None:
         words = simple.argv[1:] if simple.program == "gh" else []
         if words[:1] != ["pr"] or len(words) < 2 or words[1] not in ("create", "merge"):
             continue
+        # A draft cannot be merged, and merging is gated on its own.
+        if words[1] == "create" and any(a in ("--draft", "-d") for a in words[2:]):
+            continue
         target = _target(env, cwd, words[1], words[2:])
         if isinstance(target, str):
             return Verdict(deny=f"gh pr {words[1]} refused: {target}.")
         if problem := _review(env, cwd, *target):
             return Verdict(
                 deny=f"gh pr {words[1]} refused: {problem}. Run a reviewer agent, then "
-                "`bedrock review pass <branch> --agent <its id>` (D053)."
+                "`bedrock review pass <branch> --agent <its id>` as its own command: this "
+                "check runs before the command does (D053)."
             )
     return None
 

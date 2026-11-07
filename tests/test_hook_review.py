@@ -254,3 +254,13 @@ def test_cd_elsewhere_after_the_call_does_not_change_it(tmp_path: Path, work: Pa
     assert "no passed review" in denied(
         bash(work, "gh pr create --fill && cd /", environ(tmp_path))
     )
+
+
+@pytest.mark.parametrize("flag", ["--draft", "-d"])
+def test_a_draft_pull_request_passes(tmp_path: Path, work: Path, flag: str) -> None:
+    assert bash(work, f"gh pr create {flag} --fill", environ(tmp_path)) == {}
+
+
+def test_the_refusal_says_to_record_the_review_first(tmp_path: Path, work: Path) -> None:
+    command = "bedrock review pass feat/x --agent a1b2c3d4e5 && gh pr create --fill"
+    assert "own command" in denied(bash(work, command, environ(tmp_path)))

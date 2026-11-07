@@ -49,7 +49,7 @@ libnotify, folio, faster-whisper. `bedrock doctor` says what each one is for.
 ## Hooks
 
 The hooks refuse one thing: `gh pr create` and `gh pr merge` without a review record for the
-head commit. `bedrock review pass <branch> --agent <id>` writes that record only when a reviewer
+head commit (a draft pull request opens freely; its merge is gated). `bedrock review pass <branch> --agent <id>` writes that record only when a reviewer
 agent of the same session finished after the branch's last commit; a later commit voids it.
 Everything else is the session's own discipline and the owner's word in the conversation.
 If bedrock itself cannot load, work goes on and only that gate refuses. The gate is a check

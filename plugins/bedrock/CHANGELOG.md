@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.2
+- A draft pull request (`gh pr create --draft`) opens without a review record; merging stays
+  gated.
+- The review gate's refusal says to run `bedrock review pass` as its own command, since the
+  gate checks before the command runs.
+
 ## 0.2.1
 - The session start names the bedrock agent roles to use (inventory, researcher, implementer,
   reviewer) and keeps general-purpose, which runs on the session's own model, for work no role
