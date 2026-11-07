@@ -16,6 +16,7 @@ from typing import Any
 from bedrock_lib import clock, jsonl, kb, session, spend
 
 from bedrock_hooks.core import HELPER, Env, Event, Rule, Verdict
+from bedrock_hooks.rules_roles import ROLES
 
 ATTEMPTS_PER_TASK = 2
 STEP_CEILING = 40
@@ -23,10 +24,7 @@ REGISTRY_TTL = timedelta(hours=12)
 # Skills do not switch themselves on in the middle of a conversation, so the session is told once.
 ROUTE = (
     "bedrock: take a new task through the bedrock:day skill; record each decision and failure "
-    "with bedrock:kb. For an agent, take the bedrock role that fits: bedrock:inventory to read "
-    "many files, bedrock:researcher for the web, bedrock:implementer for code with a ready test, "
-    "bedrock:reviewer for a review. general-purpose runs on the session's own model: keep it "
-    "for work no role fits."
+    "with bedrock:kb. " + ROLES
 )
 
 

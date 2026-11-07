@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.3
+- When an agent starts as general-purpose, the hook adds one line naming the bedrock roles
+  (inventory, researcher, implementer, reviewer, security-reviewer, verifier). The agent starts
+  as asked; this reaches long sessions and agents started by other agents, which the
+  session-start line does not.
+- code-review's finding verifier runs as `bedrock:verifier`. design-creator keeps
+  general-purpose for its design critic and its code-review handoff: no role fits them.
+
 ## 0.2.2
 - A draft pull request (`gh pr create --draft`) opens without a review record; merging stays
   gated.

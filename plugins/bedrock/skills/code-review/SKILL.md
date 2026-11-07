@@ -161,7 +161,7 @@ section). Then:
    construct the specific exploit input and trace whether the defense stops it. If something
    slips through, it's a finding after all.
 5. **Spawn the verifier subagent** for medium+ reviews (≥5 findings or any CRITICAL/HIGH):
-   `Task(subagent_type:"general-purpose", prompt: <contents of subagents/finding-verifier.md>
+   `Task(subagent_type:"bedrock:verifier", prompt: <contents of subagents/finding-verifier.md>
    + the findings JSON + repo root + OSV output path)`. Fresh context → can't be anchored by
    your reasoning. Treat its cut/downgrade as authoritative unless you can point at the exact
    refuting line. Gate by scope. Fallbacks: a user-registered `finding-verifier` agent by

@@ -6,7 +6,7 @@ tools: Read, Grep, Glob, Bash
 
 # Finding verifier (adversarial, fresh-context)
 
-> Spawned via `Task(subagent_type: "general-purpose", prompt: <this file> + the findings,
+> Spawned via `Task(subagent_type: "bedrock:verifier", prompt: <this file> + the findings,
 > repo path, and OSV output)` — no installation, nothing to put in `~/.claude/agents/`. The
 > only channel from the parent is this prompt string, so everything you need (file paths,
 > findings JSON, osv output path) is handed to you here; read the files yourself. You cannot
