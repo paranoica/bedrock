@@ -28,21 +28,33 @@ ROUTE = (
 )
 
 
+def _before(until: object, env: Env) -> bool:
+    """Whether now is before the auto-continue end; an unreadable end counts as passed."""
+    try:
+        return env.now < clock.parse(str(until))
+    except ValueError:
+        return False
+
+
 def _auto_continue(env: Env, event: Event) -> str | None:
     state = session.load(env.cfg, event.session)
-    auto = state.get("autocontinue") or {}
-    task = auto.get("next") or {}
-    if not task.get("id") or not task.get("safe") or task.get("needs_owner"):
+    auto = state.get("autocontinue")
+    task = auto.get("next") if isinstance(auto, dict) else None
+    if not isinstance(task, dict) or not isinstance(task.get("id"), str) or not task["id"]:
         return None
-    if auto.get("until") and clock.parse(auto["until"]) <= env.now:
+    if not task.get("safe") or task.get("needs_owner"):
+        return None
+    if auto.get("until") and not _before(auto["until"], env):
         return None
     if spend.used(env.cfg, "five_hour") >= 95:
         return None
-    attempts = dict(auto.get("attempts") or {})
-    steps = int(auto.get("steps") or 0)
-    if attempts.get(task["id"], 0) >= ATTEMPTS_PER_TASK or steps >= STEP_CEILING:
+    attempts = dict(auto["attempts"]) if isinstance(auto.get("attempts"), dict) else {}
+    tried, steps = attempts.get(task["id"], 0), auto.get("steps") or 0
+    if not all(isinstance(n, int) and not isinstance(n, bool) for n in (tried, steps)):
         return None
-    attempts[task["id"]] = attempts.get(task["id"], 0) + 1
+    if tried >= ATTEMPTS_PER_TASK or steps >= STEP_CEILING:
+        return None
+    attempts[task["id"]] = tried + 1
     session.update(
         env.cfg, event.session, {"autocontinue": {**auto, "attempts": attempts, "steps": steps + 1}}
     )

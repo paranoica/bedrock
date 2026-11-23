@@ -68,3 +68,16 @@ def update(cfg: UserConfig, session: str, values: dict[str, Any]) -> dict[str, A
         return merged
 
     return change(cfg, session, merge)
+
+
+def check_autocontinue(values: dict[str, Any]) -> None:
+    """The auto-continue task is an object the Stop hook can read, or nothing."""
+    task_shape = 'a task object like {"id": "T1", "title": "...", "safe": true}, or null'
+    if "autocontinue.next" in values and not isinstance(values["autocontinue.next"], dict | None):
+        raise SessionError(f"autocontinue.next must be {task_shape}")
+    if "autocontinue" in values:
+        auto = values["autocontinue"]
+        if auto is not None and not (
+            isinstance(auto, dict) and isinstance(auto.get("next"), dict | None)
+        ):
+            raise SessionError(f"autocontinue must be an object whose next is {task_shape}")

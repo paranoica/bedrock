@@ -1017,3 +1017,32 @@ def test_agents_report_survives_a_broken_workspace(
     env = env_at(home, "2026-11-03T12:00:00Z")
     code, out, _ = run(capsys, ["agents", "--by", "project"], env, workspace)
     assert code == 0 and "elsewhere" in out
+
+
+@pytest.mark.parametrize(
+    "pair",
+    [
+        "autocontinue.next=night plan done",
+        "autocontinue.next=[1]",
+        'autocontinue={"next": "done"}',
+        "autocontinue=on",
+    ],
+)
+def test_session_set_refuses_a_task_that_is_not_an_object(
+    capsys: pytest.CaptureFixture[str], home: Path, workspace: Path, pair: str
+) -> None:
+    env = {**env_at(home, "2026-10-17T12:00:00Z"), "CLAUDE_CODE_SESSION_ID": "s1"}
+    code, _, err = run(capsys, ["session", "set", pair], env, workspace)
+    assert code == 1 and "autocontinue" in err
+    _, out, _ = run(capsys, ["session", "get"], env, workspace)
+    assert "autocontinue" not in json.loads(out)
+
+
+@pytest.mark.parametrize(
+    "pair", ["autocontinue.next=null", "autocontinue=null", 'autocontinue.next={"id": "T1"}']
+)
+def test_session_set_still_takes_a_task_object_or_null(
+    capsys: pytest.CaptureFixture[str], home: Path, workspace: Path, pair: str
+) -> None:
+    env = {**env_at(home, "2026-10-17T12:00:00Z"), "CLAUDE_CODE_SESSION_ID": "s1"}
+    assert run(capsys, ["session", "set", pair], env, workspace)[0] == 0

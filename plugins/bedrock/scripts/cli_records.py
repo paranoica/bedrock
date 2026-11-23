@@ -273,6 +273,7 @@ def _session(ctx: Context) -> int:
             if not sep or not key:
                 raise UsageError(f"'{pair}' is not key=value")
             values[key] = _value(text)
+        session.check_autocontinue(values)
         session.update(ctx.cfg, sid, values)
     return 0
 

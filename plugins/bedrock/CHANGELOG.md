@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.4
+- The Stop hook no longer crashes on a malformed auto-continue value (a text `next`, an
+  unreadable `until`, non-numeric counters, a task id that is not text); it treats it as no
+  task. `bedrock session set` refuses an `autocontinue.next` that is not a task object or null.
+
 ## 0.2.3
 - When an agent starts as general-purpose, the hook adds one line naming the bedrock roles
   (inventory, researcher, implementer, reviewer, security-reviewer, verifier). The agent starts

@@ -288,3 +288,55 @@ def test_edit_outside_the_project_is_not_marked(home: Path, work: Path, tmp_path
     hook(home, "PostToolUse", data)
     assert not (home / ".local/state/bedrock/changed/Acme.jsonl").exists()
     assert not (home / ".local/state/bedrock/hook-errors.jsonl").exists()
+
+
+@pytest.mark.parametrize(
+    "auto",
+    [
+        {"next": "night plan done; morning report sent"},
+        {"next": ["T1"]},
+        {"next": 3},
+        "on",
+        ["x"],
+    ],
+)
+def test_auto_continue_with_a_malformed_value_lets_the_session_stop(
+    home: Path, work: Path, popups: list, auto: object
+) -> None:
+    session.update(cfg(home), "s1", {"autocontinue": auto})
+    result = hook(home, "Stop", {"cwd": str(work), "stop_hook_active": False})
+    assert "decision" not in result
+    errors = home / ".local/state/bedrock/hook-errors.jsonl"
+    assert not errors.exists() or "stop" not in errors.read_text()
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        {"until": "tomorrow"},
+        {"until": 5},
+        {"attempts": "x"},
+        {"attempts": {"T3": "two"}},
+        {"steps": "many"},
+        {"steps": None},
+    ],
+)
+def test_auto_continue_survives_odd_fields(
+    home: Path, work: Path, popups: list, extra: dict
+) -> None:
+    task = {"id": "T3", "title": "wire query", "safe": True}
+    session.update(cfg(home), "s1", {"autocontinue": {"next": task, **extra}})
+    hook(home, "Stop", {"cwd": str(work), "stop_hook_active": False})
+    errors = home / ".local/state/bedrock/hook-errors.jsonl"
+    assert not errors.exists() or "stop" not in errors.read_text()
+
+
+@pytest.mark.parametrize("task_id", [["T1"], {"a": 1}, 7, ""])
+def test_auto_continue_ignores_a_task_id_that_is_not_text(
+    home: Path, work: Path, popups: list, task_id: object
+) -> None:
+    session.update(cfg(home), "s1", {"autocontinue": {"next": {"id": task_id, "safe": True}}})
+    result = hook(home, "Stop", {"cwd": str(work), "stop_hook_active": False})
+    assert "decision" not in result
+    errors = home / ".local/state/bedrock/hook-errors.jsonl"
+    assert not errors.exists() or "stop" not in errors.read_text()
