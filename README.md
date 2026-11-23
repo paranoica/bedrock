@@ -21,6 +21,17 @@ or, from a local checkout, `claude --plugin-dir ./plugins/bedrock`. Then run `be
 Requirements: Claude Code, git, Python 3.12+. Optional: uv (`uvx`), Node 20+, gitleaks, age,
 libnotify, folio, faster-whisper. `bedrock doctor` says what each one is for.
 
+The rules for how Claude writes its answers (the answer first, short by default, no preambles,
+summaries or offers at the end) live in their own repository,
+[claude-output-style](https://github.com/paranoica/claude-output-style), and are not copied here:
+
+```
+git clone git@github.com:paranoica/claude-output-style.git && ./claude-output-style/install.sh
+```
+
+`install.sh` adds the rules to `~/.claude/CLAUDE.md` and turns off an active `outputStyle` other
+than `plain` or `default`, backing up each file it changes; `--keep-style` leaves the style alone.
+
 ## What is in it
 
 | Part | Where | What it does |
