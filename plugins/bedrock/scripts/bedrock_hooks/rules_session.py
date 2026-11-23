@@ -23,8 +23,8 @@ STEP_CEILING = 40
 REGISTRY_TTL = timedelta(hours=12)
 # Skills do not switch themselves on in the middle of a conversation, so the session is told once.
 ROUTE = (
-    "bedrock: take a new task through the bedrock:day skill; record each decision and failure "
-    "with bedrock:kb. " + ROLES
+    "bedrock: take a new feature or risky (R3) work through the bedrock:day skill; smaller asks "
+    "need no loop. Record each decision and failure with bedrock:kb. " + ROLES
 )
 
 

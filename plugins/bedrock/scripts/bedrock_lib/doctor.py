@@ -18,6 +18,11 @@ from .config import UserConfig
 
 MIN_PYTHON = (3, 12)
 GPU_MB = 4000  # large-v3 in int8 or large-v3-turbo fit in this
+ANSWER_RULES = ("claude-output-style:begin", "claude-output-style:end")
+ANSWER_RULES_INSTALL = (
+    "git clone git@github.com:paranoica/claude-output-style.git"
+    " && ./claude-output-style/install.sh"
+)
 
 
 @dataclass(frozen=True)
@@ -130,11 +135,27 @@ def _files(cfg: UserConfig, home: Path, machine: Machine) -> list[Check]:
     else:
         fix = f"copy design-creator's tools/package*.json to {tools}, then npm ci there"
         found.append(Check("design tools", "warn", f"design-creator cannot render: {fix}"))
+    found.append(_answer_rules(home))
     if cfg.backup_repo and cfg.backup_recipient:
         found.append(Check("backup", "ok", str(cfg.backup_repo)))
     else:
         found.append(Check("backup", "warn", "backup.repo and backup.recipient are not set"))
     return found
+
+
+def _answer_rules(home: Path) -> Check:
+    rules = home / ".claude" / "CLAUDE.md"
+    try:
+        text = rules.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        text = ""
+    if all(marker in text for marker in ANSWER_RULES):
+        return Check("answer style", "ok", f"claude-output-style rules in {rules}")
+    return Check(
+        "answer style",
+        "warn",
+        f"claude-output-style rules are not in {rules}: {ANSWER_RULES_INSTALL}",
+    )
 
 
 def run(cfg: UserConfig, home: Path, machine: Machine | None = None) -> list[Check]:

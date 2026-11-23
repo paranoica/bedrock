@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.5
+- `bedrock doctor` warns when the claude-output-style answer rules are not in
+  `~/.claude/CLAUDE.md` and prints the command that installs them.
+- The session-start hint sends only a new feature or risky (R3) work through the `day` skill;
+  smaller asks need no loop.
+
 ## 0.2.4
 - The Stop hook no longer crashes on a malformed auto-continue value (a text `next`, an
   unreadable `until`, non-numeric counters, a task id that is not text); it treats it as no

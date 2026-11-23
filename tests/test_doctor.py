@@ -45,6 +45,11 @@ def home(tmp_path: Path) -> Path:
     terms.chmod(0o600)
     (tmp_path / ".cache/bedrock/design-tools/node_modules/playwright").mkdir(parents=True)
     (tmp_path / ".cache/bedrock/design-tools/node_modules/axe-core").mkdir(parents=True)
+    rules = tmp_path / ".claude" / "CLAUDE.md"
+    rules.parent.mkdir()
+    rules.write_text(
+        "# mine\n<!-- claude-output-style:begin -->\nrules\n<!-- claude-output-style:end -->\n"
+    )
     return tmp_path
 
 
@@ -104,3 +109,30 @@ def test_transcription_in_its_own_venv_counts(home: Path) -> None:
     (venv / "python").write_text("")
     checks = {c.name: c for c in doctor.run(UserConfig(state_dir=home / "s"), home, Machine(FULL))}
     assert checks["transcription"].level == "ok"
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        None,
+        "",
+        "# my own rules only\n",
+        "<!-- claude-output-style:begin -->\nrules, end marker lost\n",
+        "rules\n<!-- claude-output-style:end -->\n",
+    ],
+)
+def test_missing_answer_rules_warn_with_the_install_command(home: Path, text: str | None) -> None:
+    rules = home / ".claude" / "CLAUDE.md"
+    if text is None:
+        rules.unlink()
+    else:
+        rules.write_text(text)
+    found = {c.name: c for c in doctor.run(UserConfig(state_dir=home / "s"), home, Machine(FULL))}
+    check = found["answer style"]
+    assert check.level == "warn"
+    assert "claude-output-style.git" in check.detail and "install.sh" in check.detail
+
+
+def test_installed_answer_rules_are_ok(home: Path) -> None:
+    found = {c.name: c for c in doctor.run(UserConfig(state_dir=home / "s"), home, Machine(FULL))}
+    assert found["answer style"].level == "ok"
