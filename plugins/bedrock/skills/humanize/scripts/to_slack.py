@@ -1,98 +1,65 @@
 #!/usr/bin/env python3
-"""
-to_slack.py — sanitize standard-markdown text into Slack mrkdwn.
+"""Converts standard markdown to Slack mrkdwn.
 
-Safety net for when a draft was written in normal markdown out of habit. It fixes the
-unambiguous, high-value cases only. It does NOT try to guess single-asterisk italic
-(ambiguous in Slack, where a single asterisk means bold), so write mrkdwn directly and use
-this as a last pass.
+A last pass for a draft written in markdown out of habit. Only unambiguous cases are
+rewritten; single-asterisk italics are left alone because Slack reads them as bold.
 
-What it does:
-  **bold** / __bold__            -> *bold*
-  # / ## / ### heading           -> *heading*   (bold line, hashes removed)
-  [text](url)                    -> <url|text>
-  ~~strike~~                     -> ~strike~
-  leading "- " / "* " bullet     -> "• "
-  leading "> " blockquote        -> unwrapped (bar removed)
-  code fences (``` ... ```)      -> left untouched (real code should stay a block)
+    **bold** / __bold__    -> *bold*
+    # heading              -> *heading*
+    [text](url)            -> <url|text>
+    ~~strike~~             -> ~strike~
+    "- " / "* " bullets    -> "• "
+    "> " quotes            -> unwrapped
+    code                   -> untouched
 
 Usage:
-  python3 to_slack.py < input.txt
-  echo "text" | python3 to_slack.py
-  python3 to_slack.py "text as an argument"
+    python3 to_slack.py < draft.txt
+    python3 to_slack.py "text"
 """
+
+from __future__ import annotations
 
 import re
 import sys
 
-
-def _protect_code(text):
-    """Pull fenced and inline code out so we never rewrite inside them."""
-    blocks = []
-
-    def stash(m):
-        blocks.append(m.group(0))
-        return f"\x00{len(blocks) - 1}\x00"
-
-    text = re.sub(r"```.*?```", stash, text, flags=re.DOTALL)
-    text = re.sub(r"`[^`\n]+`", stash, text)
-    return text, blocks
+_FENCE = re.compile(r"```.*?```", re.DOTALL)
+_INLINE = re.compile(r"`[^`\n]+`")
+_PLACEHOLDER = re.compile(r"\x00(\d+)\x00")
+_LINK = re.compile(r"\[([^\]]+)\]\((https?://[^)\s]+)\)")
+_HEADING = re.compile(r"^\s{0,3}#{1,6}\s+(.*?)\s*#*\s*$")
+_QUOTE = re.compile(r"^\s*>\s?(.*)$")
+_BULLET = re.compile(r"^(\s*)[-*]\s+(?!\*)(.*)$")
 
 
-def _restore_code(text, blocks):
-    def unstash(m):
-        return blocks[int(m.group(1))]
+def to_slack(text: str) -> str:
+    """Rewrites markdown constructs Slack would show as literal symbols."""
+    code: list[str] = []
 
-    return re.sub(r"\x00(\d+)\x00", unstash, text)
+    def stash(match: re.Match[str]) -> str:
+        code.append(match.group(0))
+        return f"\x00{len(code) - 1}\x00"
 
-
-def to_slack(text):
-    text, code = _protect_code(text)
-
-    # Links [text](url) -> <url|text>  (before bold, so brackets are clean)
-    text = re.sub(r"\[([^\]]+)\]\((https?://[^)\s]+)\)", r"<\2|\1>", text)
-
-    # Bold: **x** and __x__ -> *x*
+    text = _INLINE.sub(stash, _FENCE.sub(stash, text))
+    text = _LINK.sub(r"<\2|\1>", text)
     text = re.sub(r"\*\*(.+?)\*\*", r"*\1*", text)
     text = re.sub(r"__(.+?)__", r"*\1*", text)
-
-    # Strikethrough: ~~x~~ -> ~x~
     text = re.sub(r"~~(.+?)~~", r"~\1~", text)
 
-    out_lines = []
+    lines = []
     for line in text.split("\n"):
-        # Headings -> bold line
-        m = re.match(r"^\s{0,3}#{1,6}\s+(.*?)\s*#*\s*$", line)
-        if m:
-            content = m.group(1).strip()
-            out_lines.append(f"*{content}*" if content else "")
-            continue
-
-        # Blockquote -> unwrap (drop the vertical bar)
-        mq = re.match(r"^\s*>\s?(.*)$", line)
-        if mq:
-            out_lines.append(mq.group(1))
-            continue
-
-        # Bullets "- " or "* " (not "**") -> "• "
-        mb = re.match(r"^(\s*)([-*])\s+(?!\*)(.*)$", line)
-        if mb:
-            indent, _, rest = mb.groups()
-            out_lines.append(f"{indent}• {rest}")
-            continue
-
-        out_lines.append(line)
-
-    text = "\n".join(out_lines)
-    text = _restore_code(text, code)
-    return text
+        if m := _HEADING.match(line):
+            lines.append(f"*{m.group(1).strip()}*" if m.group(1).strip() else "")
+        elif m := _QUOTE.match(line):
+            lines.append(m.group(1))
+        elif m := _BULLET.match(line):
+            lines.append(f"{m.group(1)}• {m.group(2)}")
+        else:
+            lines.append(line)
+    return _PLACEHOLDER.sub(lambda m: code[int(m.group(1))], "\n".join(lines))
 
 
-def main():
-    if len(sys.argv) > 1:
-        src = " ".join(sys.argv[1:])
-    else:
-        src = sys.stdin.read()
+def main() -> None:
+    src = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else sys.stdin.read()
     sys.stdout.write(to_slack(src))
 
 

@@ -88,3 +88,9 @@ def test_repeated_question_brings_the_earlier_answer(home: Path, work: Path) -> 
     context = result["hookSpecificOutput"]["additionalContext"]
     assert "По 512 токенов." in context
     assert "re-verify" in context
+
+
+def test_a_quoted_line_does_not_hide_the_owners_question(home: Path, work: Path) -> None:
+    prompt(home, work, "> строка из чужого треда\nКак режутся документы на куски?")
+    logged = questions.history(cfg(home), "Acme")
+    assert [q["question"] for q in logged] == ["Как режутся документы на куски?"]

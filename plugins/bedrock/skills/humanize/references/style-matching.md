@@ -1,60 +1,33 @@
-# Style matching (reply mode)
+# Replying to a thread
 
-The user pasted a thread or a screenshot and wants a reply that fits. Your job is to sound like
-the owner answering in that context, not like a generic assistant and not like a parody of the
-other person.
+The user pasted a message, a thread or a screenshot and wants their answer.
 
-## Read the thread for signals, not content to copy
+## The profile is the base, the thread adjusts it
 
-Pull 2-3 surface signals and match those. Do not copy the other person's exact phrases, that
-reads as mockery or as obvious mirroring.
+The register's examples come from hundreds of the user's real messages; a pasted thread is
+one moment. Start from the register and let the thread nudge only the surface:
 
-Signals worth matching:
-- message length (one-liners vs paragraphs)
-- capitalization (all lowercase? sentence case?)
-- punctuation density (lots of periods? none? line breaks instead?)
-- formality and register (buddies vs client)
-- slang and jargon level
-- emoji use (only if the profile allows emoji for that register)
+- how long the other side writes, so the reply is in proportion;
+- how formal the conversation is right now (a usually casual chat can turn serious);
+- what was actually asked, so every question gets an answer.
 
-## Base voice comes from the profile, the thread only nudges it
+When the thread and the profile disagree about how the user writes, trust the profile.
 
-The owner has a known register per language (see `~/.config/bedrock/voice.md`). Use that as the base and
-let the thread adjust the surface. So a RU internal thread starts from the owner's lowercase,
-bursty, "ща" voice, an EN client thread starts from the warm, full-sentence voice. You're not
-building a voice from scratch off a thin sample, you're taking the owner's voice and tuning it
-to this specific conversation.
+## Do not mirror the other side
 
-## Guard against caricature
+Match the user's voice, not the other person's. Do not echo their phrases or sentence
+shapes back. Do not pick up their emoji or swearing unless the register says the user does
+that too (`facts.md`, settings).
 
-A pasted snippet is thin evidence. Two failure modes to avoid:
-- **Over-fitting**: latching onto one quirk in the sample and cranking it up. If they used one
-  emoji, that doesn't make them an emoji person.
-- **Mirroring**: echoing their sentence structure or vocabulary back at them. Match the
-  register, not the wording.
+## Answer what was asked
 
-When the sample and the profile disagree, trust the profile. It's built from many real messages,
-the snippet is one moment.
+- Every direct question in the last messages gets an answer or an honest "не знаю" /
+  "not sure yet".
+- If answering needs a business commitment only the user can make (a price, a deadline,
+  a deal), ask them one short question instead of drafting. Casual chats always get a
+  natural reply, even a short counter-question.
 
-## Profanity and emoji follow the profile
+## Several messages
 
-Profanity: match the interlocutor per the profile, but the owner's own baseline is clean, so
-don't introduce swearing the thread doesn't already have. Emoji: never, and no smileys
-including the trailing ")".
-
-## Length
-
-Maximally concise, always (owner setting). Match the thread's tone and spelling, but keep the
-reply short. If the other person wrote three paragraphs, you still answer in the fewest words
-that actually cover it. Only go longer when the content truly needs it (a real technical
-explanation the owner would spell out), and even then, trim.
-
-## One reply
-
-Produce a single reply, not variants. If you're genuinely unsure between two directions (say, a
-firm "no" vs a soft "let me check"), ask one short question instead of dumping both.
-
-## Facts
-
-You do not know things the owner hasn't told you. Do not invent status, numbers, links, or
-commitments to make the reply sound complete. See `anti-hallucination.md`.
+If the user's examples split thoughts across messages, do the same: one message per line in
+the draft, in the order they would be sent. Step 6 of SKILL.md says how to hand them over.

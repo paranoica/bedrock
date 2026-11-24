@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.0
+- `humanize` is now a copy of claude-humanize-skill (voice registers, similar replies, lint),
+  refreshed with `tools/sync_humanize.py`; the old skill and its `~/.config/bedrock/voice.md`
+  profile are no longer used. The voice profile lives in `~/.config/humanize/profile`.
+- A request for a message the owner will send («ответь ему», «что ответить», "draft a reply")
+  makes the prompt hook name `bedrock:humanize` exactly, and says that a reply without "send"
+  goes into the chat only. Pasted, fenced and quoted text does not count. When
+  claude-humanize-skill's own hook is installed, bedrock stays silent so the hint comes once.
+- `bedrock doctor` shows which humanize is active and whether a voice profile exists.
+- The question log no longer drops the owner's question after a quoted `>` line.
+
 ## 0.2.5
 - `bedrock doctor` warns when the claude-output-style answer rules are not in
   `~/.claude/CLAUDE.md` and prints the command that installs them.

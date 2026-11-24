@@ -1,0 +1,98 @@
+# Phrases that mark text as generated. lint.py fails a draft that contains any of them.
+# Matching ignores case, commas, colons and the dots over "е".
+# Owner-specific bans go to settings.toml [stoplist], not here.
+
+[ru]
+важно отметить
+стоит отметить
+стоит подчеркнуть
+стоит учитывать
+нельзя не отметить
+следует отметить
+следует помнить
+не секрет что
+как известно
+в заключение
+подводя итог
+подводя итоги
+резюмируя
+таким образом можно
+играет важную роль
+играет ключевую роль
+играет значительную роль
+является свидетельством
+служит напоминанием
+представляет собой
+является неотъемлемой частью
+в современном мире
+в эпоху цифровизации
+в быстро меняющемся мире
+давайте разберемся
+давайте погрузимся
+погрузимся в
+надеюсь это поможет
+надеюсь это было полезно
+буду рад помочь
+буду рада помочь
+отличный вопрос
+хороший вопрос
+если у вас остались вопросы
+если остались вопросы
+не стесняйтесь обращаться
+доброго времени суток
+имеет место быть
+на данный момент времени
+осуществить проверку
+в рамках данного
+
+[en]
+delve
+delving
+tapestry
+testament to
+it's worth noting
+it is worth noting
+it's important to note
+it is important to note
+in today's fast-paced
+ever-evolving
+in the realm of
+at the intersection of
+let's dive in
+dive deep into
+shed light on
+key takeaway
+in conclusion
+to sum up
+needless to say
+rest assured
+plays a crucial role
+plays a pivotal role
+serves as a reminder
+i hope this helps
+hope this finds you well
+hope this message finds you well
+great question
+let me know if you have any questions
+don't hesitate to reach out
+do not hesitate to reach out
+please do not hesitate
+game-changer
+game changer
+seamlessly
+utilize
+showcasing
+underscores
+unlock the power
+elevate your
+embark on
+multifaceted
+plethora
+myriad of
+groundbreaking
+cutting-edge
+meticulous
+holistic
+synergy
+moreover
+furthermore

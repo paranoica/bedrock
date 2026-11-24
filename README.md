@@ -32,6 +32,14 @@ git clone git@github.com:paranoica/claude-output-style.git && ./claude-output-st
 `install.sh` adds the rules to `~/.claude/CLAUDE.md` and turns off an active `outputStyle` other
 than `plain` or `default`, backing up each file it changes; `--keep-style` leaves the style alone.
 
+Messages you send as yourself go through the `humanize` skill, a copy of
+[claude-humanize-skill](https://github.com/paranoica/claude-humanize-skill) bundled with the
+plugin: a request like «ответь ему» or "draft a reply" makes bedrock tell Claude to load
+`bedrock:humanize`, and the text comes back into the chat, never sent. Without a voice profile it
+writes in a plain default voice; a profile built with that repository goes to
+`~/.config/humanize/profile`. If that repository's own hook is installed, bedrock leaves the hint
+to it. Maintainers refresh the copy with `python3 tools/sync_humanize.py`.
+
 ## What is in it
 
 | Part | Where | What it does |

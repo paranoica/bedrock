@@ -59,7 +59,7 @@ Done when: the line is sent.
 | Checking flows in a browser | `e2e` | scripted tests for each finding |
 | A call to debrief | `call` | `bedrock call quotes` prints `[]` |
 | A report or PDF for people | `doc` | the PDF, `bedrock text check` clean |
-| A message in the owner's voice | `humanize` | copy-ready text, `bedrock text check` clean |
+| A message in the owner's voice | `humanize` | copy-ready text, the skill's lint clean |
 | Bug reports to sort | `triage` | one decision per group |
 | The weekly look back | `retro` | small fixes logged, a list for «го» |
 | Architecture review (on request) | `arch` | three designs, a decision note |

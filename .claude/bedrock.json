@@ -16,7 +16,8 @@
       "registry.npmjs.org",
       "api.npmjs.org",
       "pypi.org",
-      "pypistats.org"
+      "pypistats.org",
+      "github.com"
     ],
     "ignore": [
       "tests/test_codecheck.py",

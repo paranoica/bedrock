@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
+from . import humanize
 from .config import UserConfig
 
 MIN_PYTHON = (3, 12)
@@ -136,6 +137,7 @@ def _files(cfg: UserConfig, home: Path, machine: Machine) -> list[Check]:
         fix = f"copy design-creator's tools/package*.json to {tools}, then npm ci there"
         found.append(Check("design tools", "warn", f"design-creator cannot render: {fix}"))
     found.append(_answer_rules(home))
+    found.append(_humanize(home))
     if cfg.backup_repo and cfg.backup_recipient:
         found.append(Check("backup", "ok", str(cfg.backup_repo)))
     else:
@@ -155,6 +157,22 @@ def _answer_rules(home: Path) -> Check:
         "answer style",
         "warn",
         f"claude-output-style rules are not in {rules}: {ANSWER_RULES_INSTALL}",
+    )
+
+
+def _humanize(home: Path) -> Check:
+    if humanize.personal_hook(home / ".claude"):
+        source = "the personal humanize skill, triggered by its own hook"
+    else:
+        source = "bedrock:humanize, triggered by bedrock"
+    found = humanize.profile(home)
+    if found is not None:
+        return Check("humanize", "ok", f"{source}; voice profile in {found}")
+    return Check(
+        "humanize",
+        "warn",
+        f"{source}; no voice profile, so drafts use the default voice: build one with "
+        "github.com/paranoica/claude-humanize-skill into ~/.config/humanize/profile",
     )
 
 

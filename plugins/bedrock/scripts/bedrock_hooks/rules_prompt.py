@@ -1,23 +1,24 @@
-"""The owner's prompt: the question log."""
+"""The owner's prompt: the question log and the humanize trigger."""
 
 from __future__ import annotations
 
 import re
 
-from bedrock_lib import questions
+from bedrock_lib import agents, humanize, questions
 
+from bedrock_hooks import draft_trigger
 from bedrock_hooks.core import HELPER, Env, Event, Rule, Verdict
 
 OWNER_SOURCES = {"user", ""}
-# Pasted and quoted text is someone else's words, not the owner's question.
-QUOTED = re.compile(
-    r"<pasted_content[^>]*>.*?</pasted_content>|```.*?```|^>.*$|«[^»\n]*»|„[^“\n]*“|\"[^\"\n]*\"",
-    re.S | re.M,
-)
 QUESTION_START = re.compile(
     r"^(?:как|что|где|почему|зачем|когда|какой|какая|какие|каким|кто|сколько|можно ли|есть ли"
     r"|how|what|where|why|when|which|who|can|does|do|is|are)\b",
     re.I,
+)
+BUNDLED_HUMANIZE = draft_trigger.context(
+    "bedrock:humanize",
+    "the skill bundled with the bedrock plugin",
+    "humanize, not anthropic-skills:humanize",
 )
 
 
@@ -26,7 +27,7 @@ def _owner(event: Event) -> bool:
 
 
 def _text(event: Event) -> str:
-    return QUOTED.sub(" ", str(event.data.get("prompt") or "")).strip()
+    return draft_trigger.own_words(str(event.data.get("prompt") or "")).strip()
 
 
 def _is_question(text: str) -> bool:
@@ -53,7 +54,22 @@ def log_question(event: Event, env: Env) -> Verdict | None:
     )
 
 
+def trigger_humanize(event: Event, env: Env) -> Verdict | None:
+    """Point a request for a message the owner will send at the bundled humanize skill.
+
+    When the personal hook is installed it gives the same hint for the personal skill, so
+    this one stays silent and the hint never comes twice.
+    """
+    prompt = str(event.data.get("prompt") or "")
+    if not _owner(event) or not draft_trigger.wants_message(prompt):
+        return None
+    if humanize.personal_hook(agents.claude_dir(env.environ)):
+        return None
+    return Verdict(context=BUNDLED_HUMANIZE)
+
+
 EVENTS = frozenset({"UserPromptSubmit"})
 RULES = [
     Rule("question-log", EVENTS, HELPER, log_question),
+    Rule("humanize-trigger", EVENTS, HELPER, trigger_humanize),
 ]

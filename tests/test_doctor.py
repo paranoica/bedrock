@@ -1,3 +1,4 @@
+import json
 import subprocess
 from pathlib import Path
 
@@ -50,6 +51,9 @@ def home(tmp_path: Path) -> Path:
     rules.write_text(
         "# mine\n<!-- claude-output-style:begin -->\nrules\n<!-- claude-output-style:end -->\n"
     )
+    voice = tmp_path / ".config" / "humanize" / "profile"
+    voice.mkdir(parents=True)
+    (voice / "profile.md").write_text("# voice\n")
     return tmp_path
 
 
@@ -136,3 +140,31 @@ def test_missing_answer_rules_warn_with_the_install_command(home: Path, text: st
 def test_installed_answer_rules_are_ok(home: Path) -> None:
     found = {c.name: c for c in doctor.run(UserConfig(state_dir=home / "s"), home, Machine(FULL))}
     assert found["answer style"].level == "ok"
+
+
+def humanize_check(home: Path) -> doctor.Check:
+    found = {c.name: c for c in doctor.run(UserConfig(state_dir=home / "s"), home, Machine(FULL))}
+    return found["humanize"]
+
+
+def test_the_bundled_humanize_without_a_profile_warns_how_to_get_one(home: Path) -> None:
+    (home / ".config" / "humanize" / "profile" / "profile.md").unlink()
+    check = humanize_check(home)
+    assert check.level == "warn"
+    assert "bedrock:humanize" in check.detail and "default voice" in check.detail
+
+
+@pytest.mark.parametrize("folder", [".config/humanize/profile", ".claude/skills/humanize/profile"])
+def test_a_voice_profile_is_ok(home: Path, folder: str) -> None:
+    (home / ".config" / "humanize" / "profile" / "profile.md").unlink()
+    (home / folder).mkdir(parents=True, exist_ok=True)
+    (home / folder / "profile.md").write_text("# voice\n")
+    check = humanize_check(home)
+    assert check.level == "ok" and str(home / folder) in check.detail
+
+
+def test_the_personal_hook_is_named_when_installed(home: Path) -> None:
+    hook = {"type": "command", "command": "/x/hooks/draft_trigger.sh"}
+    settings = {"hooks": {"UserPromptSubmit": [{"hooks": [hook]}]}}
+    (home / ".claude" / "settings.json").write_text(json.dumps(settings))
+    assert "personal" in humanize_check(home).detail

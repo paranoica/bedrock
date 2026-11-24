@@ -13,9 +13,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 SKILL_LINE_LIMIT = 250
-# Skills carried whole from the bedrock main branch keep their own length and sentence style;
-# frontmatter, the description budget and links are still checked.
-PORTED = {"code-review", "design-creator"}
+# Skills carried whole from elsewhere (the old bedrock main branch, claude-humanize-skill) keep
+# their own length and sentence style; frontmatter, the description budget and links are still
+# checked.
+PORTED = {"code-review", "design-creator", "humanize"}
 REFERENCE_LINE_LIMIT = 300
 DESCRIPTION_TOKEN_LIMIT = 60
 MAX_SEMICOLONS = 2

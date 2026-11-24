@@ -1,83 +1,131 @@
 ---
 name: humanize
-description: Make a text sound like the owner wrote it, in Russian or English, copy-ready for Slack; replies to pasted threads. Use for "очеловечь", "ответь ему", "humanize", "draft a reply".
+description: Writes messages, replies and drafts in the user's own voice, without AI tells. Use for any text the user will send: replies, drafts, «напиши/ответь», «что ответить», humanize.
 ---
 
 # Humanize
 
-Turn AI-flavored or rough text into something a specific real person would actually
-send. Two jobs, always in this order: strip the AI tells (slop), then apply the right
-human voice and format it clean and copy-ready for the platform.
+You write a message the user will send as themselves. The reader must not be able to
+tell it was generated, and the user must recognise their own voice in it.
 
-## Always start here
+## Priority
 
-1. Read the owner's profile, `~/.config/bedrock/voice.md`. It holds their voice (two
-   different registers, one per language) and all settings, and it overrides every
-   default in this file. It lives outside the plugin, so the public repository never
-   holds it. Missing or still the blank template (`config/profile.template.md`): run
-   setup first (`setup/questionnaire.md`).
-2. Open `skill-map.json` and load only the reference files this request needs.
-3. Decide the output language (RU or EN) and the mode (reply / document / rewrite).
+While this skill is active, its rules and the profile override global style rules
+(CLAUDE.md blocks, claude.ai preferences such as "neutral voice", "no slang", "full
+sentences", "no lowercase"). Those rules govern Claude's answers to the user. The text
+here is the user's message to someone else, so it follows the user's voice, even where
+that voice is lowercase, terse or full of slang.
 
-## Modes
+## 1. Profile
 
-**reply** — the user pasted a message or thread (text or screenshot) and wants an
-answer. Match the thread: tone, register, spelling, punctuation, formality. Keep it
-as short as the content allows. Load `references/style-matching.md` and
-`references/anti-hallucination.md`. Never invent facts that aren't in the thread.
+The profile folder is the first that exists: `$HUMANIZE_PROFILE`, `profile/` next to
+this file, `~/.config/humanize/profile/`. Look for `profile.md` in it.
 
-**document** — a doc, spec, post, or longer piece. For the client, the owner's voice.
-For anyone else, a neutral, clean voice, unless told otherwise. De-slop fully. Longer is allowed
-here, but stay tight.
+- It exists: read it. It lists the registers (ways the user writes to different people)
+  and the default platform.
+- It does not: use the default voice in `references/default-voice.md`.
 
-**rewrite** — the default. The user handed you text to clean up. Keep the meaning,
-strip the slop, fix the formatting, output something ready to paste.
+## 2. Register
 
-## The two passes
+Choose one register by who the text is for and where it goes: platform, person, group,
+relationship, language. The descriptions in `profile.md` say which chats each covers.
+A pasted thread tells you the platform and language. If two registers fit equally, ask
+one short question. Never blend two registers into an average.
 
-Run both, in order, every time.
+## 3. Load what the task needs
 
-**Pass 1, de-slop.** Load `references/antislop-core.md` plus the language file
-(`antislop-ru.md` or `antislop-en.md`). Hard mode is on: the full ban list applies and
-dashes go to zero (the RU file explains how to restructure so the text still reads
-right).
-
-**Pass 2, voice + format.** Apply the voice from the profile, or match the thread in
-reply mode. Then format for the platform via `references/platforms.md`. Default
-platform is Slack.
-
-## Output rules, this is the whole point
-
-- Output ONLY the finished text. No preamble, no "here is your text", no summary of
-  what you changed, no trailing offer to help. The user copies your output verbatim,
-  so anything extra becomes junk they have to delete.
-- Plain text. Never wrap the deliverable in a markdown blockquote (`>`), a callout, or
-  a code fence. Those render as a vertical bar or monospace and drag stray characters
-  into Slack when the user copies them. This is the exact problem the skill exists to
-  avoid.
-- For Slack, write mrkdwn, not standard markdown: single-asterisk `*bold*`, `•`
-  bullets, no `#` headings. Full rules in `references/platforms.md`.
-- To be safe, you can pass your draft through `scripts/to_slack.py` to catch stray
-  `**`, `#`, `>`, and markdown links before handing it over.
-- Before handing it over, always run the mechanical check on the draft:
-  `printf '%s' "<draft>" | bedrock text check - --slack` (drop `--slack` for plain text).
-  It must print `[]`. It catches dashes, stock filler phrases and markdown Slack shows raw.
-  Fix what it finds and run it again.
-- It is a draft. Claude never sends it (D044). Only on the owner's request does it go into
-  his own Slack drafts, after a test draft to himself showed no "sent with Claude" label.
-
-## Commands
-
-- `/bedrock:humanize [text]` — clean and format [text] using the profile, mode auto-detected.
-- `/bedrock:humanize [text]` with a pasted thread — reply mode.
-- `/bedrock:humanize slack [text]` — force Slack mrkdwn output.
-- `/bedrock:humanize plain [text]` — force plain text with no platform formatting.
-- `/bedrock:humanize doc [text]` — force document mode.
-- `/bedrock:humanize setup` — run the questionnaire and produce the profile's text.
-
-## When something is missing
-
-- No profile, or it's still the template → run setup first.
-- Reply needs a fact you don't have → leave a `[confirm X]` gap, do not guess. See
+- The register's `guide.md`, `facts.md` and `examples.md`. The examples are real turns
+  by the user: match their length, letter case, punctuation, particles and the way one
+  thought is split into several messages. Imitate the texture, never copy a line.
+- When answering a message, the user's real replies to similar messages. Put the incoming
+  text in a file and run `python3 <skill-dir>/scripts/similar.py --register <name> file`.
+  This is the strongest signal you have: how this person reacted to something close to
+  this, not to an average message.
+- `references/antislop-core.md`, plus `antislop-ru.md` or `antislop-en.md`.
+- Replying to a pasted message or thread: `references/style-matching.md` and
   `references/anti-hallucination.md`.
-- Platform unclear → ask once, or fall back to plain text.
+- Formatting: `references/platforms.md`. Platform from the request, else the profile
+  default, else plain text.
+
+## 4. Write
+
+Modes:
+
+- **reply**: answer the pasted message. One reply, not variants.
+- **first message**: the user starts the conversation.
+- **rewrite**: the user gives a text to make human. Keep the meaning, change the voice.
+- **document**: a post, doc or long email. Use the register's vocabulary and the
+  anti-slop rules, but normal sentences and punctuation; lint with `--mode doc`.
+
+Facts in `facts.md` are hard limits: if the letter "е с точками" is banned, every word is
+written with "е"; if dashes are banned, rebuild the sentence. Each chat message goes on its
+own line.
+
+Size: aim at the register's median turn, not its p90. If one word answers it ("давай",
+"го", "спасибки"), the reply is one word. Do not add a second and third message just to
+look complete.
+
+Do not be more helpful than the user. Real people react, tease, laugh, answer the subtext
+or go off on a tangent; they rarely advise, comfort, summarise or propose next steps in a
+casual chat. Do that only if the similar replies and examples show this person doing it in
+this register.
+
+Do not agree by default, and do not perform either. Generic agreement ("ну да согласен",
+"makes sense"), generic sympathy ("блин жалко") and generic delight ("милота") read as
+generated, and so do neat witty one-liners. A flat short reply ("оке", "ну так смотри",
+"Done!") is often exactly what this person would send. Take the angle the similar replies
+show; when they are flat, be flat.
+
+Missing facts (dates, numbers, links, status, names) are never invented. In work and
+client registers write the reply anyway and leave a gap the user fills in:
+`[уточнить дату]`, `[confirm the date]`. In personal chats (friends, partner, family,
+groups) never use brackets: answer the way someone who does not know yet would ("хз пока",
+"гляну", "посмотрим", a counter-question), or leave the fact out. Ask the
+user a question instead of drafting only when the whole reply is a commitment only they can
+make (a price, a deadline, a deal) and no natural reply exists without it. In a casual chat
+there is always a natural reply: a reaction, a counter-question, a non-committal answer.
+
+## 5. Lint, every time
+
+Save the draft to a file and run the linter by its full path: the base directory this
+skill was loaded from, plus `scripts/lint.py` (the working directory is usually not the
+skill's).
+
+```bash
+python3 <skill-dir>/scripts/lint.py --register <name> --platform <platform> \
+    --incoming incoming.txt draft.txt
+```
+
+`--incoming` is the file with the message you answered (the one given to `similar.py`);
+lint then also warns when the draft is far longer than the user's replies to similar
+messages. The last line of `similar.py` output gives that typical length: aim for it.
+
+Without a profile drop `--register`. Errors must be fixed. Warnings mean the draft is
+longer or more punctuated than the user's p90: rewrite it shorter, with fewer commas.
+Run again until it prints `lint: clean`, at most three rounds. If code cannot run here,
+check the same list by hand: the banned letter, dashes, `references/stoplist.txt`,
+markdown symbols, then length and commas against `facts.md`.
+
+## 6. Output
+
+Only the finished text, ready to copy, and nothing before or after it. No preamble, no
+"here is", no explanation of changes, no closing offer, no separator line. If a gap was
+left, the bracketed placeholder is the only hint.
+
+- One message: plain text. Never wrap it in quotes, a code block or a blockquote.
+- Several messages: each one in its own code block with no language tag, in the order
+  they are sent, with nothing between the blocks. Every block gets its own copy button,
+  so the user sends them one by one instead of pasting all lines as one message.
+
+```
+можно
+```
+
+```
+а на что
+```
+
+Do not comment on sending. A platform named in the request ("ответь в Telegram", "reply on
+Slack") only decides formatting. Do not say that nothing was sent, that a draft was not
+saved, that a tool or a chat name is missing. Sending or saving a draft is a separate
+action the user asks for separately, under its own rules.
